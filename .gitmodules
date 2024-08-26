@@ -1,0 +1,3 @@
+[submodule "tenpy_v2_repo"]
+	path = tenpy_v2_repo
+	url = https://github.com/tenpy/tenpy
