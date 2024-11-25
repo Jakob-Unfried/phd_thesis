@@ -1,0 +1,220 @@
+A popular approach is to compute the gradients using \acrofull{autodiff}, which can take the implementation of a function and compute its derivative by composing known derivative formulae of its building blocks using the chain rule.
+
+
+\subsection{Automatic differentiation -- a brief introduction}
+
+
+We refer to Refs.~\cite{baydin2018, margossian2019} for detailed introductions to and reviews of \acro{autodiff}.
+%
+Let us establish some terminology and give a simple example for reverse-mode \acro{autodiff}.
+%
+The central objects in reverse-mode are the adjoints or cotangents $\Gamma_{X}$ associated with every variable $X$.
+%
+They can be thought of as derivatives $\Gamma_X = \partial \mathcal{L} / \partial X$ of the target loss function $\mathcal{L}$ such that $\d{\mathcal{L}} = \sum_i \Gamma_{X_i} \d{X_i}$ in the real case.
+%
+In the complex case (with a real-valued cost function $\mathcal{L}$ of complex variables $X_i$), we can think of $X_i$ and $\conj{X}_i$ as independent variables and have 
+\begin{equation}
+    \d{\mathcal{L}} = \sum_i \left( \Gamma_{X_i} \d{X_i} + \Gamma_{\conj{X}_i} \d{\conj{X}_i} \right) = \sum_i \left( \Gamma_{\conj{X}_i} \d{\conj{X}_i} + \text{c.c.} \right)
+    ~.
+\end{equation}
+%
+In most \acro{autodiff} schemes for complex variables, only the adjoints of the conjugate variables, that is, the $\Gamma_{\conj{X}_i}$ are stored, since the $\Gamma_{X_i} = \conj{\Gconj{X_i}}$ are not independent.
+%
+Now, for a matrix $A$ of variables $A_{ij}$, this takes the convenient form
+\begin{equation}
+    \d{\mathcal{L}} = \sum_{ij} \left( \Gamma_{\conj{A}_{ij}} \d{\conj{A}_{ij}} + \text{c.c.} \right) = \tr{\Gamma_{\conj{A}} \d{A}^\dagger + \text{c.c.}}
+    ~.
+\end{equation}
+
+As a concrete example, let us derive the \acro{autodiff} formula for a basic function in the real case.
+%
+Consider addition of two variables, that is forming $x = a + b$.
+%
+The goal is now to express the input cotangents $\Gamma_a, \Gamma_b$ in terms of the output cotangent $\Gamma_x$, as well as the values $x, a, b$.
+%
+To this end, equate $\Gamma_x \d{x} = \d{\mathcal{L}} = \Gamma_a \d{a} + \Gamma_b \d{b}$ and plug in the differential $\d{x} = \d{a} + \d{b}$ of the defining equation to find $\Gamma_a = \Gamma_b = \Gamma_x$.
+%
+Similarly, for taking a power $y = c^n$, we find $\Gamma_c = n c^{n-1} \Gamma_y$.
+
+
+
+The core of automatic differentiation is then to derive the input cotangents of a composite function $\mathcal{L}$, given these kinds of formulae for a set of building block functions that $\mathcal{L}$ is composed of.
+%
+In reverse-mode, this is done by establishing a computation graph for the function $\mathcal{L}$, which formally assigns distinct variable names to each intermediate result in the computation of a value of $\mathcal{L}$ and organizes the order in which they are computed in a graph.
+%
+The computation of a value of $\mathcal{L}$ is commonly referred to as the forward pass.
+%
+It starts with values for the input variables and terminates with a value for the output $\mathcal{L}$.
+%
+This graph is then traversed in the opposite direction, in the ``backward pass", starting from the cotangent $\Gamma_{\mathcal{L}} := 1$, and terminates with cotangents of the input variables.
+
+
+
+As a concrete example, consider the function $\mathcal{L}(x, y) = (4x + y)^2$ with input values $x = 1/2$ and $y=3$.
+%
+For the forward pass we compute
+\begin{align}
+\begin{split}
+    \label{eq:gradpeps:autodiff:example_forward_pass}
+    &w_1 := 4x = 2
+    \\
+    &w_2 := w_1 + y = 5
+    \\
+    &\mathcal{L} = (w_2)^2 = 25
+\end{split}
+\end{align}
+and for the backward pass we start with $\Gamma_{\mathcal{L}} := 1$ and compute
+\begin{align}
+\begin{split}
+    \label{eq:gradpeps:autodiff:example_backward_pass}
+    \\
+    &\Gamma_{w_2} = 2 w_2 \Gamma_{\mathcal{L}} = 10
+    \\
+    &\Gamma_{w_1} = \Gamma_{w_2} = 10 \quad ; \quad  \Gamma_{y} = \Gamma_{w_2} = 10
+    \\
+    &\Gamma_{x} = 4 \Gamma_{w_1} = 40
+    ~.
+\end{split}
+\end{align}
+%
+This computation has given us the derivatives $\partial\mathcal{L}/\partial x = \Gamma_{x} = 40$ and $\partial\mathcal{L}/\partial y = \Gamma_{y} = 10$, evaluated at $(x,y) = (1/2, 3)$, which we can easily verify by hand.
+%
+It results from going through the steps of~\eqref{eq:gradpeps:autodiff:example_forward_pass} in reverse order and applying the \acroshort{autodiff} formula for each respective operation.
+%
+In particular, this can be automated, resulting in \acrofull{autodiff}.
+
+
+\subsection{Backward formula for the truncated SVD}
+\label{subsec:gradpeps:autodiff:trunc_svd}
+
+It is crucial, and not widely implemented in common \acro{autodiff} libraries, to use appropriate backward formulae for the truncated \acro{svd}.
+%
+The backward formula for the complex \acro{svd} was only found recently~\cite{wan2019}, and the use of \acro{autodiff} in the context of \acro{peps} optimization has recently led to the introduction of corrected formulae in the presence of truncation~\cite{francuz2023}.
+%
+We state the backward formula for the truncated \acro{svd} here, and refer to the derivations, and related result for truncated hermitian eigendecompositions in appendix~\ref{ch:autodiff_derivations}.
+%
+The result for the general case is essentially a restatement of the results of Ref.~\cite{francuz2023}, and we develop a new result for simplification in the special case of the enlarged gauge transformation, where requirements on the decomposition are relaxed to those of a \acrofull{dsvd}.
+
+
+
+
+For the purposes of \acro{autodiff}, we view the truncated \acro{svd} is a mapping $A \mapsto (U, S, V)$ of an input matrix $A \in \Cbb^{m \times n}$ such that
+\begin{equation}
+    A = U S \hconj{V} + X Y \hconj{Z}
+    .
+\end{equation}
+Here, $U \in \Cbb^{m\times k}$, $X \in \Cbb^{m\times (m-k)}$, $V \in \Cbb^{n\times k}$ and $Z \in \Cbb^{n \times (n-k)}$ are (left) isometries and $X$ ($Z$) is the orthogonal complement of $U$ ($V$) and $S \in \Rbb^{k \times k}$ and $Y \in \Rbb^{(m - k) \times (n - k)}$ are real matrices that vanish off the main diagonal, where $S$ is strictly positive and $Y$ is non-negative.
+%
+We consider $A \approx U S \hconj{V}$ as the approximation, the truncated \acro{svd}.
+%
+The result for the \acro{autodiff} backward formula for the function $A \mapsto (U, S, V)$, in particular with a non-conjugated $V$ as the third output is
+\begin{align}
+    \label{eq:grapeps:autodiff:svd_result}
+    \begin{split}
+        \Gamma_{\conj{A}}
+        &= \Gamma_{\conj{A}}^\text{(S)} + \Gamma_{\conj{A}}^\text{(Uo)} + \Gamma_{\conj{A}}^\text{(Vo)} + \Gamma_{\conj{A}}^\text{(diag)} + \Gamma_{\conj{A}}^\text{(tr)}
+        \\[1ex]
+        &= \frac{1}{2} U \left( \Gamma_{\conj{S}} + \Gamma_{\conj{S}}^\dagger \right) V^\dagger
+        + U (J + J^\dagger) S V^\dagger
+        + U S (K + K^\dagger) V^\dagger
+        \\
+        &\quad+ \frac{1}{2} U S^{-1} (L^\dagger - L) V^\dagger
+        + \left[XX^\dagger \gamma V^\dagger + U \varphi^\dagger Z Z^\dagger \right]
+        ~,
+    \end{split}
+\end{align}
+where
+\begin{equation}
+    J := F \hadamard (U^\dagger \Gamma_{\conj{U}})
+    \quad ; \quad
+    K := F \hadamard (V^\dagger \Gamma_{\conj{V}})
+    \quad ; \quad
+    L := \eye \hadamard (V^\dagger \Gamma_{\conj{V}})
+    .
+\end{equation}
+\begin{equation}
+    F_{ij} := \begin{cases} 0 & i = j \\ 1 / (S_i^2 - S_j^2) & i \neq j \end{cases}
+\end{equation}
+Here, $\hadamard$ denotes elementwise matrix multiplication and $\gamma, \varphi$ are the solutions to the coupled Sylvester equations
+\begin{align}
+    \label{eq:gradpeps:autodiff:sylvester_eqs}
+    \begin{split}
+        \Gamma_{\conj{U}} &= \gamma S - A Z Z^\dagger \varphi
+        \\
+        \Gamma_{\conj{V}} &= \varphi S - A^\dagger X X^\dagger \gamma
+        ~.
+    \end{split}
+\end{align}
+
+The Sylvester equations~\eqref{eq:gradpeps:autodiff:sylvester_eqs} have a unique solution if and only if $S$ and $Y$ have no singular values in common, such that splitting multiplets of (nearly) degenerate singular values should be avoided.
+%
+The formula simplifies in the following relevant special cases:
+
+
+\begin{enumerate}
+    \item
+    For a real \acro{svd}, i.e.~such that the input $A$ and all outputs $U, S, V$ are real-valued, we find $\Gamma^\text{(diag)}_{\conj{A}} = 0$.
+    
+    \item
+    If there is no truncation, i.e.~if $k=\min(m, n)$, the Sylvester equations have a closed form solution which results in $\Gamma^\text{tr}_{\conj{A}} = XX^\dagger\Gamma_{\conj{U}}S^{-1}V^\dagger + U S^{-1} \Gamma_{\conj{V}}^\dagger Z Z^\dagger$.
+
+    \item
+    If $A$ is square and there is no truncation, that is for $k = m = n$, we have $\Gamma^\text{tr}_{\conj{A}} = 0$.
+
+    \item
+    If the loss function is invariant under the enlarged gauge transformation
+    \begin{equation}
+        \label{eq:gradpeps:autodiff:svd_enlarged_gauge_trafo}
+        U \mapsto UQ
+        \quad , \quad
+        S \mapsto Q^\dagger S R
+        \quad , \quad
+        V \mapsto V R
+    \end{equation}
+    with arbitrary $k \times k$ unitaries $Q, R$, that is if $\mathcal{L}(U, S, V) = \mathcal{L}(UQ, Q^\dagger SR, VR)$, we have $\Gamma_{\conj{A}}^\text{(Uo)} = \Gamma_{\conj{A}}^\text{(Vo)} = \Gamma_{\conj{A}}^\text{(diag)} = 0$ and $\GcAs = U \Gconj{S} V^\dagger$.
+    %
+    Note that this case no longer relies on any properties of $S$, such that it holds for the \acro{dsvd}~\eqref{subsec:truncation:factorizations:deformed_svd}, if the deformed singular value properties hold, as we assumed in the setup.
+\end{enumerate}
+
+The last special case drastically simplifies the \acro{autodiff} formula and removes the common sources of instabilities, namely from $F$ in the presence of (nearly) degenerate singular values and from $S^{-1}$ in the presence of vanishing (small) singular values.
+%
+We may use it whenever the truncated \acro{svd} as an algorithmic step may be relaxed to a \acro{dsvd}, e.g.~if we only care about the correct subspaces spanned by $U$ and $V$ for truncation, and do not rely on the particular bases for these subspaces that make $S$ diagonal.
+
+
+
+
+If this is not possible, other strategies have been employed to stabilize these expressions.
+%
+First, note that singular values so small as to make the inverse $S^{-1}$ unstable \emph{should} be truncated and would thus not appear in $S$, but in $Y$.
+%
+Secondly, forming $F$ in the presence of (nearly) degenerate singular values is unstable.
+%
+One common approach to adress this is to realize that $F$ is always used in conjunction with a factor of $S$.
+%
+Therefore, we can instead form
+\begin{equation}
+    G_{ij} := \begin{cases} 0 & i = j \\ 1 / (S_i + S_j) & i \neq j \end{cases}
+    \qquad ; \qquad
+    H_{ij} := \begin{cases} 0 & i = j \\ 1 / (S_i - S_j) & i \neq j \end{cases}
+    ,
+\end{equation}
+such that $FS = (H - G) / 2$ and $SF = (H + G)/2$.
+%
+Forming G is numerically stable, and forming $H$ should be more stable in practice than $F$.
+%
+Therefore we can compute the following parts of $\Gamma^\text{(Uo)}_{\bar{A}}$ and $\Gamma^\text{(Vo)}_{\bar{A}}$ as
+\begin{align}
+    (J + J^\dagger) S &= \frac{H - G}{2} \hadamard (U^\dagger \Gamma_{\bar{U}} - \text{h.c.})
+    \\[1ex]
+    S (K + K^\dagger) &= \frac{H + G}{2} \hadamard (V^\dagger \Gamma_{\bar{V}} - \text{h.c.})
+    ~.
+\end{align}
+%
+Additionally, a broadened inverse $x / (x^2 + \varepsilon)$ is commonly used in place of $1/x$.
+
+
+
+
+For practical implementations, note that the (truncated) \acro{svd} is often implemented as a mapping $A \mapsto (U, S, V^\dagger)$, where the third output is $W := V^\dagger$ instead of $V$.
+%
+The AD formula for such a function is readily obtained from the result above by substituting $V = W^\dagger$ and $\Gamma_{\bar{V}} = \Gamma_{\bar{W}}^\dagger$ in~\eqref{eq:grapeps:autodiff:svd_result}.

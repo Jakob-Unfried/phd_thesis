@@ -1,0 +1,348 @@
+If the Hamiltonian has a symmetry, that is, if it commutes with a unitary $U$, it has a block-diagonal structure in the eigenbasis of the symmetry.
+%
+This block-diagonal structure can be exploited for computational performance in both memory and \acrop{flop}, as fewer numbers need to be stored for such symmetric matrices, and operations on them, such as contractions and decompositions can be done blockwise and require fewer \acrop{flop}.
+
+In this section, we focus on a ``global symmetry", that is a unitary representation $U^{(n)}$ of a symmetry group $G$ on every local Hilbert space at site $n$, such that the Hamiltonian is invariant under the global action $[ H, \otimes_{n=1}^{N} U^{(n)}(g)] = 0$ for every group element $g \in G$.
+%
+The assumption that the symmetry factorizes into on-site unitaries, i.e.~that it has a spatial structure, allows it to cooperate with the tensor networks which have an inherent spatial structure as well.
+%
+We introduce a more general framework that goes beyond symmetries induced by group representations in chapter~\ref{ch:nonabelian}, but discuss the group case here as an instructive special case and restrict to abelian groups for the concrete consequences on the tensor level.
+
+
+We give a detailed review of the basics of representation theory and state central results such as Schur's lemma in section~\ref{sec:topo_data:review_rep_thry}.
+%
+The main points are that first, any unitary representation decomposes into the direct sum of irreducible representations -- irreps for short.
+%
+For each group, $G$, the irreps can be classified and we write $U_\mathbf{a}$ for the representative of an equivalence class of irreps, where the labels are e.g. $\mathbf{a}\in\Zbb$ for $G=\U{1}$ or $\mathbf{a}\in\Zbb_N$ for $G=\Zbb_N$.
+%
+Secondly, Schur's lemma part 1 states that equivariant maps, that is, linear maps $f: V \to W$ that are compatible with representations $U_V$ ($U_W$) on $V$ ($W$) in the sense that $f \compose U_V(g) = U_W(g) \compose f$ for all $g \in G$ must vanish if $U_V \ncong U_W$ are inequivalent and irreducible.
+%
+Lastly, the tensor product $U_\mathbf{a} \otimes U_\mathbf{b}$ of irreps is itself irreducible and thus equivalent to an irrep $U_\mathbf{a + b}$, which defines the addition rule for irrep labels.
+
+
+As an example, consider the spin-$\tfrac{1}{2}$ Heisenberg chain in a field, with Hamiltonian
+\begin{equation}
+    H = \sum_{n=1}^{N-1} \Vec{S}_n \cdot \Vec{S}_{n+1} + h^z \sum_{n=1}^N S_n^z
+    .
+\end{equation}
+It has a $\U{1}$ symmetry, which conserves the total magnetization $Q = \sum_n S_n^z$.
+%
+For completeness, let us state the concrete representation
+\begin{equation}
+    U^{(n)}(\eto{\im\phi})
+    = \eto{\im\phi 2 S_n^z / \hbar}
+    = \eto{\im\phi} \ketbra{\uparrow}{\uparrow} + \eto{-\im\phi} \ketbra{\downarrow}{\downarrow}
+    ,
+\end{equation}
+where $\eto{\im\phi} \in \U{1}$ is a general group element.
+%
+We find that the representation decomposes as $U^{(n)} = U_\mathbf{1} \oplus U_\mathbf{-1}$, where $U_\mathbf{n}$ are the representative irreps of $\U{1}$ labelled by integers $\mathbf{n} \in \Zbb$, see section~\ref{sec:topo_data:U1}.
+%
+Note that this singles out the z basis as an advantageous computational basis since the representation decomposes directly into irreps in this basis, which it would, e.g.~not do in the x basis.
+%
+This is a common pattern; a symmetry group implies a canonical choice for the computational basis.
+%
+In practice, we do not need to work with the representation explicitly and only care about the irrep label for each basis element, in this case $\mathbf{1}$ for $\ket{\uparrow}$ and $\mathbf{-1}$ for $\ket{\downarrow}$.
+
+
+\subsection{Symmetric States from Symmetric Tensor Networks}
+
+Let us first focus on symmetric states that is, many-body states $\ket{\psi}$ that are invariant 
+\begin{equation}
+    \otimes_{n=1}^{N} U^{(n)}(g) \ket{\psi} = \ket{\psi}    
+\end{equation}
+under the group action.
+%
+We extend the resulting framework to covariant states (that transform non-trivially under the symmetry) afterward.
+%
+Now, what are the implications for tensor network representations of $\ket{\psi}$?
+
+First, let us consider one particular way to force tensor networks to yield symmetric states, namely by building them from symmetric tensors.
+%
+First, we require a representation of the symmetry group on each virtual Hilbert space of the tensor network.
+%
+Up to equivalence, which can be safely gauged away, the only relevant property of this representation is its irrep content, that is, which irreps appear and how often.
+%
+We can view this as choosing a separate bond dimension of the virtual Hilbert space in every symmetry sector, a choice that influences the variational power of the ansatz.
+%
+In algorithms where bond dimensions can dynamically grow, such as in most MPS algorithms, this never needs to be chosen manually since the Schmidt spectrum assigns priorities to the respective basis states and allows a clear choice, which irreps to keep.
+
+Given such representations, a tensor $T$ is \emph{symmetric} if it is invariant under the simultaneous group action on all of its legs, that is, for all $g \in G$
+\begin{equation}
+    \label{eq:tensornets:symmetries:def_symetric_tensor}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor, minimum width=3cm] (T) {$T$};
+        \draw (T.north) -- ++(0,10pt) node[tensor, above] (UN) {$U^{(1)}(g)$};
+        \draw (T.west) -- ++(-10pt,0) node[tensor, left] (UW) {$U^{(2)}(g)$};
+        \draw (T.south west) -- ++(0,-10pt) node[tensor, below] (USW) {$U^{(3)}(g)$};
+        \draw (T.south east) -- ++(0,-10pt) node[tensor, below] (USE) {$U^{(4)}(g)$};
+        \draw (T.east) -- ++(10pt,0) node[tensor, right] (UE) {$U^{(5)}(g)$};
+        \draw (UN.north) -- ++(0,10pt);
+        \draw (UW.west) -- ++(-10pt,0);
+        \draw (USW.south) -- ++(0,-10pt);
+        \draw (USE.south) -- ++(0,-10pt);
+        \draw (UE.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor, minimum width=3cm] (T) {$T$};
+        \draw (T.north) -- ++(0,10pt);
+        \draw (T.west) -- ++(-10pt,0);
+        \draw (T.south west) -- ++(0,-10pt);
+        \draw (T.south east) -- ++(0,-10pt);
+        \draw (T.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+where we have drawn a five leg example tensor for concreteness.
+
+Now if two symmetric tensors are contracted, the contracted legs need to be compatible, in the sense that one is the dual of the other, i.e.~one is ``bra-like", while the other is ``ket-like".
+%
+As a result, the representation $\ket{\psi} \mapsto U(g) \ket{\psi}$ on one leg is cancelled by the contragradient representation $\bra{\phi} \mapsto \bra{\phi} U^\dagger(g) = \bra{\phi} U(g^{-1})$ on the dual leg
+
+\begin{gather}
+\begin{gathered}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[tensor] (T) {$A$};
+        \draw (T.north) -- ++(0,10pt) node[tensor, above] (UN) {$U^{(1)}(g)$};
+        \draw (T.south) -- ++(0,-10pt) node[tensor, below] (US) {$U^{(2)}(g)$};
+        \draw (T.east) -- ++(40pt,0) node[tensor, right] (T2) {$B$};
+        \draw (T2.south) -- ++(0,-10pt) node[tensor, below] (U2S) {$U^{(3)}(g)$};
+        \draw (T2.north) -- ++(0,10pt) node[tensor, above] (U2N) {$U^{(4)}(g)$};
+        \draw (UN.north) -- ++(0,10pt);
+        \draw (US.south) -- ++(0,-10pt);
+        \draw (U2S.south) -- ++(0,-10pt);
+        \draw (U2N.north) -- ++(0,10pt);
+    \end{tikzpicture}}}}
+    ~ = ~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[tensor] (T) {$A$};
+        \draw (T.north) -- ++(0,10pt) node[tensor, above] (UN) {$U^{(1)}(g)$};
+        \draw (T.south) -- ++(0,-10pt) node[tensor, below] (US) {$U^{(2)}(g)$};
+        \draw (T.east) -- ++(10pt,0) node[tensor, right] (Uc) {$U^{(c)}(g^{-1})$};
+        \draw (Uc.east) -- ++(10pt,0) node[tensor, right] (Uc2) {$U^{(c)}(g)$};
+        \draw (Uc2.east) -- ++(20pt,0) node[tensor, right] (T2) {$B$};
+        \draw (T2.south) -- ++(0,-10pt) node[tensor, below] (U2S) {$U^{(3)}(g)$};
+        \draw (T2.north) -- ++(0,10pt) node[tensor, above] (U2N) {$U^{(4)}(g)$};
+        \draw (UN.north) -- ++(0,10pt);
+        \draw (US.south) -- ++(0,-10pt);
+        \draw (U2S.south) -- ++(0,-10pt);
+        \draw (U2N.north) -- ++(0,10pt);
+    \end{tikzpicture}}}}
+    % \\
+    ~ \overset{\eqref{eq:tensornets:symmetries:def_symetric_tensor}}{=} ~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[tensor] (T) {$A$};
+        \draw (T.north) -- ++(0,10pt);
+        \draw (T.south) -- ++(0,-10pt);
+        \draw (T.east) -- ++(10pt,0) node[tensor, right] (T2) {$B$};
+        \draw (T2.south) -- ++(0,-10pt);
+        \draw (T2.north) -- ++(0,10pt);
+    \end{tikzpicture}}}}
+    ~,
+\end{gathered}
+\end{gather}
+such that the contraction results in a composite tensor, which is itself symmetric.
+%
+Thus, a tensor network consisting of symmetric tensors gives a symmetric state.
+
+For loop-free tensor networks, such as MPS, we can also argue the other way, namely that if a symmetric state can be written as a tensor network at all, then it can be written as a tensor network \emph{of symmetric tensors} at the same bond dimensions.
+%
+For finite \acro{mps}, e.g., we can formally see this by performing a sequence of \acrop{svd} of the full wave function.
+%
+At each \acro{svd}, the number of non-zero singular values and, thus, the resulting rank is the same as in the network of non-symmetric tensors.
+%
+For infinite \acro{mps}, see e.g.~the discussion in \cite[Sec. III.A.1]{cirac2021}.
+%
+As a result, we do not lose any variational power by restricting to networks of symmetric tensors.
+
+
+\subsection{Symmetric Tensors}
+In this section, we establish a parameterization for symmetric tensors.
+%
+This allows us to store only the free parameters when storing tensors and operate only on those parameters when manipulating tensors instead of all entries of general, non-symmetric tensors.
+%
+We assume that the symmetry group is abelian at this point; see chapter~\ref{ch:nonabelian} for the non-abelian case.
+%
+There are two routes to obtain these results commonly used in the literature, either using the Wigner-Eckart theorem or Schur's Lemma.
+%
+We follow the latter route, but the consequences are the same.
+
+Since Schur's lemma is a statement about maps, we recast tensors as linear maps.
+%
+In particular a tensor $T \in V_1 \otimes \dots \otimes V_N$ is equivalent to a linear map
+\begin{equation}
+    t: \Cbb \to V_1 \otimes \dots \otimes V_N , \alpha \mapsto \alpha T
+\end{equation}
+and we can recover $T = t(1)$.
+%
+Now, $T$ is a symmetric tensor w.r.t.~representations $U^{(n)}$ on each of the spaces $V_n$ if and only if $t$ is an equivariant map between the trivial representation $U_\mathbf{0}$ on $\Cbb$ and $\bigotimes_n U^{(n)}$ on $\bigotimes_n V_n$.
+%
+Let us assume that on every leg $n$ of the tensor we have chosen the computational basis such that the group representation is a direct sum of irreps $U^{(n)} = \bigoplus_{i=1}^{\dim V_n} U_{\mathbf{a}^{(n)}_i}$ which defines $\mathbf{a}^{(n)}_i$ as the irrep label of the $i$-th component in the decomposition of $U^{(n)}$.
+%
+A general entry $T_{i_1,\dots,i_N}$ is now an equivariant map between $U_\mathbf{0}$ and $\bigotimes_{n=1}^N U_{\mathbf{a}^{(n)}_{i_n}} \cong U_{\mathbf{a}^{(1)}_{i_1} + \dots + \mathbf{a}^{(N)}_{i_N}}$.
+%
+By part 1 of Schur's lemma -- see section~\ref{sec:topo_data:review_rep_thry} -- it can only be non-zero if these representations are equivalent.
+%
+This gives rise to the charge rule for symmetric tensors
+\begin{equation}
+    \mathbf{a}^{(1)}_{i_1} + \mathbf{a}^{(2)}_{i_2} + \dots + \mathbf{a}^{(N)}_{i_N} \neq \mathbf{0}
+    \quad \Rightarrow \quad
+    T_{i_1,i_2,\dots, i_N} = 0
+    .
+\end{equation}
+%
+As a consequence, symmetric tensors have a sparsity structure, where a significant fraction of entries are forced to vanish by charge conservation.
+%
+Now, if we choose the order of the computational basis such that those indices $i_n$ that have the same irrep label $\mathbf{a}^{(n)}_{i_n}$ appear consecutively, this results in a block-sparse structure of the tensors.
+%
+Thus, it is enough to store only those non-zero blocks in memory.
+%
+Additionally, operations on tensors reduce to operations on the smaller blocks, with some additional book-keeping to identify the indices corresponding to the resulting blocks.
+%
+This applies to combining and splitting legs, contracting tensors, decomposing them in e.g.~\acrop{svd}, and more.
+%
+We do not go into detail regarding implementation at this point and refer the interested reader to the literature~\cite{singh2010b, singh2011a, hauschild2018b} since we develop a more general framework that covers the abelian groups as a special case and describe operations on tensors in detail, in chapter~\ref{ch:nonabelian}.
+
+For a bra space, it is convenient to keep track of the irreps of its dual ket space instead, which differ from its own irreps by a minus sign.
+%
+This is because the irreps are sorted for performance optimization, and this convention results in a compatible order in the dual space, which facilitates contraction.
+%
+As such, the irrep for the $i$-th index on a bra space is $-\mathbf{a}_i$, where $\mathbf{a}_i$ is the irrep of the $i$-th index on the corresponding ket space.
+%
+This introduces explicit signs $\zeta^{(n)} = \pm 1$ for each leg to the charge rule, indicating if the respective leg is a ket space ($+1$) or bra space ($-1$).
+
+Additionally, it is convenient to introduce a ``total charge", which is an irrep label $\mathbf{A}$ and replace the trivial irrep $U_\mathbf{0}$ on the domain $\Cbb$ by $U_\mathbf{A}$.
+%
+Now if the map $t$ is equivariant between $U_\mathbf{A}$ and $\bigotimes_{n=1}^N U_{\mathbf{a}^{(n)}_{i_n}}$, this means that the tensor transforms under $U_\mathbf{A}$ if the symmetry is applied, meaning
+\begin{equation}
+    \label{eq:tensornets:symmetries:def_charged_tensor}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor, minimum width=3cm] (T) {$T_\text{charged}$};
+        \draw (T.north) -- ++(0,10pt) node[tensor, above] (UN) {$U^{(1)}(g)$};
+        \draw (T.west) -- ++(-10pt,0) node[tensor, left] (UW) {$U^{(2)}(g)$};
+        \draw (T.south west) -- ++(0,-10pt) node[tensor, below] (USW) {$U^{(3)}(g)$};
+        \draw (T.south east) -- ++(0,-10pt) node[tensor, below] (USE) {$U^{(4)}(g)$};
+        \draw (T.east) -- ++(10pt,0) node[tensor, right] (UE) {$U^{(5)}(g)$};
+        \draw (UN.north) -- ++(0,10pt);
+        \draw (UW.west) -- ++(-10pt,0);
+        \draw (USW.south) -- ++(0,-10pt);
+        \draw (USE.south) -- ++(0,-10pt);
+        \draw (UE.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    U_\mathbf{A}(g) ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor, minimum width=3cm] (T) {$T_\text{charged}$};
+        \draw (T.north) -- ++(0,10pt);
+        \draw (T.west) -- ++(-10pt,0);
+        \draw (T.south west) -- ++(0,-10pt);
+        \draw (T.south east) -- ++(0,-10pt);
+        \draw (T.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+\end{equation}
+for all $g \in G$.
+%
+Here, $U_\mathbf{A}(g)$ is just a complex phase, as it is a unitary representation on $\Cbb$.
+%
+We call such tensors \emph{charged} (as opposed to symmetric).
+
+
+The resulting charge rule, with explicit signs and a total charge, is then
+%
+\begin{equation}
+    \label{eq:tensornets:symmetries:charge_rule_general}
+    \zeta^{(1)} \mathbf{a}^{(1)}_{i_1} + \zeta^{(2)} \mathbf{a}^{(2)}_{i_2} + \dots + \zeta^{(N)} \mathbf{a}^{(N)}_{i_N} \neq \mathbf{A}
+    \quad \Rightarrow \quad
+    T_{i_1,i_2,\dots, i_N} = 0
+    .
+\end{equation}
+%
+It is often directly formulated in terms of charges instead of irrep labels.
+%
+Charge values are eigenvalues $q(\mathbf{a}_i)$ of a conserved charge operator of the form $Q_n = \sum_i q(\mathbf{a}_i) \ketbra{i}{i}$, i.e.~an operator diagonal in the basis induced by the irrep decomposition, whose diagonal entries depend on the irrep label such that irreps have a \emph{unique} charge value.
+%
+For a concrete example, consider a spin system with the $\U{1}$ symmetry that conserves $Q_n = S_n^z$ in the sense that $[H, \sum_n Q_n] = 0$.
+%
+We find $Q_n = S_n^z = \sum_i \tfrac{\hbar}{2} \mathbf{a}^{(n)}_i \ketbra{i}{i}$.
+%
+Recall that for $\U{1}$, we choose integer irrep labels $\mathbf{a} \in \Zbb$.
+%
+In the case of $\U{1}$ specifically, the conserved charge is up to a prefactor the representation of the Lie algebra generator, such that the representation of the group is given by $U^{(n)}(\eto{\im\phi}) = \eto{\im\phi 2 S_n^z / \hbar}$.
+%
+From this perspective, a symmetric state
+\begin{equation}
+    \bigotimes_n U^{(n)} \psiket = \psiket ~~ \forall g \in G
+    \quad \Rightarrow \quad
+    Q \psiket = q(\mathbf{0}) \psiket
+\end{equation}
+is an eigenstate of the conserved charge with eigenvalue $Q = q(\mathbf{0})$, which is typically\footnote{
+    The zero-point of $Q$ is arbitrary since constants can be added to get a conserved charge that is just as valid.
+    %
+    It is common to set the zero point to correspond to the symmetric state, e.g.~zero $S^z$ magnetization or zero particle number w.r.t.~some reference filling fraction.
+} but not necessarily $Q = 0$.
+%
+A charged state, on the other hand
+\begin{equation}
+    \bigotimes_n U^{(n)} \psiket = U_\mathbf{A}(g) \psiket ~~ \forall g \in G
+    \quad \Rightarrow \quad
+    Q \psiket = q(\mathbf{A}) \psiket
+\end{equation}
+is an eigenstate with a different eigenvalue.
+%
+Thus, it can e.g.~be used to parametrize states with finite magnetization, or if the $\U{1}$ symmetry conserves particle number, with finite filling.
+
+Of particular interest in this thesis is the special case where we only have two legs (or legs have been grouped into two groups), i.e.~symmetric matrices.
+%
+This is the form that allows decomposition, e.g.~\acrop{svd} of symmetric tensors, by first grouping legs to a matrix, decomposing it, and subsequently ungrouping to recover the original leg structure, see e.g.~\eqref{eq:tensornets:tensors_diagrams:svd}.
+%
+We focus on only the central step, decomposing symmetric matrices.
+%
+We assume that the computational basis is sorted by charge sectors/irreps.
+%
+As a result, those irrep labels $\mathbf{a}_q$ with $q=1,\dots,Q$ that appear on \emph{both} legs of a matrix $\theta$ each correspond to a block $\theta_q$, and all other entries -- not in one of these blocks -- vanish by the charge rule.
+%
+We obtain a block-sparse structure, such as e.g
+\begin{equation}
+    \theta
+    ~~ = ~~   
+    \vcenter{\hbox{\begin{tikzpicture}
+        \coordinate (A);
+        \draw[fill=gray!20] (A) rectangle ++(20pt,-15pt) coordinate (B);
+        \draw[fill=gray!20] (B) rectangle ++(15pt,-15pt) coordinate (C);
+        \path (C) -- ++(10pt,0pt) coordinate (D);
+        \draw[fill=gray!20] (D) rectangle ++(15pt,-10pt) coordinate (E);
+        \path (E) -- ++(10pt,0pt) coordinate (F);
+        \draw[fill=gray!20] (F) rectangle ++(25pt,-20pt) coordinate (G);
+        \node at ($(A)!0.5!(B)$) {$\theta_1$};
+        \node at ($(B)!0.5!(C)$) {$\theta_2$};
+        \node at ($(D)!0.5!(E)$) {$\theta_3$};
+        \node at ($(F)!0.5!(G)$) {$\theta_4$};
+        \node at (70pt, -10pt) {$0$};
+        \node at (20pt, -50pt) {$0$};
+        \coordinate (Abot) at ($(A |- G)$);
+        \coordinate (Gtop) at ($(A -| G)$);
+        \draw[thick] ($(A)+(-3pt,3pt)$) to[out=260,in=100] ($(Abot)+(-3pt,3pt)$);
+        \draw[thick] ($(Gtop)+(3pt,3pt)$) to[out=280,in=80] ($(G)+(3pt,-3pt)$);
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+Note that each row (column) contains at most one block, and there may be rows (columns) that do not have a block, if the irrep associated with the index of that row (column) has no matching irrep in the other leg.
+%
+We refer to the sizes $m_q \times n_q$ of the blocks $\theta_q$ as the block-sizes of $\theta$.
+
+We can then achieve standard decompositions of these matrices by acting blockwise, such as e.g.~algorithm~\eqref{algo:tensornets:symmetries:truncated_svd} for an \acro{svd}.
+
+\begin{Algorithm}{Truncated SVD for block-diagonal matrices}{
+    Given an $m \times n$ block-sparse matrix $\theta$ with block sizes $\set{m_q \times n_q}$ and a target rank $k \leq \min(m, n)$, compute the truncated \acro{svd} $\theta\approx U S \hconj{V}$ consisting of block-diagonal left isometries $U, V$, and $S$ the diagonal matrix containing the $k$ largest singular values of $\theta$.
+    \label{algo:tensornets:symmetries:truncated_svd}
+}
+    \step For every block $q$, compute the \acro{svd} $\theta_q =: U_q S_q V_q^\dagger$ with rank $k_q = \min(m_q, n_q)$.
+    \step Identify a threshold value $\lambda \geq 0$, such that $\sum_q \abs{\setdef{i=1,\dots,k_q}{(S_q)_{ii} > \lambda}} = k$, i.e.~such that exactly $k$ singular values are larger.
+    \step For every block $q$, truncate its \acro{svd} to $\theta_q \approx \tilde{U}_q \tilde{S}_q \tilde{V}_q^\dagger$, by keeping only singular values from $S_q$ which are above $\lambda$ and corresponding columns of $U_q, V_q$.
+    \step Form $U, S, V$ from the blocks $\set{\tilde{U}_q}, \set{\tilde{S}_q}, \set{\tilde{V}_q}$
+\end{Algorithm}
+
+This can clearly be modified to incorporate additional criteria for which singular values to keep.
+%
+The important part is that the selection of singular values to keep should be coordinated between the blocks.

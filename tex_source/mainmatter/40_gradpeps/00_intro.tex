@@ -1,0 +1,19 @@
+The variational methods for \acro{peps} optimization based on local updates have not been able to fulfill the promise of extending the success of \acro{dmrg} to \acro{tps} in higher dimensions.
+%
+We attribute this in part to the lack of a canonical form with orthogonality centers.
+%
+Recent developments of gradient-based methods \cite{vanderstraeten2016, liao2019, hasik2019, hasik2021}, and in particular, approaches using \acrofull{autodiff} have found success in optimizing \acro{peps} for infinite systems.
+%
+Applying similar methods to finite \acro{peps}, however, seems to cause problems in the stability of the resulting algorithms and require ad-hoc adjustments \cite{liu2017, scheb2023}.
+%
+We attribute this to the interaction of the gradient-based approach with the approximations that are necessary to evaluate the loss function being optimized, e.g.~the variational energy.
+
+
+
+In this chapter, we propose a scheme for evaluating the gradients that results in stable optimization trajectories, and derive from it a ground state search and a time evolution algorithm for finite \acro{peps}.
+%
+We introduce the gradient-based approaches in section~\ref{sec:gradpeps:grad_based}, formulating both ground state search and time evolution as optimization problems.
+%
+We discuss \acrfull{autodiff} as an approach to compute the gradients of the resulting cost functions in \ref{sec:gradpeps:autodiff}, and then focus on the explicit gradient evaluation scheme in section~\ref{sec:gradpeps:approx}.
+%
+We show benchmark results of the resulting algorithms in section~\ref{sec:gradpeps:benchmark} before concluding in section~\ref{sec:gradpeps:conclusion}.

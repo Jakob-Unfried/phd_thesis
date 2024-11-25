@@ -1,0 +1,2439 @@
+In the following section, we aim to introduce the basic concepts of symmetric tensors in both an accessible and a general way.
+%
+Whenever these approaches are incompatible, we split into columns, focusing on the concrete case where we assume that the symmetry is given by a \emph{group}, acting on the Hilbert space via a representation in the right columns and a general case where it is encoded in a \emph{category} in the left column.
+%
+The former allows us to rely on only a minimal background of linear algebra and to give concrete, constructive definitions or at least examples.
+%
+The latter is generally phrased axiomatically and allows us to be very general.
+
+%
+\begin{doublecol}
+    In the concrete case, we assume that the context implies a symmetry, which is given by a group $G$,
+    the \emph{symmetry group}.
+    %
+    We assume that $G$ is either finite or a compact Lie group.
+    %
+    This is the case for the symmetries that commonly arise in condensed matter systems.
+    
+    We assume that we are working with complex, finite-dimensional Hilbert spaces.
+    %
+    Assuming an algebraically closed field is required for Schurs's lemma part 2 to apply.
+    %
+    Assuming a finite dimension allows us to work with finite sums instead of infinite series, where e.g.~convergence and commutation of sums needs to be checked.
+    %
+    This is natural in tensor networks, where all bond dimensions are finite.
+    %
+    Finally, assuming the existence of an inner product $\braket{\blank}{\blank}$ is natural in quantum mechanics and simplifies the construction of matrix representations, etc.
+    %
+\colswitch
+    %
+    In the general case, the ``symmetry" is encoded in a category $\catC$.
+    
+    The full list of properties required of the category to be compatible with the framework of symmetric tensors is quite the jargon soup;
+    %
+    We require $\catC$ to be a braided pivotal spherical rigid semisimple $\Cbb$-linear monoidal dagger category.
+    %
+    We refer to such categories as \emph{tensor categories}.
+    %
+    Note that the term is loaded and understood to mean slightly different things in different contexts.
+    %
+    We introduce the defining structures of a tensor category in the following sections.
+    %
+    See section \ref{subsec:nonablian:basics:jargon} for an overview.
+    
+    For concrete examples, we may think of the category $\mathbf{FdVect}_\Cbb$ of finite-dimensional vector spaces over the complex numbers, which models the trivial symmetry or ``no symmetry".
+    %
+    A symmetry group (the concrete case discussed in the left columns) is modeled by the category $\mathbf{FdRep}_\Cbb(G)$ of finite-dimensional representations of the symmetry group $G$ over the complex numbers.
+    %
+    As a notable non-group example, consider the category $\mathbf{Ferm}$, which results from equipping the category $\mathbf{FdSVect}_\Cbb$ of finite-di\-men\-sion\-al complex super vector spaces with a non-trivial twist.
+    %
+    As the name suggests, it models fermionic degrees of freedom.
+    \\
+    Lastly, consider the category $\mathbf{Fib}$, describing Fibonacci anyons.
+    %
+    See appendix~\ref{ch:topo_data} for details.
+\end{doublecol}
+
+The following subsections each introduce a (group of related) concept(s).
+%
+In the full-width main text, we summarize its purpose and the intuition behind it, as well as its graphical representation and state relevant properties.
+%
+We give concrete definitions in the two respective columns.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Spaces and Maps}
+\label{subsec:nonablian:basics:spaces_maps}
+
+
+As a first building block for tensors in a tensor network, we consider the physical or virtual spaces that define the legs of a tensor.
+%
+We understand them as structured sets, e.g.~having the structure of a vector space with a grading into sectors, induced by the symmetry.
+%
+We call these structured sets \emph{symmetry spaces}, even if, in the general anyonic case, they are not vector spaces in the usual sense.
+%
+Secondly, we need the concept of symmetry-preserving maps, which we call \emph{symmetric maps} for short.
+%
+They are maps $f: A \to B$ between symmetry spaces $A$ and $B$.
+%
+At this point, we can think of the maps as matrices, i.e.~two-leg tensors.
+%
+For multi-leg tensors, we require the tensor product structure to be introduced in the next section.
+
+There is a graphical calculus for maps.
+%
+Symmetry spaces are represented by wires with arrows.
+%
+In a later section on duality, we introduce downward arrows as well.
+%
+Normal arrows point upward in the reading direction.
+%
+A map $f: V \to W$ is drawn as a box with the domain $V$ as a wire going into the bottom and the codomain coming out from the top.
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_map}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (F) {$f$};
+            \node[space,below=20 pt of F] (V) {$V$};
+            \node[space,above=20 pt of F] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (V.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    ~~ := ~~ (f : V \to W)
+\end{equation}
+
+The box for the map $f$ has a chamfered top left corner.
+%
+This allows us to visually distinguish mirroring and rotation, which we introduce later.
+%
+Map composition is drawn as vertical stacking; that is for $f: V' \to W$ and $g: V \to V'$, the composite is drawn as 
+%
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_map_composition}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V) {$V$};
+            \node[morphism, above=20 pt of V] (G) {$g$};
+            \node[morphism, above=30 pt of G] (F) {$f$};
+            \node[space,above=20 pt of F] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (V.north) -- (G.south);
+            \draw[arrow1={0.5}{left}{$V'$}] (G.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    :=
+    \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V) {$V$};
+            \node[morphism, above=20 pt of V] (FG) {$f \compose g$};
+            \node[space,above=20 pt of FG] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (V.north) -- (FG.south);
+            \draw[arrow1={0.5}{}{}] (FG.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    .
+\end{equation}
+%
+We draw the identity map as an empty wire
+%
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_identity_map}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V) {$V$};
+            \node[space,above=40 pt of V] (W) {$V$};
+            \draw[arrow1={0.5}{}{}] (V.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    \quad := \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (F) {$\id{V}$};
+            \node[space,below=20 pt of F] (V) {$V$};
+            \node[space,above=20 pt of F] (W) {$V$};
+            \draw[arrow1={0.5}{}{}] (V.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    ,
+\end{equation}
+%
+which makes its defining property~\eqref{eq:nonabelian:basics:composition_identity} as the unit of composition visually apparent.
+
+\clearpage
+\begin{doublecol}
+    A \emph{symmetry space} in the above sense is a finite-dimensional complex Hilbert space $V$ equipped with a unitary representation
+    $$
+        U_V: G \to \Homset{V}{V}
+    $$
+    of the symmetry group $G$, which assigns to every group element $g \in G$ a unitary linear map $U_V(g) : V \to V$ such that $$U_V(g h) = U_V(g) \compose U_V(h)$$ for all $g, h \in G$.
+    %
+    See section~\ref{sec:topo_data:review_rep_thry} for a summary of results from group representation theory.
+
+    A \emph{symmetric map} in the above sense is a linear map $f: V \to W$ between symmetry spaces $V$ and $W$ that is compatible with the symmetry representations on the respective spaces, meaning
+    \begin{equation}
+        \label{nonabelian:basics:symmetric_map_equivariance}
+        f \compose U_V(g) = U_W(g) \compose f \quad\forall g \in G
+        .
+    \end{equation}
+    %
+    Linear maps $f$ with this property are also known as equivariant, as intertwiners between $U_V$ and $U_W$, or as $G$-linear.
+    %
+    The identity map $\eye: V \to V, v \mapsto v$ has this property and thus is a symmetric map, and if $f$ and $g$ are symmetric maps, so is $f \compose g$.
+
+    We call two symmetry spaces $V, W$ \emph{isomorphic} if there is an invertible symmetric map between them.
+    %
+    Note that this is a stronger requirement than an isomorphism of vector spaces.
+    %
+    The invertible isomorphism $S: V \isoTo W$, in addition to being linear must also fulfill~\eqref{nonabelian:basics:symmetric_map_equivariance}, i.e.~
+    \begin{equation}
+        \label{nonabelian:basics:groups_isomorphism_makes_reps_equivalent}
+        U_V(g) = S^{-1} \compose U_W(g) \compose S ~~\forall g \in G.
+    \end{equation}
+    %
+    This, in turn, means that $U_V$ and $U_W$ are equivalent as group representations.
+
+    It is a common pattern to define concrete symmetric maps ``by linear extension".
+    %
+    To fully specify a linear map $f: V \to W$, it is enough to specify the images $f(v_i)$ of a complete subset $\set{v_i} \subseteq V$, e.g.~a basis.
+    %
+    Since the subset is complete, any $v \in V$ can be written as $v = \sum_i \alpha_i v_i$
+    and the function is defined as 
+    \begin{equation}
+        f: V \to W, \sum_i \alpha_i v_i\mapsto \sum_i \alpha_i f(v_i)
+        .
+    \end{equation}
+    %
+    For example, the raising operator of a harmonic oscillator can be specified as the linear extension of $$\ket{n} \mapsto \sqrt{n + 1} \ket{n + 1}.$$
+    %
+\colswitch
+    %
+    In the general case, the notions of maps and spaces arise from the definition of a category.
+    %
+    This column summarizes basic definitions of category theory.
+    %
+    A category $\catC$ consists of the following data;
+    \vspace{-1ex} % hack to fit this list on one page...
+    \begin{halfcolitemize}
+        \item A collection $\objset{\catC}$ of \emph{objects}.
+        \\
+        These are the ``symmetry spaces".
+        \item For every pair of objects $A, B$, a collection $\morphset{\catC}{A}{B}$ of \emph{morphisms}, which are denoted ${\morphism{f}{A}{B}}$.
+        %
+        These are the ``symmetric maps".
+        \item For every pair of morphisms $\morphism{f}{A}{B}$ and $\morphism{g}{B}{C}$ with common intermediate object, a \emph{composite} morphism $\morphism{f \compose g}{A}{C}$.
+        \item For every object $A$, an \emph{identity} morphism $\morphism{\id{A}}{A}{A}$.
+    \end{halfcolitemize}
+    which fulfills the axioms of associativity 
+    \begin{equation}
+        \label{eq:nonabelian:basics:composition_associative}
+        h \compose (g \compose f) = (h \compose g) \compose f
+    \end{equation}
+    and identity
+    \begin{equation}
+        \label{eq:nonabelian:basics:composition_identity}
+        \id{B} \compose f = f = f \compose \id{A}
+    \end{equation}
+    for all objects $A, B, C, D \in \objset{\catC}$ and morphisms $f: A \to B$, $g: B \to C$ and\\ $h: C \to D$.
+
+    An \emph{isomorphism} $f: A \to B$ is a morphism that is invertible, which means that there is an $f^{-1}: B \to A$ such that $f^{-1} \compose f = \id{A}$ and $f \compose f^{-1} = \id{B}$.
+    %
+    If an isomorphism $A \to B$ exists, we say that $A \cong B$ are \emph{isomorphic}.
+    
+    Given categories $\catC$ and $\catD$, a (covariant) \emph{functor} $F: \catC \to \catD$ assigns to every object $A \in \objset{\catC}$ an object $F(A) \in \objset{\catD}$ and to every morphism $\morphism{f}{A}{B}$ in $\catC$ a morphism $\morphism{F(f)}{F(A)}{F(B)}$ in $\catD$. It must preserve composition
+    $$F(g \compose f) = F(g) \compose F(f)$$ and identities $F(\id{A}) = \id{F(A)}$.
+
+    A \emph{contravariant functor} $\tilde F$ is similar, but reverses arrow directions, meaning $$\morphism{\tilde{F}(f)}{\tilde{F}(B)}{\tilde{F}(A)}$$ has the opposite direction and the order of composition is reversed in $$\tilde F(g \compose f) = \tilde F(f) \compose \tilde F(g),$$ but is otherwise analogous.
+    %
+    If unspecified, we assume by default that functors are covariant.
+\end{doublecol}
+\begin{extendrightcol}
+    Given functors $F: \catC \to \catD$ and $G: \catC \to \catD$, a \emph{natural transformation}
+    $$\naturaltrafo{\zeta}{F}{G}$$ between them assigns to every object $A \in \objset{\catC}$
+    a morphism $\morphism{\zeta_A}{F(A)}{G(A)}$ in $\catD$, such that the following diagram commutes
+    for all $\morphism{f}{A}{B}$ in $\catC$;
+    \begin{equation}
+        \label{nonabelian:basics:cd_naturality}
+        \begin{tikzcd}[ampersand replacement=\&]
+            F(A) \arrow[d, "F(f)"] \arrow[r, "\zeta_A"] \& G(A) \arrow[d, "G(f)"] \\
+            F(B) \arrow[r, "\zeta_B"] \& G(B)
+        \end{tikzcd}
+    \end{equation}
+    We can also think of ``naturality" as a property of a family $\zeta_A$ of morphisms.
+
+    A \emph{natural isomorphism} is a natural transformation $\zeta$, for which every component $\zeta_A$ is an isomorphism.
+
+    For categories $\catC$ and $\catD$, the \emph{product category} $\catC \times \catD$ has tuples $(A, B) \in \objset{\catC} \times \objset{\catD}$ as objects and tuples $(f, g): (A, B) \to (C, D) \in \morphset{\catC}{A}{C} \times \morphset{\catD}{B}{D}$ as morphisms, such that composition is elementwise and identities are tuples of identities.
+\end{extendrightcol}
+
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Tensor Product}
+\label{subsec:nonablian:basics:monoidal}
+
+The tensor product arises naturally in quantum mechanics.
+%
+If we have two subsystems, each described by a space, the whole system is described by their tensor product.
+%
+It is also the structure required to build the multi-leg tensors in tensor networks.
+
+Given two symmetry spaces $V$ and $V'$, the tensor product $V \otimes V'$ is also a symmetry space.
+%
+Given two symmetric maps $f: V \to W$ and $g: V' \to W'$, their tensor product is a symmetric map $f \otimes g : (V \otimes V') \to (W \otimes W')$.
+%
+The tensor product is associative up to an isomorphism $\alpha_{V, W, U} : (V \otimes W) \otimes U \isoTo V \otimes (W \otimes U)$.
+%
+We suppress this isomorphism and will not write brackets for multiple tensor products, implying $\alpha$ isomorphisms as needed.
+%
+There is a special symmetry space called the monoidal unit $I$, which can be added ``for free", i.e., such that $V \otimes I \cong V \cong I \otimes V$.
+%
+In tensor networks, this corresponds to adding (removing) trivial one-dimensional legs to (from) a tensor.
+%
+The tensor product cooperates with map composition
+\begin{equation}
+    \label{eq:nonabelian:basics:tensor_cooperates_with_compose}
+    (f_2 \otimes g_2) \compose (f_1 \otimes g_1) = (f_2 \compose f_1) \otimes (g_2 \otimes g_1)
+    .
+\end{equation}
+
+
+
+In the graphical calculus, the tensor product of spaces is represented by drawing the spaces next to each other horizontally.
+%
+We do not need brackets; $ \alpha$ isomorphisms between equivalent but unequal bracketings are implied.
+%
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_tensorproduct_wires}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V1) {$V_1$};
+            \node[space,right=20pt of V1] (V2) {$V_2$};
+            \node[space,right=20pt of V2] (V3) {$V_3$};
+            \node[space,above=40 pt of V1] (V1end) {};
+            \node[space,above=40 pt of V2] (V2end) {};
+            \node[space,above=40 pt of V3] (V3end) {};
+            \draw[arrow1={0.5}{}{}] (V1.north) -- (V1end.south);
+            \draw[arrow1={0.5}{}{}] (V2.north) -- (V2end.south);
+            \draw[arrow1={0.5}{}{}] (V3.north) -- (V3end.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    :=
+    \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V1) {$V_1 \otimes V_2 \otimes V_3$};
+            \node[space,above=40 pt of V1] (V1end) {};
+            \draw[arrow1={0.5}{}{}] (V1.north) -- (V1end.south);
+        \end{tikzpicture}
+    }}
+\end{equation}
+%
+The tensor product of maps is drawn by drawing them next to each other.
+%
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_tensorproduct_maps}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V1) {$V_1$};
+            \node[morphism, above=20pt of V1] (F) {$f$};
+            \node[space, above=20pt of F] (W1) {$W_1$};
+            \node[space,right=20pt of V1] (V2) {$V_2$};
+            \node[morphism, above=20pt of V2] (G) {$g$};
+            \node[space, above=20pt of G] (W2) {$W_2$};
+            \draw[arrow1={0.5}{}{}] (V1.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W1.south);
+            \draw[arrow1={0.5}{}{}] (V2.north) -- (G.south);
+            \draw[arrow1={0.5}{}{}] (G.north) -- (W2.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    :=
+    \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V1) {$V_1 \otimes V_2$};
+            \node[morphism, above=20pt of V1] (F) {$f \otimes g$};
+            \node[space, above=20pt of F] (W1) {$W_1 \otimes W_2$};
+            \draw[arrow1={0.5}{}{}] (V1.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W1.south);
+        \end{tikzpicture}
+    }}
+\end{equation}
+%
+Because of~\eqref{eq:nonabelian:basics:tensor_cooperates_with_compose}, there is no ambiguity in diagrams involving both composition and tensor products of maps.
+%
+The monoidal unit $I$ is drawn as a dashed line if needed for emphasis or typically omitted altogether.
+%
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_monoidal_unit}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (I) {};
+            \node[morphism, above=20pt of V1] (F) {$f$};
+            \node[space, above=20pt of F] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    :=
+    \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (I) {$I$};
+            \node[morphism, above=20pt of V1] (F) {$f$};
+            \node[space, above=20pt of F] (W) {$W$};
+            \draw[dashed] (I.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    :=
+    \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (I) {$I$};
+            \node[morphism, above=20pt of V1] (F) {$f$};
+            \node[space, above=20pt of F] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (I.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+\end{equation}
+%
+Omitting $I$ from the drawing may require implicit isomorphisms, such as for example $\lambda_W: I \otimes W \isoTo W$ to be inserted.
+%
+\begin{equation}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V1) {$V_1$};
+            \node[morphism, above=20pt of V1] (F) {$f$};
+            \node[space, right=20pt of V1] (V2) {$V_2$};
+            \node[morphism, above=20pt of V2] (G) {$g$};
+            \node[space, above=20pt of G] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (V1.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (V2.north) -- (G.south);
+            \draw[arrow1={0.5}{}{}] (G.north) -- (W.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    :=
+    \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V1) {$V_1$};
+            \node[morphism, above=20pt of V1] (F) {$f$};
+            \node[space, right=20pt of V1] (V2) {$V_2$};
+            \node[morphism, above=20pt of V2] (G) {$g$};
+            \node[morphism, above=of -(F)(G)] (Lambda) {$\lambda_W$};
+            \node[space, above=20pt of $(G.north |- Lambda.north)$] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (V1.north) -- (F.south);
+            \draw[dashed] (F.north) -- ($(F.north |- Lambda.south)$) node[midway, left] {$I$} ;
+            \draw[arrow1={0.5}{}{}] (V2.north) -- (G.south);
+            \draw[arrow1={0.5}{right}{$W$}] (G.north) -- ($(G.north |- Lambda.south)$);
+            \draw[arrow1={0.5}{}{}] ($(W.south |- Lambda.north)$) -- (W.south);
+        \end{tikzpicture}
+    }}
+\end{equation}
+%
+There might be several ways to do this in larger diagrams.
+%
+They are all equivalent, meaning the resulting maps are equal, by \emph{coherence} theorems, see e.g.~\cite{maclane1963} or \cite[chpt. 7]{maclane2013}, of the graphical calculus:
+
+Two symmetric maps are equal if and only if their diagrams are equivalent up to planar isotopy, that is up to moving the morphisms around in the plane, or deforming the wires, up to hard-core constraints, i.e.~such that morphisms or wires never touch.
+
+We understand tensors as symmetric maps between (tensor products of) symmetric spaces, e.g.
+\begin{equation}
+    \label{nonabelian:basics:tensor_as_map}
+    T: W_1 \otimes W_2 \to V_1 \otimes V_2 \otimes V_3
+\end{equation}
+is a tensor with five legs.
+%   
+Its five legs are partitioned into the \emph{domain} $W_1 \otimes W_2$ and \emph{codomain} $V_1 \otimes V_2 \otimes V_3$.
+%
+In the case of group symmetries, a common alternative notion is to understand the tensors as elements of tensor product space.
+%
+This is fully contained in the above picture, since e.g.~$t \in V_1 \otimes V_2$ is equivalent to the map $T: \Cbb \to V_1 \otimes V_2, \alpha \mapsto \alpha t$, since we can recover $t = T(1)$.
+%
+
+\begin{doublecol}
+    The tensor product of symmetry spaces is the tensor product of vector spaces, together with an inner product defined as the bilinear extension of $$\braket{v_1 \otimes w_1}{v_2 \otimes w_2} := \braket{v_1}{v_2} \braket{w_1}{w_2}$$ and with the group representation $$U_{V \otimes W} : g \mapsto U_V(g) \otimes U_W(g).$$
+    %
+    The tensor product of symmetric maps is the tensor product of linear maps.
+    %
+    The resulting linear maps are indeed equivariant, i.e.~qualify as symmetric maps, by construction of the group representation on the product space.
+
+    Given orthonormal bases $\set{\ket{v_n}}_n$ as well as $\set{\ket{w_m}}_m$ of symmetry spaces $V$ and $W$, an orthonormal basis for $V \otimes W$ is given by $\set{\ket{v_n} \otimes \ket{w_m}}_{n,m}$.
+    %
+    Thus, to define a symmetric map on a tensor product by linear extension, it is enough to define the image of factorized elements of the form $\ket{v} \otimes \ket{w}$.
+    %
+    This generalizes to nested tensor products.
+    
+    The monoidal unit $I$ is with the trivial representation $U_I: g \mapsto \eye$ on the one-di\-men\-sion\-al space $\Cbb$.
+    %
+    The defining isomorphisms $I \otimes A \cong A$ and $A \otimes I \cong A$ are the linear extensions of $(1 \otimes a) \mapsto a$ and $(a \otimes 1) \mapsto a$, respectively.
+    
+    The tensor product is indeed associative up to an isomorphism given by linear extension of $(a \otimes b) \otimes c \mapsto a \otimes (b \otimes c)$, which is typically suppressed by omitting the brackets.
+    
+\colswitch
+    %
+    For a category $\catC$, a monoidal structure is given by a functor $\otimes: \catC \times \catC \to \catC$, which provides the tensor product $A \otimes B$ of objects and $f \otimes g$ of morphisms.
+    It requires the following data
+    \begin{halfcolitemize}
+        \item For objects $A, B, C$, the associator\\$\isomorphism{\alpha_{ABC}}{(A \otimes B) \otimes C}{A \otimes (B \otimes C)}$.
+        \item The monoidal unit $I \in \objset{\catC}$.
+        \item For each object $A$, the left unitor\\ $\isomorphism{\lambda_A}{I \otimes A}{A}$.
+        \item For each object $A$, the right unitor\\ $\isomorphism{\rho_A}{A \otimes I}{A}$.
+    \end{halfcolitemize}
+    such that $\alpha$, $\lambda$ and $\rho$ are natural isomorphisms and such that the triangle equation \eqref{eq:nonabelian:triangle_equation} and the pentagon equation \eqref{eq:nonabelian:pentagon_equation} commute.
+    %
+    The left unitor $\lambda$ is a natural isomorphism between the functor $(I \otimes \blank)$ that maps $A$ to $I \otimes A$ and $f$ to $\id{I} \otimes f$ and the identity functor.
+    %
+    Similarly, the right unitor is a natural isomorphism between the functor $(\blank \otimes I)$ and the identity.
+    %
+    Their existence characterizes $I$ as the monoidal unit.
+    %
+    The associator is a natural isomorphism between the two inequivalent double tensor product functors $((\blank \otimes \blank) \otimes \blank)$ and $(\blank \otimes (\blank \otimes \blank))$, both $\catC \times \catC \times \catC \to \catC$.
+\end{doublecol}
+\begin{extendrightcol}
+    The consistency conditions for the monoidal structure are that the triangle equation
+    \begin{equation}
+    \label{eq:nonabelian:triangle_equation}
+    \begin{tikzcd}[ampersand replacement=\&]
+        (A \otimes I) \otimes B
+            \arrow[rr, "\alpha_{AIB}"] 
+            \arrow[dr, "\rho_A \otimes \id{B}"]
+        \& \&
+        A \otimes (I \otimes B)
+            \arrow[dl, "\id{A} \otimes \lambda_B"]
+        \\ \&
+        A \otimes B
+        \&
+    \end{tikzcd}
+    \end{equation}
+    %
+    and the pentagon equation
+    %
+    \begin{equation}
+    \label{eq:nonabelian:pentagon_equation}
+    \begin{tikzcd}[ampersand replacement=\&]
+        (A \otimes (B \otimes C)) \otimes D
+            \arrow[rr, "\alpha_{A,B \otimes C, D}"]
+        \& \&
+        A \otimes ((B \otimes C) \otimes D)
+            \arrow[d, "\id{A} \otimes \alpha_{BCD}"]
+        \\
+        ((A \otimes B) \otimes C) \otimes D
+            \arrow[u, "\alpha_{ABC} \otimes \id{D}"]
+            \arrow[dr, "\alpha_{A\otimes B, C, D}"]
+        \& \&
+        A \otimes (B \otimes (C \otimes D))
+        \\ \&
+        (A \otimes B) \otimes (C \otimes D)
+            \arrow[ur, "\alpha_{A,B,C \otimes D}"]
+        \&
+    \end{tikzcd}
+    \end{equation}
+    both commute.
+\end{extendrightcol}
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Dagger}
+\label{subsec:nonablian:basics:dagger}
+
+For a symmetric map $f: V \to W$, the dagger (or adjoint) is a symmetric map $\hconj{f}: W \to V$ with opposite direction.
+%
+Note that the dagger of a map is always composable with the original map in either order.
+
+The dagger is the operation that allows us to form inner products on a tensor network level.
+%
+Expectation values $\braopket{\phi}{O}{\phi} =: \braket{\phi}{\tilde\phi}$ are given in terms of the inner product on the many-body Hilbert space.
+%
+If $\ket{\phi}$ is a \acro{tns} with tensors $\set{B_i}$, the inner product $\braket{\phi}{\tilde\phi}$ is given as the contraction of a tensor network, where the ``half" representing $\bra{\phi}$ consists of the adjoint (daggered) tensors $\set{\hconj{B_i}}$.
+%
+
+In the graphical calculus, the dagger of a map is drawn by vertically mirroring the box.
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_dagger}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (W) {$W$};
+            \node[daggered, above=20pt of W] (F) {$f$};
+            \node[space, above=20pt of F] (V) {$V$};
+            \draw[arrow1={0.5}{}{}] (W.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (V.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    :=
+    \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (W) {$W$};
+            \node[morphism, above=20pt of W] (F) {$\hconj{f}$};
+            \node[space, above=20pt of F] (V) {$V$};
+            \draw[arrow1={0.5}{}{}] (W.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (V.south);
+        \end{tikzpicture}
+    }}
+    \qquad
+    =
+    \qquad\left(
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (W) {$V$};
+            \node[morphism, above=20pt of W] (F) {$f$};
+            \node[space, above=20pt of F] (V) {$W$};
+            \draw[arrow1={0.5}{}{}] (W.north) -- (F.south);
+            \draw[arrow1={0.5}{}{}] (F.north) -- (V.south);
+        \end{tikzpicture}
+    }}
+    \right)^{\mathlarger\dagger}
+\end{equation}
+Note that it has the \emph{same} label $f$ as the original map and is only identified as its dagger because of the mirrored box.
+%
+For readability, we do not mirror the label itself but rather choose a chamfered box that makes the mirroring apparent.
+%
+Since the dagger reverses the order of composition but preserves the order of the tensor product, the dagger of a composite diagram is obtained graphically by first mirroring along a horizontal axis, then flipping back all arrows to their original direction.
+
+The dagger preserves the order of tensor products $\hconj{(f \otimes g)} = \hconj{f} \otimes \hconj{g}$, but reverses the order of composition $\hconj{(f \compose g)} = \hconj{g} \compose \hconj{f}$.
+%
+This motivates the graphical representation as a vertical mirroring and implies that a composite diagram is the dagger of another diagram if and only if they are each others vertical mirror images, up to planar isotopy.
+
+A symmetric map is \emph{unitary}, if its adjoint is its inverse, that is if $\hconj{f} \compose f = \id{V}$ and $f \compose \hconj{f} = \id{W}$.
+
+\begin{doublecol}
+    The dagger is defined as usual, where the dagger of a map $f: A \to B$ is the unique map $\hconj{f}: B \to A$ that fulfills $$\braket{w}{f(v)} = \braket{\hconj{f}(w)}{v}$$ for all $v \in A$ and $w \in B$, or in braket operator notation $\braopket{w}{f}{v} = \conj{\braopket{v}{\hconj{f}}{w}}.$
+    %
+    We can therefore read off that its matrix representation $(\hconj{f})_{mn} = \braopket{m}{\hconj{f}}{n} = \conj{f_{nm}}$ is the hermitian conjugate matrix.
+    %
+    It remains to check that the linear map $\hconj{f}$ is indeed a symmetric map. Let $g \in G$, then we have $U_B(g^{-1}) \compose f = f \compose U_A(g^{-1})$ since $f$ is symmetric.
+    %
+    Taking the dagger and using that the representations $U_{A/B}$ are unitary, we find that $\hconj{f}$ is symmetric as well.
+
+    The dagger distributes over the tensor product $\hconj{(f \otimes g)} = \hconj{f} \otimes \hconj{g}$, by definition of the scalar product on the product space.
+    %
+    The dagger reverses the order of map composition $\hconj{(f \compose g)} = \hconj{g} \compose \hconj{f}$, which we obtain by applying the defining property twice; $\braket{w}{f(g(v))} = \braket{\hconj{g}(\hconj{f}(w))}{v}$.
+    %
+\colswitch
+    %
+    For a category $\catC$, a dagger structure is given by a contravariant functor $\dagger: \catC \to \catC$ that acts as the identity on objects and fulfills
+    \begin{halfcolitemize}
+        \item For $\morphism{f}{A}{B}$, the dagger $\morphism{\hconj{f}}{B}{A}$ has reversed direction (contravariant)
+        \item For morphisms $f, g$, we have\\$\hconj{(f \compose g)} = \hconj{g} \compose \hconj{f}$ (contravariant)
+        \item For morphisms $f$, we have $\hconj{(\hconj{f})} = f$
+        \item The identities $\hconj{\id{A}} = \id{A}$ are invariant
+    \end{halfcolitemize}
+    
+    The dagger structure is compatible with a tensor product $\otimes$ if
+    \begin{halfcolitemize}
+        \item The action on morphisms cooperates; that is for morphisms $f, g$, we have\\$\hconj{(f \otimes g)} = \hconj{f} \otimes \hconj{g}$
+        \item The isomorphisms of the monoidal structure are unitary; $\hconj{\alpha_{ABC}} = \alpha_{ABC}^{-1}$ and $\hconj{\lambda_A} = \lambda_A^{-1}$ and $\hconj{\rho_A} = \rho_A^{-1}$
+    \end{halfcolitemize}
+\end{doublecol}
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Duality}
+\label{subsec:nonablian:basics:duality}
+
+A duality structure is very familiar to anyone working with quantum physics;
+%
+A bra vector is the dual of a ket vector.
+%
+Duality introduces the concepts of dual spaces, the transpose of a map, the trace, and the quantum dimension.
+%
+Graphically, duality is visualized as $180^\circ$ in-plane rotation.
+%
+A wire with a downward arrow represents the dual space. Note that it is labeled by the original space that it is the dual of.
+%
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_dualspace}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V) {$V$};
+            \node[space, above=20pt of V] (Vp) {};
+            \draw[arrow1rev={0.5}{}{}] (V.north) -- (Vp.south);
+        \end{tikzpicture}
+    }}
+    \qquad := \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (V) {$\dualspace{V}$};
+            \node[space, above=20pt of V] (Vp) {};
+            \draw[arrow1={0.5}{}{}] (V.north) -- (Vp.south);
+        \end{tikzpicture}
+    }}
+\end{equation}
+
+There is a pair of special symmetric maps related to the duality of $V$ and $\dualspace{V}$,
+the \emph{cap} $\capmap{V}: V \otimes \dualspace{V} \to I$ and \emph{cup} $\cupmap{V}: I \to \dualspace{V} \otimes V$.
+%
+Note the different orders of the tensor product.
+%
+They are drawn as bent lines.
+%
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_cup_cap}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \draw[arrow2={0.1}{}{}{0.9}{}{}] let \p{diameter}=($0.5*(Vb.north)-0.5*(Va.north)$) in
+                (Va.north) -- +(90:10pt) arc(180:0:\x{diameter}) -- (Vb.north);
+            % \draw[arrow1={0.5}{}{}] (Vb.north) -- +(90:10pt) coordinate (y);
+            % \draw (x) arc(180:0:20pt);
+        \end{tikzpicture}
+    }}
+    ~~ := ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \node[morphism, above=15pt of -(Va)(Vb)] (cap) {$\varepsilon_V$};  %uses ext.positioning-plus
+            \draw[arrow1={0.5}{}{}] (Va.north) -- ($(Va.north |- cap.south)$);
+            \draw[arrow1rev={0.5}{}{}] (Vb.north) -- ($(Vb.north |- cap.south)$);
+        \end{tikzpicture}
+    }}
+    \quad ; \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \draw[arrow2={0.1}{}{}{0.9}{}{}] let \p{diameter}=($0.5*(Vb.south)-0.5*(Va.south)$) in
+                (Va.south) -- +(90:-10pt) arc(180:360:\x{diameter}) -- (Vb.south);
+            % \draw[arrow1={0.5}{}{}] (Vb.north) -- +(90:10pt) coordinate (y);
+            % \draw (x) arc(180:0:20pt);
+        \end{tikzpicture}
+    }}
+    ~~ := ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \node[morphism, below=15pt of -(Va)(Vb)] (cup) {$\eta_V$};
+            \draw[arrow1={0.5}{}{}] (Va.south) -- ($(Va.south |- cup.north)$);
+            \draw[arrow1rev={0.5}{}{}] (Vb.south) -- ($(Vb.south |- cup.north)$);
+        \end{tikzpicture}
+    }}
+\end{equation}
+
+Note that the wire has a consistent arrow direction through the bend, which is why the cup and cap are precisely what characterizes $\dualspace{A}$ as the dual of $A$.
+%
+They fulfill the snake equations
+\begin{equation}
+    \label{nonabelian:basics:snake_equation}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \coordinate (C);
+            \coordinate[left=40pt of C] (L);
+            \coordinate[right=40pt of C] (R);
+            \coordinate[above=10pt of C] (C2);
+            \coordinate[above=10pt of L] (L2);
+            \coordinate[above=10pt of R] (R2);
+            \node[space,below=20pt of L] (Ain) {$V$};
+            \node[space,above=20pt of R2] (Aout) {$V$};
+            \draw (Ain) -- (L);
+            \draw[arrow1={0.5}{}{}] (L) -- (L2);
+            \draw let \p{radius}=($0.5*(C2)-0.5*(L2)$) in (L2) arc (180:0:\x{radius});
+            \draw[arrow1={0.5}{}{}] (C2) -- (C);
+            \draw let \p{radius}=($0.5*(R)-0.5*(C)$) in (C) arc (180:360:\x{radius});
+            \draw[arrow1={0.5}{}{}] (R) -- (R2);
+            \draw (R2) -- (Aout);
+        \end{tikzpicture}
+    }}
+    ~~ = ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (Ain) {$V$};
+            \node[space, above=50pt of Ain] (Aout) {$V$};
+            \draw[arrow1={0.5}{}{}] (Ain) -- (Aout);
+        \end{tikzpicture}
+    }}
+    \qquad ; \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \coordinate (C);
+            \coordinate[right=40pt of C] (L);
+            \coordinate[left=40pt of C] (R);
+            \coordinate[above=10pt of C] (C2);
+            \coordinate[above=10pt of L] (L2);
+            \coordinate[above=10pt of R] (R2);
+            \node[space,below=20pt of L] (Ain) {$V$};
+            \node[space,above=20pt of R2] (Aout) {$V$};
+            \draw (Ain) -- (L);
+            \draw[arrow1rev={0.5}{}{}] (L) -- (L2);
+            \draw let \p{radius}=($0.5*(C2)-0.5*(L2)$) in (L2) arc (180:360:\x{radius});
+            \draw[arrow1rev={0.5}{}{}] (C2) -- (C);
+            \draw let \p{radius}=($0.5*(R)-0.5*(C)$) in (C) arc (180:0:\x{radius});
+            \draw[arrow1rev={0.5}{}{}] (R) -- (R2);
+            \draw (R2) -- (Aout);
+        \end{tikzpicture}
+    }}
+    ~~ = ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (Ain) {$V$};
+            \node[space, above=50pt of Ain] (Aout) {$V$};
+            \draw[arrow1rev={0.5}{}{}] (Ain) -- (Aout);
+        \end{tikzpicture}
+    }}
+    ~.
+\end{equation}
+%
+As an instructive example for reading these graphical representations, let us explictly write out the first equality.
+%
+Including all implied isomorphisms, it reads
+\begin{equation}
+    \lambda_V \compose (\capmap{V} \otimes \id{V}) \compose \alpha_{V \dualspace{V} V} \compose (\id{V} \otimes \cupmap{V}) \compose \hconj{\rho}_V
+    = \id{V}
+    ~.
+\end{equation}
+
+%
+The dagger gives us the ``opposite cap" $\hconj{\cupmap{V}}: \dualspace{V}  \otimes V  \to I$ and ``opposite cup" $\hconj{\capmap{V}} : I \to V  \otimes \dualspace{V}$.
+\begin{equation}
+    \label{nonabelian:basics:def_graphical_opposite_cup_cap}
+    \vcenter{\hbox{\scalebox{0.9}{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \draw[arrow2rev={0.1}{}{}{0.9}{}{}] let \p{diameter}=($0.5*(Vb.north)-0.5*(Va.north)$) in
+                (Va.north) -- +(90:10pt) arc(180:0:\x{diameter}) -- (Vb.north);
+        \end{tikzpicture}
+    }}}
+    ~~ := ~~
+    \left(
+    \vcenter{\hbox{\scalebox{0.9}{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \draw[arrow2={0.1}{}{}{0.9}{}{}] let \p{diameter}=($0.5*(Vb.south)-0.5*(Va.south)$) in
+                (Va.south) -- +(90:-10pt) arc(180:360:\x{diameter}) -- (Vb.south);
+        \end{tikzpicture}
+    }}}
+    \right)^{\mathlarger\dagger}
+    \quad ; \quad
+    \vcenter{\hbox{\scalebox{0.9}{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \draw[arrow2rev={0.1}{}{}{0.9}{}{}] let \p{diameter}=($0.5*(Vb.south)-0.5*(Va.south)$) in
+                (Va.south) -- +(90:-10pt) arc(180:360:\x{diameter}) -- (Vb.south);
+        \end{tikzpicture}
+    }}}
+    ~~ := ~~
+    \left(
+    \vcenter{\hbox{\scalebox{0.9}{
+        \begin{tikzpicture}
+            \node[space] (Va) {$V$};
+            \node[space, right=20pt of Va] (Vb) {$V$};
+            \draw[arrow2={0.1}{}{}{0.9}{}{}] let \p{diameter}=($0.5*(Vb.north)-0.5*(Va.north)$) in
+                (Va.north) -- +(90:10pt) arc(180:0:\x{diameter}) -- (Vb.north);
+        \end{tikzpicture}
+    }}}
+    \right)^{\mathlarger\dagger}
+\end{equation}
+Note the different arrow directions compared to the regular cup and cap.
+
+Taking the dual of a tensor product results in the tensor product of individual duals in reverse order, up to a unitary isomorphism  $
+   \zeta_{V,W}^{-1} : \dualspace{(V \otimes W)} \isoTo \dualspace{W} \otimes \dualspace{V}
+$, given explicitly in~\eqref{eq:nonabelian:basics:zeta_iso}.
+%
+This isomorphism is implied in the graphical language; if we rotate a tensor product $V \otimes W$, we graphically obtain $\dualspace{W} \otimes \dualspace{V}$.
+%
+Thus, in graphical equations, we may simply use $\dualspace{W} \otimes \dualspace{V}$ as a dual of $V \otimes W$.
+
+Taking the dual twice gives the same space back; $\doubledualspace{V} \cong V$, again up to an isomorphism $\pi_V: V \to \doubledualspace{V}$, given explicitly in~\eqref{eq:nonabelian:basics:pi_iso}.
+%
+This isomorphism is also implied by the graphical language, as rotating twice gives us back the same diagram, not a double dual.
+%
+Thus, we never need to use double duals in the graphical notation and can always use $V$ as a dual of $\dualspace{V}$.
+
+The monoidal unit $I = \dualspace{I}$ is self-dual where the cups are given by the unitors $\varepsilon_I = \hconj{\eta_I} = \rho_I = \lambda_I$ and the caps by their daggers.
+%
+This allows us to omit the arrows on the (dashed) wires for the monoidal unit.
+
+
+\begin{doublecol}
+    For a symmetry space $V$ with a group representation $U_V$, the dual space is the dual vector space $\dualspace{V} = \setdef{\bra{\phi}: V \to \Cbb}{\bra{\phi}\text{ linear}}$ with the contragradient representation $U_{\dualspace{V}}$, that is
+    \begin{equation}
+        \label{nonabelian:basics:contragradient_representation}
+        U_{\dualspace{V}}(g)
+        : \bra{\phi} \mapsto \bra{\phi} \hconj{U_V}(g)
+        .
+    \end{equation}
+    Where the notation above means that the image of the dual vector $\ket{\psi} \mapsto \braket{\phi}{\psi}$ under the representation is the dual vector $\ket{\psi} \mapsto \braopket{\phi}{\hconj{U_V}(g)}{\psi}$.
+
+    The cup is given by
+    \begin{equation}
+        \cupmap{V}
+        : \Cbb \to \dualspace{V} \otimes V
+        , \alpha \mapsto \alpha \sum_n \bra{\varphi_n} \otimes \ket{\varphi_n}
+        ~,
+    \end{equation}
+    where $\set{\ket{\varphi_n}}$ is an orthonormal basis of $V$ and $\set{\bra{\varphi_n}}$ the associated orthonormal dual basis of $\dualspace{V}$.
+    %
+    The cap is given by
+    \begin{equation}
+        \capmap{V}
+        : V \otimes \dualspace{V} \to \Cbb
+        , \ket{\psi} \otimes \bra{\phi} \mapsto \braket{\phi}{\psi}
+    \end{equation}
+
+    The isomorphism between a symmetry space $V$ and its double-dual $\doubledualspace{V}$
+    is given by
+    \begin{equation}
+        \pi_V
+        : V \to \doubledualspace{V}
+        , \ket{\psi} \mapsto \rBr{\bra{\phi} \mapsto \braket{\phi}{\psi}}
+        ,
+    \end{equation}
+    where the expression in round brackets is a double-dual vector, as it linearly maps a dual (bra) vector to a complex number.
+
+    Given dual vectors $\bra{v} \in \dualspace{V}$ and $\bra{w} \in \dualspace{W}$, their tensor product $\bra{v} \otimes \bra{w} \in \dualspace{V}\otimes \dualspace{W}$ is isomorphic to a dual vector in $\dualspace{(W \otimes V)}$ that takes the form $\ket{\psi} \mapsto \braket{w \otimes v}{\psi}$.
+    %
+    The reversed order in $\dualspace{(W \otimes V)} \cong \dualspace{V} \otimes \dualspace{W}$ is an arbitrary choice here, but is natural in the graphical language, as bending lines like in equation~\eqref{eq:nonabelian:basics:zeta_iso} reverses the order.
+    %
+\colswitch
+    %
+    In a category $\catC$ with tensor product $\otimes$, which has a dagger, we define a duality structure\footnote{
+        We have taken quite the shortcut here, compared to common literature, e.g.~compared to~\cite[chpt 3]{heunen2019}, by implicitly defining a pivotal structure given by $\pi$ such that the duals are dagger duals.
+    } as the following data;
+    \begin{halfcolitemize}
+        \item For every object $A \in \objset{\catC}$, a \emph{dual} object $\dualspace{A}$
+        \item For every object $A$, two morphisms:\\ the cup $\cupmap{A}: I \to \dualspace{A} \otimes A$ and the cap $\capmap{A}: A \otimes \dualspace{A} \to I$
+    \end{halfcolitemize}
+    such that the snake equations~\eqref{nonabelian:basics:snake_equation} are fulfilled.
+    
+    Taking the dagger yields the opposite cup $\hconj{\capmap{A}}$ and opposite cap $\hconj{\cupmap{A}}$, which witness $\dualspace{A}$ as a left dual of $A$ and inherit analogous snake equations, given by the dagger of \eqref{nonabelian:basics:snake_equation}.
+    %
+    Since $\dualspace{A}$ is both a left and a right dual of $A$ and is the canonical choice among possibly multiple duals of $A$, it is simply referred to as \emph{the} dual of $A$.
+
+    It also makes the notion of duality reflexive, that is, $A$ is a dual object of $\dualspace{A}$.
+    %
+    It may, however, not agree with the choice $\doubledualspace{A}$ for \emph{the} dual of $\dualspace{A}$.
+    %
+    They are isomorphic by an isomorphism $\pi_A : A \to \doubledualspace{A}$, defined as the following composite.
+    \begin{align}
+        \label{eq:nonabelian:basics:pi_iso}
+        \vcenter{\hbox{
+            \begin{tikzpicture}
+                \node[space] (A) {$A$};
+                \node[morphism, above=20pt of A] (Pi) {$\pi_A$};
+                \node[space, above=20pt of Pi] (ddA) {$\doubledualspace{A}$};
+                \draw[arrow1={0.5}{}{}] (A.north) -- (Pi.south);
+                \draw[arrow1={0.5}{}{}] (Pi.north) -- (ddA.south);
+            \end{tikzpicture}
+        }}
+        ~~ := ~~
+        \vcenter{\hbox{
+            \begin{tikzpicture}
+                \coordinate (wire2);
+                \coordinate[left=30pt of wire2] (wire1);
+                \coordinate[right=30pt of wire2] (wire3);
+                \node[morphism, above=15pt of -(wire2)(wire3), minimum width=50pt] (cap) {$\hconj{(\eta_A)}$};
+                \node[morphism, below=15pt of -(wire1)(wire2), minimum width=50pt] (cup) {$\eta_{\dualspace{A}}$};
+                \node[space, below=40pt of wire3] (A) {$A$};
+                \node[space, above=40pt of wire1] (Add) {$\doubledualspace{A}$};
+                \draw[arrow1={0.5}{}{}] ($(Add.south |- cup.north)$) -- (Add.south);
+                \draw[arrow1rev={0.5}{left}{$A$}] ($(wire2 |- cup.north)$) -- ($(wire2 |- cap.south)$);
+                \draw[arrow1={0.5}{}{}] (A.north) -- ($(A.north |- cap.south)$);
+            \end{tikzpicture}
+        }}
+    \end{align}
+\end{doublecol}
+\begin{extendrightcol}
+    The dual $\dualspace{(A \otimes B)}$ of a tensor product is isomorphic to $\dualspace{B} \otimes \dualspace{A}$ by a unitary isomorphism $\zeta_{A,B}: \dualspace{B} \otimes \dualspace{A} \isoTo \dualspace{(A \otimes B)}$, defined as the following composite
+    \begin{align}
+        \label{eq:nonabelian:basics:zeta_iso}
+        \vcenter{\hbox{
+            \begin{tikzpicture}
+                \coordinate (X1);
+                \coordinate[right=30pt of X1] (X2);
+                \coordinate[right=30pt of X2] (X3);
+                \coordinate[right=30pt of X3] (X4);
+                \coordinate[right=30pt of X4] (X5);
+                \node[morphism, below=20pt of -(X1)(X2)(X3), minimum width=80pt] (eta) {$\eta_{A \otimes B}$};
+                \node[space, above=60pt of X1] (AB) {$A\otimes B$};
+                \node[space, below=60pt of X4] (B) {$B$};
+                \node[space, below=60pt of X5] (A) {$A$};
+                \draw[arrow1={0.5}{}{}] (AB.south) -- ($(AB.south |- eta.north)$);
+                %
+                \draw[arrow1={0.5}{left}{$A$}] ($(eta.north -| X2)$) -- (X2);
+                \draw let \p{radius}=($0.5*(X5)-0.5*(X2)$) in (X2) arc(180:0:\x{radius});
+                \draw[arrow1={0.5}{}{}] (X5) -- (A.north);
+                %
+                \draw[arrow1={0.5}{left}{$B$}] ($(eta.north -| X3)$) -- (X3);
+                \draw let \p{radius}=($0.5*(X4)-0.5*(X3)$) in (X3) arc(180:0:\x{radius});
+                \draw[arrow1={0.5}{}{}] (X4) -- (B.north);
+            \end{tikzpicture}
+        }}
+        ~.
+    \end{align}
+    
+    Note the similarity to the construction of the $\pi$ isomorphism.
+    %
+    This generalizes; different choices for the dual of a given object are isomorphic, where the isomorphism can be constructed as the ``mixed snake" between a cup from one duality and a cap from the other.
+
+    It turns out that taking duals is functorial if we understand the duals functor to act as transposition~\eqref{eq:nonabelian:basics:def_transpose} on morphisms.
+\end{extendrightcol}
+
+
+Given a symmetric map $f: V \to W$, its \emph{transpose} $\transp{f}: \dualspace{W} \to \dualspace{V}$ is another symmetric map.
+%
+It is defined as the following composite of a cup, $f$ itself, and a cap.
+%
+\begin{equation}
+    \label{eq:nonabelian:basics:def_transpose}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (W) {$W$};
+            \node[transposed, above=20pt of W] (F) {$f$};
+            \node[space, above=20pt of F] (V) {$V$};
+            \draw[arrow1rev={0.5}{}{}] (W.north) -- (F.south);
+            \draw[arrow1rev={0.5}{}{}] (F.north) -- (V.south);
+        \end{tikzpicture}
+    }}
+    ~~
+    :=
+    ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (W) {$W$};
+            \node[morphism, above=20pt of W] (F) {$\transp{f}$};
+            \node[space, above=20pt of F] (V) {$V$};
+            \draw[arrow1rev={0.5}{}{}] (W.north) -- (F.south);
+            \draw[arrow1rev={0.5}{}{}] (F.north) -- (V.south);
+        \end{tikzpicture}
+    }}
+    ~~
+    :=
+    ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (f) {$f$};
+            \coordinate[left=20pt of f] (L);
+            \coordinate[right=20pt of f] (R);
+            \node[space, above=40pt of L] (V) {$V$};
+            \node[space, below=40pt of R] (W) {$W$};
+            %
+            \draw[arrow1={0.5}{left}{$W$}] (f.north) -- ++(0,20pt) coordinate (U);
+            \coordinate (UR) at ($(W.north |- U)$);
+            \draw let \p{radius}=($0.5*(UR)-0.5*(U)$) in (U) arc (180:0:\x{radius});
+            \draw[arrow1={0.5}{}{}] (UR) -- (W.north);
+            %
+            \draw[arrow1rev={0.5}{left}{$V$}] (f.south) -- ++(0,-20pt) coordinate (D);
+            \coordinate (DL) at ($(V.south |- D)$);
+            \draw let \p{radius}=($0.5*(D)-0.5*(DL)$) in (D) arc (360:180:\x{radius});
+            \draw[arrow1rev={0.5}{}{}] (DL) -- (V.south);
+        \end{tikzpicture}
+    }}
+    ~~
+    =
+    ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (f) {$f$};
+            \coordinate[left=20pt of f] (L);
+            \coordinate[right=20pt of f] (R);
+            \node[space, above=40pt of R] (V) {$V$};
+            \node[space, below=40pt of L] (W) {$W$};
+            %
+            \draw[arrow1={0.5}{left}{$W$}] (f.north) -- ++(0,20pt) coordinate (U);
+            \coordinate (UR) at ($(W.north |- U)$);
+            \draw let \p{radius}=($0.5*(UR)-0.5*(U)$) in (U) arc (180:360:\x{radius});
+            \draw[arrow1={0.5}{}{}] (UR) -- (W.north);
+            %
+            \draw[arrow1rev={0.5}{left}{$V$}] (f.south) -- ++(0,-20pt) coordinate (D);
+            \coordinate (DL) at ($(V.south |- D)$);
+            \draw let \p{radius}=($0.5*(D)-0.5*(DL)$) in (D) arc (0:180:\x{radius});
+            \draw[arrow1rev={0.5}{}{}] (DL) -- (V.south);
+        \end{tikzpicture}
+    }}
+\end{equation}
+%
+The alternative definition with opposite cap and cup is equal.
+%
+Taking the transpose inverts the order of composition $\transp{(f \compose g)} = \transp{g} \compose \transp{f}$, which follows from the snake equation~\eqref{nonabelian:basics:snake_equation} and is visually intuitive in the graphical calculus, where the rotation inverts the vertical order.
+%
+Another consequence of the snake equation is that $\transp{(\transp{f})} = f$, as well as $\transp{\id{V}} = \id{\dualspace{V}}$.
+
+The sliding properties
+\begin{equation}
+    \label{eq:nonabelian:basics:sliding_cup_cap}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (f) {$f$};
+            \draw[arrow1={0.7}{}{}] (f.north) -- ++(0,10pt) coordinate (L);
+            \draw (L) arc(180:0:20pt) coordinate (R);
+            \node[space, below=60pt of L] (V) {$V$};
+            \node[space, below=60pt of R] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (V) -- (f.south);
+            \draw[arrow1={0.5}{}{}] (R) -- (W);
+        \end{tikzpicture}
+    }}
+    ~~ = ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[transposed] (f) {$f$};
+            \draw[arrow1rev={0.7}{}{}] (f.north) -- ++(0,10pt) coordinate (L);
+            \draw (L) arc(0:180:20pt) coordinate (R);
+            \node[space, below=60pt of L] (V) {$W$};
+            \node[space, below=60pt of R] (W) {$V$};
+            \draw[arrow1rev={0.5}{}{}] (V) -- (f.south);
+            \draw[arrow1rev={0.5}{}{}] (R) -- (W);
+        \end{tikzpicture}
+    }}
+    \quad ; \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (f) {$f$};
+            \draw[arrow1rev={0.7}{}{}] (f.south) -- ++(0,-10pt) coordinate (L);
+            \draw (L) arc(360:180:20pt) coordinate (R);
+            \node[space, above=60pt of L] (V) {$W$};
+            \node[space, above=60pt of R] (W) {$V$};
+            \draw[arrow1rev={0.5}{}{}] (V) -- (f.north);
+            \draw[arrow1rev={0.5}{}{}] (R) -- (W);
+        \end{tikzpicture}
+    }}
+    ~~ = ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[transposed] (f) {$f$};
+            \draw[arrow1={0.7}{}{}] (f.south) -- ++(0,-10pt) coordinate (L);
+            \draw (L) arc(180:360:20pt) coordinate (R);
+            \node[space, above=60pt of L] (V) {$V$};
+            \node[space, above=60pt of R] (W) {$W$};
+            \draw[arrow1={0.5}{}{}] (V) -- (f.north);
+            \draw[arrow1={0.5}{}{}] (R) -- (W);
+        \end{tikzpicture}
+    }}
+\end{equation}
+for all $f: V \to W$ also follow from the snake rules and can be visualized as sliding the box along the wire.
+%
+The rotation induced by the bend means that the transpose appears on the other side.
+%
+Analogous properties for sliding along the opposite cup and cap, not explicitly shown here, also hold.
+
+The graphical calculus, including duality, also fulfills coherence theorems.
+%
+Two symmetric maps formed from the building blocks introduced so far are equal if and only if their diagrams are equivalent up to oriented planar isotopy.
+%
+Note the new qualifier ``oriented", which means that arrow directions must remain consistent if the lines are bent, as e.g.~in the snake rules~\eqref{nonabelian:basics:snake_equation}.
+%
+Additionally, two morphisms given as composite diagrams are each others transpose if and only if one diagram is the rotated version of the other, up to oriented planar isotopy.
+
+As the notation suggests, the opposite cup (cap) is also equal to the transpose of the regular cap (cup), up to suppressed isomorphisms, e.g.~$\transp{(\varepsilon_V)} : \dualspace{I} \to \dualspace{(\dualspace{V} \otimes V)}$ is equal to the following composite
+\begin{equation*}
+    \dualspace{I} 
+    = I
+    \overset{\hconj{\varepsilon_V}}{\longrightarrow} V \otimes \dualspace{V}
+    \overset{\pi_V \otimes \id{\dualspace{V}}}{\longrightarrow} \doubledualspace{V} \otimes \dualspace{V}
+    \overset{(\zeta_{\dualspace{V}, V})^{-1}}{\longrightarrow} \dualspace{(\dualspace{V} \otimes V)}
+    .
+\end{equation*}
+
+
+Another relevant composite object is the \emph{trace} $\tr{f}$ of a symmetric map $f: V \to V$, defined as
+\begin{equation}
+    \label{eq:nonabelian:basics:def_trace}
+    \tr{f} ~~ := ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (f) {$f$};
+            \draw[arrow1={0.7}{}{}] (f.north) -- ++(0,10pt) coordinate (U);
+            \draw[arrow1rev={0.7}{}{}] (f.south) -- ++(0,-10pt) coordinate (D);
+            \draw (U) arc(0:180:15pt) coordinate (U2);
+            \draw (D) arc(360:180:15pt) coordinate (D2);
+            \draw[arrow1={0.5}{left}{$V$}] (U2) -- (D2);
+        \end{tikzpicture}
+    }}
+    \quad = \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[morphism] (f) {$f$};
+            \draw[arrow1={0.7}{}{}] (f.north) -- ++(0,10pt) coordinate (U);
+            \draw[arrow1rev={0.7}{}{}] (f.south) -- ++(0,-10pt) coordinate (D);
+            \draw (U) arc(180:0:15pt) coordinate (U2);
+            \draw (D) arc(180:360:15pt) coordinate (D2);
+            \draw[arrow1={0.5}{right}{$V$}] (U2) -- (D2);
+        \end{tikzpicture}
+    }}
+    ~,
+\end{equation}
+where the alternative definition, which closes the loop to the right-hand side, is equal.
+%
+The trace is invariant under transposition $\tr{\transp{f}} = \tr{f}$ by the sliding property~\eqref{eq:nonabelian:basics:sliding_cup_cap}, and is cyclic
+\begin{equation}
+    \label{eq:nonabelian:basics:trace_cyclic}
+    \tr{f \compose g} = \tr{g \compose f}
+    .
+\end{equation}
+%
+Note that the trace is a symmetric map $I \to I$.
+%
+We identify a one-to-one correspondence of such maps with complex numbers in subsection~\ref{subsec:nonabelian:basics:sectors}, which reconciles this definition with the usual trace of linear maps, which is a number.
+%
+Let us briefly already assume that we can treat it as a number.
+
+The \emph{quantum dimension} of a space is defined as
+\begin{equation}
+    \label{eq:nonabelian:basics:def_qdim}
+    \dim V
+    ~~:=~~ \tr{\id{V}}
+    ~~=~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \coordinate (D);
+            \draw[arrow1rev={0.5}{}{}] (D) -- ++(0,20pt) coordinate (U);
+            \draw (U) arc(180:0:15pt) coordinate (U2);
+            \draw (D) arc(180:360:15pt) coordinate (D2);
+            \draw[arrow1rev={0.5}{right}{$V$}] (U2) -- (D2);
+        \end{tikzpicture}
+    }}
+\end{equation}
+and we find that $\dim\dualspace{V} = \dim V$, i.e.~a loop with opposite arrow direction agrees with the loop above.
+%
+For a group symmetry, the quantum dimension coincides with the vector space dimension of the symmetry space and is, in particular, always an integer.
+%
+In general, we can observe that it is invariant under the dagger and thus real.
+%
+We find it is non-negative for all symmetries we use in practice.
+
+Finally, the trace and dagger induce the Frobenius \emph{inner product} $\Fprod{f}{g} = \tr{\hconj{f} \compose g}$ and Frobenius \emph{norm} $\Fnorm{f} = \sqrt{\Fprod{f}{f}}$ of symmetric maps.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Braids}
+\label{subsec:nonablian:basics:braids}
+%
+We have already seen that the tensor product is associative, at least up to isomorphism.
+%
+The next natural question to ask is if it is also commutative.
+%
+This is related to the question if (and how) legs on a tensor can be swapped/permuted.
+
+We assume that an isomorphism
+%
+\begin{equation}
+    \label{eq:nonabelian:basics:intro_braid}
+    \tau_{V, W} : V \otimes W \isoTo W \otimes V
+\end{equation}
+called the \emph{braid}, exists for every pair $V, W$ of symmetry spaces, such that the tensor product is indeed commutative up to isomorphism.
+%
+While that isomorphism is straightforward in the case of group symmetries, it needs to be carefully kept track of in the case of fermionic or anyonic grading, where it captures the exchange statistics.
+%
+Graphically, we draw the standard over-braid as the following crossing
+\begin{equation}
+    \label{eq:nonabelian:basics:def_braid_graphical}
+    \tau_{V,W} ~~ =: ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L) {$V$};
+            \node[space, right=20pt of L] (R) {$W$};
+            \draw[arrow1={0.5}{}{}] (L.north) -- ++(0,20pt) coordinate (L2);
+            \draw[arrow1={0.5}{}{}] (R.north) -- ++(0,20pt) coordinate (R2);
+            \coordinate[above=30pt of L2] (L3);
+            \coordinate[above=30pt of R2] (R3);
+            \overbraid(L2)(R2)(L3)(R3);
+            \draw[arrow1={0.5}{}{}] (L3) -- ++(0,20pt) node[space, anchor=south] (L4) {$W$};
+            \draw[arrow1={0.5}{}{}] (R3) -- ++(0,20pt) node[space, anchor=south] (R4) {$V$};
+        \end{tikzpicture}
+    }}
+\end{equation}
+of wires.
+%
+Viewed from a point of view from the bottom of the diagram, looking upward, it is a clockwise rotation of the wires.
+%
+The inverse braid, or ``under-braid", has opposite chirality and is drawn as such.
+\begin{equation}
+    \label{eq:nonabelian:basics:def_inverse_braid_graphical}
+    (\tau_{V, W})^{-1} ~~ =: ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L) {$W$};
+            \node[space, right=20pt of L] (R) {$V$};
+            \draw[arrow1={0.5}{}{}] (L.north) -- ++(0,20pt) coordinate (L2);
+            \draw[arrow1={0.5}{}{}] (R.north) -- ++(0,20pt) coordinate (R2);
+            \coordinate[above=30pt of L2] (L3);
+            \coordinate[above=30pt of R2] (R3);
+            \underbraid(L2)(R2)(L3)(R3);
+            \draw[arrow1={0.5}{}{}] (L3) -- ++(0,20pt) node[space, anchor=south] (L4) {$V$};
+            \draw[arrow1={0.5}{}{}] (R3) -- ++(0,20pt) node[space, anchor=south] (R4) {$W$};
+        \end{tikzpicture}
+    }}
+\end{equation}
+%
+As the graphical notation suggests, the braid is unitary and $(\tau_{V,W})^{-1} = \hconj{(\tau_{V,W})}$.
+%
+It is visually intuitive that an under-braid undoes an over-braid.
+\begin{equation}
+    \label{eq:nonabelian:basics:braiding_inverse_relation}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L) {$V$};
+            \node[space, right=20pt of L] (R) {$W$};
+            \draw[arrow1={0.5}{}{}] (L.north) -- ++(0,20pt) coordinate (L2);
+            \draw[arrow1={0.5}{}{}] (R.north) -- ++(0,20pt) coordinate (R2);
+            \coordinate[above=30pt of L2] (L3);
+            \coordinate[above=30pt of R2] (R3);
+            \overbraid(L2)(R2)(L3)(R3);
+            \draw[arrow1={0.5}{left}{$W$}] (L3) -- ++(0,20pt) coordinate (L4);
+            \draw[arrow1={0.5}{right}{$V$}] (R3) -- ++(0,20pt) coordinate (R4);
+            \coordinate[above=30pt of L4] (L5);
+            \coordinate[above=30pt of R4] (R5);
+            \underbraid(L4)(R4)(L5)(R5);
+            \draw[arrow1={0.5}{}{}] (L5) -- ++(0,20pt) node[space, anchor=south] (L6) {$V$};
+            \draw[arrow1={0.5}{}{}] (R5) -- ++(0,20pt) node[space, anchor=south] (R6) {$W$};
+        \end{tikzpicture}
+    }}
+    \quad = \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L) {$V$};
+            \node[space, right=20pt of L] (R) {$W$};
+            \draw[arrow1={0.5}{}{}] (L) -- ++(0,120pt) node[space, above] (L2) {$V$};
+            \draw[arrow1={0.5}{}{}] (R) -- ++(0,120pt) node[space, above] (R2) {$W$};
+        \end{tikzpicture}
+    }}
+\end{equation}
+
+%
+Note that the two ways of braiding $V \otimes W \to W \otimes V$ are $\tau_{V,W}$ and $\hconj{(\tau_{W,V})}$, with opposite subscripts.
+%
+They are different in general, but if they are equal, we call the braid \emph{symmetric}.
+
+The braid fulfills the following \emph{sliding property}.
+\begin{equation}
+    \label{eq:nonabelian:basics:sliding_braid}
+    \vcenter{\hbox{\scalebox{0.9}{
+        \begin{tikzpicture}
+            \node[space] (V1) {$V_1$};
+            \node[space, right=20pt of V1] (V2) {$V_2$};
+            \draw[arrow1={0.5}{}{}] (V1.north) -- ++(0,15pt) node[morphism, above] (f) {$f$};
+            \draw[arrow1={0.5}{}{}] (V2.north) -- ++(0,15pt) node[morphism, above] (g) {$g$};
+            \draw[arrow1={0.5}{left}{$W_1$}] (f.north) -- ++(0,20pt) coordinate (L);
+            \draw[arrow1={0.5}{right}{$W_2$}] (g.north) -- ++(0,20pt) coordinate (R);
+            \coordinate[above=30pt of L] (L2);
+            \coordinate[above=30pt of R] (R2);
+            \overbraid(L)(R)(L2)(R2);
+            \draw[arrow1] (L2) -- ++(0,15pt) node[space, above] (L3) {$W_2$};
+            \draw[arrow1] (R2) -- ++(0,15pt) node[space, above] (R3) {$W_1$};
+        \end{tikzpicture}
+    }}}
+    \quad = \quad
+    \vcenter{\hbox{\scalebox{0.9}{
+        \begin{tikzpicture}
+            \node[space] (L) {$V_1$};
+            \node[space, right=20pt of L] (R) {$V_2$};
+            \draw[arrow1={0.5}{}{}] (L.north) -- ++(0,15pt) coordinate (L2);
+            \draw[arrow1={0.5}{}{}] (R.north) -- ++(0,15pt) coordinate (R2);
+            \coordinate[above=30pt of L2] (L3);
+            \coordinate[above=30pt of R2] (R3);
+            \overbraid(L2)(R2)(L3)(R3);
+            \draw[arrow1={0.5}{left}{$V_2$}] (L3) -- ++(0,20pt) node[morphism, above] (L4) {$g$};
+            \draw[arrow1={0.5}{right}{$V_1$}] (R3) -- ++(0,20pt) node[morphism, above] (R4) {$f$};
+            \draw[arrow1] (L4.north) -- ++(0,15pt) node[space, above] (L5) {$W_2$};
+            \draw[arrow1] (R4.north) -- ++(0,15pt) node[space, above] (R5) {$W_1$};
+        \end{tikzpicture}
+    }}} 
+\end{equation}
+
+
+\begin{doublecol}
+    For group symmetries, the braid $\tau_{V, W}$ is the linear extension of $$\ket{v} \otimes \ket{w} \mapsto \ket{w} \otimes \ket{v}.$$
+    %
+    It is, in particular, always symmetric.
+    %
+    The properties stated above are straight-forward to verify.
+\colswitch
+    %
+    For a category $\catC$ with tensor product $\otimes$, a braiding structure is given by a unitary natural isomorphism $\tau_{A,B} : A \otimes B \to B \otimes A,$ the \emph{braid}, which fulfills the hexagon equations~\eqref{eq:nonabelian:hexagon_equation1} and \eqref{eq:nonabelian:hexagon_equation2}.
+    %
+    It is a natural isomorphism between the tensor product functor $\otimes$ and a ``reverse tensor product" $\catC \times\catC \to \catC$ that assigns to $(A, B)$ the object $B \otimes A$ and to $(f, g)$ the morphism $g \otimes f$.
+    %
+    Thus, naturality is equivalent to the sliding property~\eqref{eq:nonabelian:basics:sliding_braid}.
+\end{doublecol}
+\begin{extendrightcol}
+
+    The braid fulfills the following consistency conditions, namely that the so called \emph{hexagon equations} commute;
+
+    \begin{equation}
+    \label{eq:nonabelian:hexagon_equation1}
+    \begin{tikzcd}[ampersand replacement=\&]
+        \&
+        A \otimes (B \otimes C)
+            \arrow[rr, "\tau_{A,B \otimes C}"]
+            \arrow[dl, "\alpha_{A,B,C}^{-1}"]
+        \& \&
+        (B \otimes C) \otimes A
+        \& \\
+        (A \otimes B) \otimes C
+            \arrow[dr, "\tau_{A,B} \otimes \id{C}"]
+        \& \& \& \&
+        B \otimes (C \otimes A)
+            \arrow[ul, "\alpha_{B,C,A}^{-1}"]
+        \\ \&
+        (B \otimes A) \otimes C
+            \arrow[rr, "\alpha_{B,A,C}"]
+        \& \&
+        B \otimes (A \otimes C)
+            \arrow[ur, "\id{B} \otimes \tau_{A,C}"]
+        \& 
+    \end{tikzcd}
+    \end{equation}
+    
+    \begin{equation}
+    \label{eq:nonabelian:hexagon_equation2}
+    \begin{tikzcd}[ampersand replacement=\&]
+        \&
+        (A \otimes B) \otimes C
+            \arrow[rr, "\tau_{A\otimes B, C}"]
+            \arrow[dl, "\alpha_{A,B,C}"]
+        \& \&
+        C \otimes (A \otimes B)
+        \& \\
+        A \otimes (B \otimes C)
+            \arrow[dr, "\id{A} \otimes \tau_{B,C}"]
+        \& \& \& \&
+        (C \otimes A) \otimes B
+            \arrow[ul, "\alpha_{C,A,B}"]
+        \\ \&
+        A \otimes (B \otimes C)
+            \arrow[rr, "\alpha_{A,C,B}^{-1}"]
+        \& \&
+        (A \otimes C) \otimes B
+            \arrow[ur, "\tau_{A,C} \otimes \id{B}"]
+        \& 
+    \end{tikzcd}
+    \end{equation}
+\end{extendrightcol}
+
+The braids introduce a third dimension to the graphical notation.
+%
+With braids, the coherence theorem is that two symmetric maps are equal if and only if their diagrams are equivalent up to the spatial isotopy of ribbons.
+%
+That means diagrams may be deformed in a three-dimensional ambient space as long as the order of the endpoints of the open wires remains fixed and wires and morphisms do not touch each other.
+%
+Additionally, we need to think of the wires as having some finite width, i.e., as ribbons, where the endpoints are not only fixed in space but also need to have fixed rotation around the wire axis, such that a twist in the ribbon can not be resolved as a part of the isotopy.
+
+Such a twist is captured by a map that is defined as the following composite
+%
+\begin{equation}
+    \label{eq:nonabelian:basics:def_twist}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+            \rightovertwist(L2)[L3];
+            \draw[arrow1] (L3) -- ++(0,20pt) node[space, above] (L4) {$V$};
+        \end{tikzpicture}
+    }}
+    \quad := \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) node[morphism, above] (L2) {$\theta_V$};
+            \draw[arrow1] (L2.north) -- ++(0,20pt) node[space, above] (L4) {$V$};
+        \end{tikzpicture}
+    }}
+    \quad:=\quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \coordinate (L1);
+            \coordinate[right=30pt of L1] (C1);
+            \coordinate[right=30pt of C1] (R1);
+            \coordinate[above=30pt of L1] (L2);
+            \coordinate[above=30pt of C1] (C2);
+            \coordinate[above=30pt of R1] (R2);
+            \overbraid(L1)(C1)(L2)(C2);
+            \draw[arrow1] (C2) -- ++(0,10pt) coordinate (C3);
+            \draw let \p{radius}=($.5*(R2)-.5*(C2)$) in (C3) arc(180:0:\x{radius}) coordinate (R3);
+            \draw[arrow1rev] (C1) -- ++(0,-10pt) coordinate (C0);
+            \draw let \p{radius}=($.5*(R2)-.5*(C2)$) in (C0) arc(180:360:\x{radius}) coordinate (R0);
+            \draw[arrow1] (R3) -- (R0);
+            \draw[arrow1] (L2) -- ++(0,30pt) node[space, above] (top) {$V$};
+            \draw[arrow1rev] (L1) -- ++(0,-30pt) node[space, below] (bot) {$V$};
+        \end{tikzpicture}
+    }}
+    \qquad \overset{\text{visualize as}}{\longrightarrow} \qquad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \coordinate (L1);
+            \path[fill=blue!40] (L1)
+            % \path (L1)
+                -- ++(0,20pt) coordinate (L2)
+                to[out=90,in=255] ++(3pt,15pt) coordinate (C3)
+                to[out=285,in=90] ++(3pt,-15pt) coordinate (R2)
+                -- ++(0,-20pt) coordinate (R1)
+                -- (L1);
+            \path[fill=orange!40] (C3)
+            % \path (C3)
+                to[out=105,in=270] ++(-3pt,15pt) coordinate (L4)
+                -- ++(0,30pt) coordinate (L5)
+                to[out=90,in=255] ++(3pt,15pt) coordinate (C6)
+                to[out=285,in=90] ++(3pt,-15pt) coordinate (R5)
+                -- ++(0,-30pt) coordinate (R4)
+                to[out=270,in=75] (C3);
+            \path[fill=blue!40] (C6)
+            % \path (C6)
+                to[out=105,in=270] ++(-3pt,15pt) coordinate (L7)
+                -- ++(0,20pt) coordinate (L8)
+                -- ++(6pt,0) coordinate (R8)
+                -- ++(0,-20pt) coordinate (R7)
+                to[out=270,in=75] (C6);
+            %
+            \draw[overdraw=2pt] (R1) -- (R2) to[out=90,in=285] (C3) to[out=105,in=270] (L4) -- (L5);
+            \draw[overdraw=2pt] (L1) -- (L2) to[out=90,in=255] (C3) to[out=75,in=270] (R4) -- (R5) to[out=90,in=285] (C6) to [out=105,in=270] (L7) -- (L8);
+            \draw[overdraw=2pt] (L5) to[out=90,in=255] (C6) to[out=75,in=270] (R7) -- (R8);
+            \draw[overdraw=2pt] (L2) -- (L1) -- (R1) -- (R2);
+            \draw[overdraw=2pt] (L7) -- (L8) -- (R8) -- (R7);
+        \end{tikzpicture}
+    }}
+    ~,
+\end{equation}
+where we can understand its graphical representation as a miniature of the definition.
+
+It fulfills the following defining property
+\begin{equation}
+    \label{eq:nonabelian:basics:twist_definining_property}
+    \theta_{V \otimes W} = (\theta_V \otimes \theta_W) \compose \tau_{W, V} \compose \tau_{V, W}
+    ~.
+\end{equation}
+
+In the three-dimensional isotopy, we may think of the twist as literally a twist in a ribbon, as depicted on the very right of equation~\eqref{eq:nonabelian:basics:def_twist}.
+%
+We found it instructive to confirm this relation with a physical ribbon, e.g.~a thin stripe of paper, by forming the configuration on the LHS, then pulling the ends tight.
+
+We can get three more twist-like maps $V \to V$ by either taking the dagger or by taking the transpose and substituting $\dualspace{V}$ for $V$, or both.
+%
+They all appear in equation~\eqref{eq:nonabelian:basics:twist_left_equals_right}.
+%
+We assume
+\begin{equation}
+    \label{eq:nonabelian:basics:tortile_assumption}
+    \transp{(\theta_A)} = \theta_{\dualspace{A}}
+    ~,
+\end{equation}
+which implies that they are related as follows
+\begin{equation}
+    \label{eq:nonabelian:basics:twist_left_equals_right}
+    \theta_V ~= 
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+            \rightovertwist(L2)[L3];
+            \draw[arrow1] (L3) -- ++(0,20pt) node[space, above] (L4) {$V$};
+        \end{tikzpicture}
+    }}
+    ~~ = ~~
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+            \leftundertwist(L2)[L3];
+            \draw[arrow1] (L3) -- ++(0,20pt) node[space, above] (L4) {$V$};
+        \end{tikzpicture}
+    }}
+    = ~ \transp{(\theta_{\dualspace{V}})}
+    % \qquad ; \qquad
+    % \hconj{(\theta_V)} ~ = 
+    % \vcenter{\hbox{
+    %     \begin{tikzpicture}
+    %         \node[space] (L1) {$V$};
+    %         \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+    %         \rightundertwist(L2)[L3];
+    %         \draw[arrow1] (L3) -- ++(0,20pt) node[space, above] (L4) {$V$};
+    %     \end{tikzpicture}
+    % }}
+    % ~~ = ~~
+    % \vcenter{\hbox{
+    %     \begin{tikzpicture}
+    %         \node[space] (L1) {$V$};
+    %         \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+    %         \leftovertwist(L2)[L3];
+    %         \draw[arrow1] (L3) -- ++(0,20pt) node[space, above] (L4) {$V$};
+    %     \end{tikzpicture}
+    % }}
+    % = ~ \hconj{(\transp{(\theta_{\dualspace{V}})})}
+    ,
+\end{equation}
+which we can visualize as a 3D rotation around a vertical axis or as ``folding over".
+
+The twist is unitary, meaning it is undone by its dagger, which gives the following relations
+\begin{equation}
+    \label{eq:nonabelian:basics:twist_unitary}
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+            \leftundertwist(L2)[L3];
+            \draw[arrow1] (L3) -- ++(0,20pt) coordinate (L4);
+            \leftovertwist(L4)[L5];
+            \draw[arrow1] (L5) -- ++(0,20pt) node[space, above] (L6) {$V$};
+        \end{tikzpicture}
+    }}
+    \quad = \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+            \leftovertwist(L2)[L3];
+            \draw[arrow1] (L3) -- ++(0,20pt) coordinate (L4);
+            \leftundertwist(L4)[L5];
+            \draw[arrow1] (L5) -- ++(0,20pt) node[space, above] (L6) {$V$};
+        \end{tikzpicture}
+    }}
+    \quad = \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1) -- ++(0,90pt) node[space, above] (L6) {$V$};
+        \end{tikzpicture}
+    }}
+    \quad = \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+            \rightovertwist(L2)[L3];
+            \draw[arrow1] (L3) -- ++(0,20pt) coordinate (L4);
+            \rightundertwist(L4)[L5];
+            \draw[arrow1] (L5) -- ++(0,20pt) node[space, above] (L6) {$V$};
+        \end{tikzpicture}
+    }}
+    \quad = \quad
+    \vcenter{\hbox{
+        \begin{tikzpicture}
+            \node[space] (L1) {$V$};
+            \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+            \rightundertwist(L2)[L3];
+            \draw[arrow1] (L3) -- ++(0,20pt) coordinate (L4);
+            \rightovertwist(L4)[L5];
+            \draw[arrow1] (L5) -- ++(0,20pt) node[space, above] (L6) {$V$};
+        \end{tikzpicture}
+    }}
+    .
+\end{equation}
+Again, we find it instructive to confirm these relations, as well as~\eqref{eq:nonabelian:basics:twist_left_equals_right} with physical ribbons.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Linear structure}
+\label{subsec:nonablian:basics:linear_structure}
+
+The symmetric maps have a linear structure, meaning the space $\Homset{V}{W}$ of symmetric maps between symmetry spaces $V, W$ is a complex vector space, such that we can form linear combinations of symmetric maps.
+%
+The following conditions on the linear structure are natural if we think of linear maps between vector spaces as the prototype for symmetric maps.
+%
+The linear structure cooperates with map composition, such that $(f, g) \mapsto f \compose g$ is bilinear, meaning
+\begin{align}
+    \label{eq:nonabelian:basics:linear_structure_compatible_with_compose}
+    \begin{split}
+        f \compose (ag + bg') = a (f \compose g) + b(f \compose g')
+        \\
+        (af + bf') \compose g = a (f \compose g) + b(f' \compose g)
+    \end{split}
+\end{align}
+for maps $f, f' : V' \to W$, $g, g': V \to V'$ and scalars $a, b \in \Cbb$.
+
+The linear structure similarly cooperates with the tensor product, such that $(f, g) \mapsto f \otimes g$ is bilinear,
+\begin{align}
+    \label{eq:nonabelian:basics:linear_structure_compatible_with_otimes}
+    \begin{split}
+        f \otimes (ag + bg') = a (f \otimes g) + b(f \otimes g')
+        \\
+        (af + bf') \otimes g = a (f \otimes g) + b(f' \otimes g)
+    \end{split}
+    .
+\end{align}
+%
+The linear structure cooperates with the dagger if the dagger is antilinear
+\begin{equation}
+    \label{eq:nonabelian:basics:linear_structure_compatible_with_dagger}
+    \hconj{(a f + b f')} = \conj{a} \hconj{f} + \conj{b} \hconj{(f')}
+    ,
+\end{equation}
+where $\conj{a}$ denotes the complex conjugate of $a$.
+
+\begin{doublecol}
+    For linear maps, the vector space structure is straight-forward, where linear combinations of maps $f, g : V \to W$ with coefficients $a, b \in \Cbb$ are given by $$(a f + b g): V \to W, x \mapsto a f(x) + b g(x).$$
+    %
+    It remains to check that the linear combination is a symmetric map, which follows directly, as the group representation is also linear.
+    %
+    As a conclusion, the set $\Homset{V}{W}$ of symmetric maps between symmetry spaces $V, W$ is indeed a complex vector space.
+    %
+\colswitch
+    %
+    In category theory, the most straightforward way to define a linear structure is via the notion of a linear category.
+    %
+    In particular, a $\Cbb$-linear category is a category $\catC$ where all collections of morphisms $\morphset{\catC}{A}{B}$ are vector spaces over $\Cbb$, such that map composition is bilinear~\eqref{eq:nonabelian:basics:linear_structure_compatible_with_compose}.
+    %
+    In particular, this means that there is a zero morphism $0_{A, B} : A \to B$ for every pair $A, B$ of objects, the zero vector of the vector space.
+    %
+    Since composition is bilinear, we have $0_{B, C} \compose f = 0_{A, C} = g \compose 0_{A, B}$ for all $f: A \to B$ and $g: B \to C$.
+    %
+    The linear structure cooperates with the monoidal or dagger structures, respectively, if the compatibility axioms~\eqref{eq:nonabelian:basics:linear_structure_compatible_with_otimes} or~\eqref{eq:nonabelian:basics:linear_structure_compatible_with_dagger} are fulfilled.
+\end{doublecol}
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Direct sums}
+\label{subsec:nonablian:basics:direct_sums}
+
+The next structure we want to introduce formalizes the idea that a symmetry partitions Hilbert spaces into sectors according to quantum numbers.
+%
+In this section, we define the direct sum, which allows us to understand how to build up larger spaces from smaller building blocks.
+%
+We go in the opposite direction and ask if a given space can be deconstructed and what the elementary building blocks are in the next section.
+
+We define the \emph{direct sum} $V = W_1 \oplus W_2 \oplus \dots \oplus W_N = \bigoplus_{n=1}^N W_n$ of symmetry spaces $W_1, W_2, \dots, W_N$ in the columns below.
+%
+If we think of elements of the spaces as column vectors, the elements of the direct sum are vertically stacked column vectors.
+%
+It is characterized by symmetric \emph{projection} maps $p_n: V \to W_n$ that tell us how to pick the components that belong to $W_n$ from the vertical stack.
+The related symmetric \emph{injection} maps $i_n : W_n \to V$ tell us how to embed components from a vector in $W_n$ into the larger space and are related to the projections via the dagger $i_n = \hconj{p_n}$.
+%
+They are orthonormal $p_n \compose i_m = \delta_{m,n} \id{W_n}$ and complete $\sum_n i_n \compose p_n = \id{V}$.
+
+Here, we employ a slight abuse of notation regarding the Kronecker delta since for $m \neq n$, the orthonormality equation is (in general) ill-typed and has type $W_m \to W_n$ on the LHS but $W_n \to W_n$ on the RHS.
+%
+We understand the Kronecker delta to fulfill laxly the following role for any map $f$
+\begin{equation}
+    \label{eq:nonabelian:basics:Kronecker_notation_abuse}
+    \delta_{m,n} f 
+    := \begin{cases}
+        f & m = n
+        \\
+        0 \quad \text{(zero map of correct type in the given context)} & m \neq n
+    \end{cases}
+    ,
+\end{equation}
+where the ``correct type in the given context" may not be the type of $f$.
+%
+Note that we even use this notation if the expression for $f$ is ill-defined in the $m \neq n$ case.
+
+We denote the injection and projection maps in the graphical calculus as kites
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (bot) {$V$};
+        \draw[arrow1] (bot.north) -- ++(0,20pt) node[projection, above] (p) {$n$};
+        \draw[arrow1] (p.north) -- ++(0,20pt) node[space, above] {$W_n$};
+    \end{tikzpicture}}}
+    \quad := \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (bot) {$V$};
+        \draw[arrow1] (bot.north) -- ++(0,20pt) node[morphism, above] (p) {$p_n$};
+        \draw[arrow1] (p.north) -- ++(0,20pt) node[space, above] {$W_n$};
+    \end{tikzpicture}}}
+    \qquad ; \qquad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (bot) {$W_n$};
+        \draw[arrow1] (bot.north) -- ++(0,20pt) node[inclusion, above] (p) {$n$};
+        \draw[arrow1] (p.north) -- ++(0,20pt) node[space, above] {$V$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \left[~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (bot) {$V$};
+        \draw[arrow1] (bot.north) -- ++(0,20pt) node[projection, above] (p) {$n$};
+        \draw[arrow1] (p.north) -- ++(0,20pt) node[space, above] {$W_n$};
+    \end{tikzpicture}}}
+    ~~\right]^{\mathlarger{\dagger}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (bot) {$W_n$};
+        \draw[arrow1] (bot.north) -- ++(0,20pt) node[morphism, above] (p) {$i_n$};
+        \draw[arrow1] (p.north) -- ++(0,20pt) node[space, above] {$V$};
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+where the kite ``points" from the larger space $V$ to the smaller space $W_{n/m}$.
+%
+Orthonormality and completeness take the following form.
+\begin{equation}
+    \label{eq:nonabelian:basics:inclusions_projections_orthonormal_complete_graphical}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (C0) {$W_n$};
+        \draw[arrow1] (C0.north) -- ++(0,20pt) node[inclusion, above] (C1) {$n$};
+        \draw[arrow1={0.5}{left}{$V$}] (C1.north) -- ++(0,20pt) node[projection, above] (C2) {$m$};
+        \draw[arrow1] (C2.north) -- ++(0,20pt) node[space, above] (C3) {$W_m$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \delta_{m,n} ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (C0) {$W_n$};
+        \draw[arrow1] (C0.north) -- ++(0,60pt) node[space, above] (C1) {$W_n$};
+    \end{tikzpicture}}}
+    \qquad ; \qquad
+    \sum_n ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (C0) {$V$};
+        \draw[arrow1] (C0.north) -- ++(0,20pt) node[projection, above] (C1) {$n$};
+        \draw[arrow1={0.5}{right}{$W_n$}] (C1.north) -- ++(0,20pt) node[inclusion, above] (C2) {$n$};
+        \draw[arrow1] (C2.north) -- ++(0,20pt) node[space, above] (C3) {$V$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (C0) {$V$};
+        \draw[arrow1] (C0.north) -- ++(0,60pt) node[space, above] (C1) {$V$};
+    \end{tikzpicture}}}
+\end{equation}
+
+If we find some other space $\tilde{V}$ with projections $\tilde{p}_n$ and inclusions $\tilde{i}_n$ that also fulfill~\eqref{eq:nonabelian:basics:inclusions_projections_orthonormal_complete_graphical}, we can conclude that $\tilde{V} \cong \bigoplus_n W_n$ is isomorphic to the direct sum, by a unitary isomorphism $\sum_n i_n \compose \tilde{p}_n$.
+
+Note that the graphical notation for inclusions and projections is horizontally symmetric, such that we can not distinguish dagger and transpose graphically.
+%
+We resolve this by using the transposed projections $\transp{p_n} : \dualspace{W_n} \to \dualspace{V}$ as the inclusions of $\dualspace{V} \cong \bigoplus_n \dualspace{W_n}$ and similarly the transposed inclusions as projections.
+
+The tensor product distributes over direct sums, up to isomorphism, that is 
+\begin{align}
+    \label{eq:nonabelian:basics:oplus_compatible_otimes}
+    V \otimes (W \oplus W') \cong (V \otimes W) \oplus (V \otimes W')
+    \\
+    (V \oplus V') \otimes W \cong (V \otimes W) \oplus (V' \otimes W)
+    ~.
+\end{align}
+%
+We can see this directly since $\id{V} \otimes p_n$ is a projection and $\id{V} \otimes i_n$ an inclusion for the first direct sum, if $p_n$ ($i_n$) is a projection (inclusion) for $W \oplus W'$, and analogously for the second case.
+\clearpage
+\begin{doublecol}
+    The direct sum $V = \bigoplus_n W_n$ of symmetry spaces is defined as follows.
+    %
+    It is the direct sum of vector spaces, which is the set 
+    \begin{equation*}
+        \bigoplus_n W_n = \setdef{(w_1, \dots, w_N)}{w_n \in W_n}
+    \end{equation*}
+    together with elementwise addition and elementwise scalar multiplication.
+    %
+    The scalar product is also defined elementwise, that is 
+    \begin{equation*}
+        \braket{(w_1, \dots, w_N)}{(v_1, \dots, v_N)} = \prod_n \braket{w_n}{v_n}
+        ,
+    \end{equation*}
+    %
+    as is the group representation
+    \begin{equation*}
+        U_V(g) = \bigoplus_n U_{W_n}(g)
+        .
+    \end{equation*}
+    %
+    Here, the direct sum of maps denotes elementwise application, e.g.
+    \begin{equation*}
+        f \oplus g : (v, w) \mapsto (f(v), g(w))
+    \end{equation*}
+    for a binary direct sum with straight-for\-ward generalization to $N$-ary sums.
+
+    The injection maps are given by $$i_n : W_n \to V, v_n \mapsto (0, \dots, v_n, \dots, 0),$$ where $v_n$ sits at the $n$-th position in the tuple.
+    %
+    The projection maps are $$p_n: V \to W_n (v_1, \dots, v_n, \dots, v_N) \mapsto v_n.$$
+    %
+    Orthonormality and completeness are easy to check.
+    %
+\colswitch
+    %
+    The direct sum\footnote{
+        This is also known as a biproduct in the literature.
+    } of objects $A_1, \dots, A_N$ is an object $B := \bigoplus_n A_n$ equipped with the inclusions $i_n : A_n \to B$ and projection $p_n : B \to A_n$ morphisms for $n=1,\dots,N$, which are orthonormal and complete~\eqref{eq:nonabelian:basics:inclusions_projections_orthonormal_complete_graphical}.
+    
+    We assume that our category $\catC$ has a direct sum $\bigoplus_{n=1}^N A_n \in \objset{\catC}$ for any finite set $\set{A_1, \dots, A_N}$ of objects.
+    
+    The duality structure guarantees that $\otimes$ distributes over $\oplus$, in the sense of equation~\eqref{eq:nonabelian:basics:oplus_compatible_otimes}, see e.g.~\cite[Sec. 3.3]{heunen2019} for a derivation of the isomorphisms.
+    
+    The direct sums are compatible with a dagger structure if $i_n = \hconj{p_n}$.
+\end{doublecol}
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Sectors}
+\label{subsec:nonabelian:basics:sectors}
+%
+In this section, we introduce the elementary building blocks -- the simple spaces.
+%
+In the following, we characterize them as building blocks in the sense that all symmetry spaces can be written as direct sums of them, meaning any symmetry space is equal or at least isomorphic to a direct sum of simple spaces.
+%
+Additionally, we characterize them as elementary in the sense that they themselves admit no further decomposition into non-trivial direct sums.
+
+The most direct handle on whether a space $V$ can be decomposed into a direct sum is the dimension of its endomorphism space $\Endset{V}$.
+%
+Consider the following linear map between vector spaces
+\begin{equation}
+    \phi : \Endset{\bigoplus_n W_n} \to \hat{\bigoplus_n}~ \Endset{W_n} , f \mapsto \hat{\bigoplus_n}~ p_n \compose f \compose i_n,
+\end{equation}
+where $i_n$ ($p_n$) are the injections (projections) of the direct sum $\bigoplus_n W_n$.
+%
+Note that we write a little hat on top to distinguish the direct sum $\hat\oplus$ of vector spaces from the direct sum $\oplus$ of symmetry spaces.
+%
+We can conclude that $\phi$ is surjective, since $\hat\bigoplus_n~ f_n \mapsto \sum_n i_n \compose f_n \compose p_n$ is a right inverse.
+%
+Therefore, we get $\dim\Endset{\bigoplus_n W_n} \geq \sum_n \dim\Endset{W_n}$, i.e.~on taking direct sums, the dimension of the endomorphism space increases at least additively\footnote{
+    If we already use the properties of sectors derived/assumed in the following, we can conclude that the dimension is additive if the $W_n$ do not share any sectors, meaning there is no sector $a$ for which more than one $N^{W_n}_a$ is non-zero.
+    %
+    If they do share sectors, it is strictly larger than additive.
+    %
+    For example, for a sector $a$ we have $\dim\Endset{a \oplus a} = 4$ and $\dim\Endset{a} = 1$.
+}.
+
+We count symmetry spaces with zero-dimensional endomorphism spaces as trivial.
+Thus, we can identify a class of elementary spaces;
+%
+A \emph{simple} symmetry space $V$ is a symmetry space with a one-dimensional endomorphism space $\Homset{V}{V}$.
+%
+It remains to argue that the simple spaces are the building blocks for symmetry spaces, i.e.~that any symmetry space is (equivalent to) a direct sum of simple spaces.
+%
+For a group symmetry, this can be guaranteed if the group representations are unitary, which we assume.
+%
+For a general category, we include it as a requirement for being a tensor category.
+
+Towards a classification of the simple spaces, note\footnote{
+    Let us sketch a proof.
+    If the assumed isomorphism is $\phi: W \isoTo \tilde{W}$, we find an isomorphism $i^{V \oplus \tilde{W}}_V \compose p^{V \oplus W}_V + i^{V \oplus \tilde{W}}_{\tilde{W}} \compose \phi \compose p^{V \oplus W}_{W}$ that establishes the claim.
+    Its inverse is built analogously, exchanging $W \leftrightarrow \tilde{W}$ and $\phi \leftrightarrow \phi^{-1}$.
+} that two isomorphic spaces $W \cong \tilde W$ are interchangeable in direct sums, that is, $V \oplus W \cong V \oplus \tilde W$, and straight-forward generalizations to direct sums of many spaces.
+%
+Thus, one representative per isomorphism class of simple spaces is enough to build any symmetry space via direct sum.
+%
+These representatives are the \emph{sectors}, which fulfill the following properties.
+
+\begin{itemize}
+    \item There is a set $\mathcal{S}$ of symmetry spaces, the \emph{sectors}, that is either finite or countably infinite.
+    \item The monoidal unit $I \in \mathcal{S}$ is a sector. We call it the \emph{trivial sector}.
+    \item The space $\Endset{a}$ of symmetric maps from a sector $a \in \mathcal{S}$ to itself is one-dimensional.
+    \item The space $\Homset{a}{b}$ of symmetric maps between distinct sectors $a, b \in \mathcal{S}$ with $a \neq b$ is zero-dimensional.
+    \item Every symmetry space $V$ is isomorphic to a finite direct sum of sectors, meaning there is an integer $N^V_a \in \Nbb_0$ for every sector $a$ such that~\eqref{eq:nonabelian:basics:sector_decomposition_general_space} holds, while $\sum_{a\in\mathcal{S}} N^{V}_a < \infty$ is finite.
+\end{itemize}
+
+The properties imply for any pair $V, W$ of simple spaces
+\begin{equation}
+    \dim \Homset{V}{W} = \begin{cases}1 & V \cong W \\ 0 & \text{else}\end{cases}
+    .
+\end{equation}
+%
+To see this, let $\phi_V : V \isoTo a$ and $\phi_W : W \isoTo b$ be the isomorphisms to sectors $a, b \in \mathcal{S}$.
+%
+Then, $f \mapsto \phi_W \compose f \compose \phi_V^{-1}$ is a vector space isomorphism, which establishes $\dim\Homset{V}{W} = \dim\Homset{a}{b} = \delta{a,b}$.
+
+Writing out the last property in the list above gives us the \emph{sector decomposition}
+\begin{equation}
+    \label{eq:nonabelian:basics:sector_decomposition_general_space}
+    V \cong \bigoplus_{a \in \mathcal{S}} \bigoplus_{\mu = 1}^{N^{V}_a} a
+\end{equation}
+for any symmetry space $V$.
+
+
+We can conclude from the axioms of the linear structure that the identity map is not zero.
+%
+Thus, the one-dimensional space $\Endset{a}$ for a sector $a$ is spanned by the identity, and any symmetric map $f: a \to a$ from a sector $a \in \mathcal{S}$ to itself must be a multiple $f = \phi(f) \id{a}$ of the identity.
+%
+This establishes a one-to-one correspondence between sector endomorphisms $f$ and scalars $\phi(f)$.
+%
+In particular, this allows us to understand objects such as the trace $\tr{g} : I \to I$ as a scalar.
+%
+We are not careful about the distinction and write e.g.~$\tr{g}$ even if we mean its corresponding scalar $\phi(\tr{g})$.
+%
+In fact, taking the trace allows us to identify the prefactor since $\tr{f} = \phi(f) \tr{\id{a}} = \phi(f) d_a$, where we adopt the shorthand notation $d_a = \dim a$ for the quantum dimension of a sector.
+
+Further, since $\Homset{a}{b}$ is zero-dimensional for sectors $a \neq b$, any map in it must be zero.
+%
+Therefore, any map $f: a \to b$ between sectors $a, b$ fulfills
+\begin{equation}
+    \label{eq:nonabelian:basics:sector_map_is_multiple_of_id}
+    (f: a \to b)
+    = \delta_{a, b} \frac{\tr{f}}{d_a}\; \id{a}
+    .
+\end{equation}
+where we employ the notation abuse~\eqref{eq:nonabelian:basics:Kronecker_notation_abuse} for the Kronecker delta.
+%
+We can understand this as a generalization of Schur's lemma.
+%
+This relation is what eventually allows us to store symmetric tensors using fewer free parameters than non-symmetric tensors.
+%
+The roadmap we follow in section~\ref{sec:nonabelian:symmetric_tensors} is to decompose a general symmetric tensor into components $c \to d$ that map between sectors. Then, because of~\eqref{eq:nonabelian:basics:sector_map_is_multiple_of_id}, we only need to store those components $c \to c$ between \emph{matching} sectors, and we only need to store one scalar prefactor per component.
+
+\clearpage
+\begin{doublecol}
+    In the group case, we note that irreducible representations (irreps) are simple because of Schur's Lemma; see section \ref{sec:topo_data:review_rep_thry}.
+    %
+    If a representation is reducible, it is equivalent to a direct sum of multiple irreps.
+\colswitch
+    %
+    For a category, we simply take the listed properties as axioms; we assume there is a countable set $\mathcal{S} \subset \objset{\catC}$ of objects, the \emph{sectors} that fulfill the properties enumerated above.
+    
+\end{doublecol}
+
+\begin{extendleftcol}
+    Thus, the corresponding symmetry space is a direct sum of multiple simple symmetry spaces, and in particular, not itself simple.
+    %
+    As a result, the simple objects in the group case correspond exactly to irreps.
+    
+    Further, because of~\eqref{nonabelian:basics:groups_isomorphism_makes_reps_equivalent}, an isomorphism of symmetry spaces implies an equivalence of the respective group representations, such that the sectors are equivalence classes of group irreps.
+    %
+    For finite groups and compact Lie groups, the number of equivalence classes, and thus the number of sectors, is indeed countable.
+
+    The monoidal unit is the one-dimensional space $I = \Cbb$ with the trivial representation $U_I(g) = 1$, which is clearly irreducible. Choosing it as the representative of its equivalence class makes it a sector.
+
+    By Schur's lemma part 2, any equivariant linear map from an irrep to itself is a multiple of the identity, such that the respective endomorphism space is indeed one-dimensional.
+    
+    By Schur's lemma part 1, any equivariant linear map between inequivalent irreps is zero, such that the respective Homspace is indeed zero-dimensional.
+    %
+    This result relies on the underlying field, here $\Cbb$, being algebraically closed.
+
+    The decomposition~\eqref{eq:nonabelian:basics:sector_decomposition_general_space} is derived in section~\ref{sec:topo_data:review_rep_thry}.
+\end{extendleftcol}
+
+Let us now pay particular attention to the sector decomposition 
+\begin{equation}
+    \label{eq:nonabelian:basics:sector_decomposition_of_sector_product}
+    a \otimes b \cong \bigoplus_{c \in \mathcal{S}} \bigoplus_{\mu=1}^{N^{ab}_c} c
+\end{equation}
+of the product of two sectors $a, b \in \mathcal{S}$.
+%
+Here, the \emph{N symbol} $N^{ab}_c := N^{a\otimes b}_c$, i.e.~the number of times a sector $c$ appears in the decomposition of $a \otimes b$, gets a special name and notation because it is used a lot.
+%
+Similarly, the injections $Y^{ab}_{c,\mu}: c \to a \otimes b$ of the direct sum~\eqref{eq:nonabelian:basics:sector_decomposition_of_sector_product} play an important role and are called the \emph{splitting tensors}.
+%
+Here, we call  $\mu = 1, \dots, N^{ab}_c$ the \emph{multiplicity label}.
+%
+The corresponding projections $X^{ab}_{c,\mu} = \hconj{(Y^{ab}_{c,\mu})} : a \otimes b \to c$ are called \emph{fusion tensors}.
+%
+In the graphical notation, we introduce the following shorthand
+%
+\begin{equation}
+    \label{eq:nonabelian:basics:fusion_tensors_splitting_tensors_graphical}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \node[space, right=20pt of L] (R) {$b$};
+        \node[y tensor, below=20pt of -(L)(R)] (X) {$\mu$};
+        \draw[arrow1rev] (L.south) -- ($(L.south |- X.north)$);
+        \draw[arrow1rev] (R.south) -- ($(R.south |- X.north)$);
+        \draw[arrow1rev] (X.south) -- ++(0,-20pt) node[space, below] (top) {$c$};
+    \end{tikzpicture}}}}
+    \quad := \quad
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \node[space, right=20pt of L] (R) {$b$};
+        \node[morphism, below=20pt of -(L)(R)] (X) {$Y^{ab}_{c,\mu}$};
+        \draw[arrow1rev] (L.south) -- ($(L.south |- X.north)$);
+        \draw[arrow1rev] (R.south) -- ($(R.south |- X.north)$);
+        \draw[arrow1rev] (X.south) -- ++(0,-20pt) node[space, below] (top) {$c$};
+    \end{tikzpicture}}}}
+    \qquad ; \qquad
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \node[space, right=20pt of L] (R) {$b$};
+        \node[x tensor, above=20pt of -(L)(R)] (X) {$\mu$};
+        \draw[arrow1] (L.north) -- ($(L.north |- X.south)$);
+        \draw[arrow1] (R.north) -- ($(R.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] (top) {$c$};
+    \end{tikzpicture}}}}
+    \quad := \quad
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \node[space, right=20pt of L] (R) {$b$};
+        \node[morphism, above=20pt of -(L)(R)] (X) {$X^{ab}_{c,\mu}$};
+        \draw[arrow1] (L.north) -- ($(L.north |- X.south)$);
+        \draw[arrow1] (R.north) -- ($(R.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] (top) {$c$};
+    \end{tikzpicture}}}}
+    ~~,
+\end{equation}
+where the sectors $a,b,c$ are implied by the wires and only the multiplicity index $\mu$ is explicitly decorated.
+%
+Note that the leg arrangement of the injections $Y^{ab}_{c,\mu}$ are visually intuitive, as they match the letter Y.
+%
+Recall that as projections and inclusions, they fulfill orthonormality and completeness relations~\eqref{eq:nonabelian:basics:inclusions_projections_orthonormal_complete_graphical}.
+%
+In this case, they take the following explicit form.
+\begin{equation}
+    \label{eq:nonabelian:basics:fusion_tensors_orthormal_and_complete}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L) {\hphantom{$a$}};
+        \node[space, right=20pt of L] (R) {\hphantom{$a$}};
+        \node[y tensor, below=of -(L)(R)] (Y) {$\mu$};
+        \node[x tensor, above=30pt of -(Y)] (X) {$\nu$};
+        \draw[arrow1={0.5}{left}{$a$}] ($(L.south |- Y.north)$) -- ($(L.south |- X.south)$);
+        \draw[arrow1={0.5}{right}{$b$}] ($(R.south |- Y.north)$) -- ($(R.south |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$d$};
+        \draw[arrow1rev] (Y.south) -- ++(0,-20pt) node[space, below] {$c$};
+    \end{tikzpicture}}}
+    \quad = ~~ \delta_{c,d}~\delta_{\mu,\nu} \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (c) {$c$};
+        \draw[arrow1] (c) -- ++(0, 60pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+    \qquad ; \qquad
+    \sum_{c,\mu}~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \node[space, right=20pt of L] (R) {$b$};
+        \node[x tensor, above=20pt of -(L)(R)] (X) {$\mu$};
+        \node[space, above=120pt of L] (L2) {$a$};
+        \node[space, above=120pt of R] (R2) {$b$};
+        \node[y tensor, below=20pt of -(L2)(R2)] (Y) {$\mu$};
+        \draw[arrow1] (L.north) -- ($(L.north |- X.south)$);
+        \draw[arrow1] (R.north) -- ($(R.north |- X.south)$);
+        \draw[arrow1={0.5}{right}{$c$}] (X.north) -- (Y.south);
+        \draw[arrow1] ($(L2.south |- Y.north)$) -- (L2.south);
+        \draw[arrow1] ($(R2.south |- Y.north)$) -- (R2.south);
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \node[space, right=20pt of L] (R) {$b$};
+        \node[space, above=80pt of L] (L2) {$a$};
+        \node[space, above=80pt of R] (R2) {$b$};
+        \draw[arrow1] (L.north) -- (L2.south);
+        \draw[arrow1] (R.north) -- (R2.south);
+    \end{tikzpicture}}}
+    ,
+\end{equation}
+where the sum goes over all compatible fusion tensors, that is over $c\in\mathcal{S}$ and $\mu = 1,\dots,N^{ab}_c$.
+
+For fixed sectors $a, b, c$, we can view the $X^{ab}_{c,\mu}$ as an orthonormal basis for the space $\Homset{a \otimes b}{c}$, indexed by $\mu$.
+%
+There is a gauge freedom in choosing this basis, and any unitary transformation 
+\begin{equation}
+    \label{eq:nonabelian:basics:fusion_tensor_gauge_freedom}
+    X^{ab}_{c,\mu} \mapsto \sum_\nu U_{\mu,\nu} X^{ab}_{c,\nu}    
+\end{equation}
+yields another set of valid fusion tensors.
+%
+We propose to fix this gauge in section~\ref{subsec:nonabelian:topo_data:R_symbol} to make the R symbol diagonal.
+
+For fusion with the trivial sector, we have $a \otimes I \cong a \cong I \otimes a$ for any sector $a$, i.e.~the sector decomposition only has one component $a$, and as a consequence we have $N^{aI}_b = \delta_{a,b} = N^{Ia}_b$.
+%
+The only fusion tensor for the respective decompositions are given by the unitor isomorphisms of the monoidal structure, that is $X^{aI}_{a,1} = \rho_a$ and $X^{Ia}_{a,1} = \lambda_a$.
+%
+Graphically, this reads
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \node[space, right=20pt of L] (R) {$I$};
+        \node[x tensor, above=20pt of -(L)(R)] (X) {$1$};
+        \draw[arrow1] (L.north) -- ($(L.north |- X.south)$);
+        \draw[dashed] (R.north) -- ($(R.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$a$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L) {$a$};
+        \draw[arrow1] (L.north) -- ++(0,40pt) node[space, above] {$a$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L) {$I$};
+        \node[space, right=20pt of L] (R) {$a$};
+        \node[x tensor, above=20pt of -(L)(R)] (X) {$1$};
+        \draw[dashed] (L.north) -- ($(L.north |- X.south)$);
+        \draw[arrow1] (R.north) -- ($(R.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$a$};
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+
+Note that we may restrict the first direct sum in~\eqref{eq:nonabelian:basics:sector_decomposition_of_sector_product} to the \emph{fusion outcomes} of $a$ and $b$ that is to the set $\mathcal{F}_{a,b} := \setdef{c \in \mathcal{S}}{N^{a,b}_c > 0}$ of unique sectors that actually appear.
+
+Note that with the orthonormality relation~\eqref{eq:nonabelian:basics:fusion_tensors_orthormal_and_complete}, we have made a normalization choice.
+%
+This normalization is natural in the case of a group symmetry since the fusion tensors are then given by the Clebsch-Gordan coefficients of the group representations.
+%
+Another common choice is the isotopic normalization
+\begin{equation}
+    (X_\text{iso})^{ab}_{c,\mu} := \left( \frac{d_a d_b}{d_c} \right)^{1/4} X^{ab}_{c,\mu}
+\end{equation}
+such that the analog of the orthonormality equation reads
+\begin{equation}
+    (X_\text{iso})^{ab}_{c,\mu} \compose (Y_\text{iso})^{ab}_{c,\mu} = \sqrt{\frac{d_a d_b}{d_c}} ~\id{c}
+    ~.
+\end{equation}
+This choice simplifies the prefactors in~\eqref{eq:nonabelian:cup_from_splitting_tensor}, such that fusion tensors may consistently be drawn as vertices of wires, with no box.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Fusion Trees}
+\label{subsec:nonablian:basics:fusion_trees}
+
+We have seen the fusion and splitting tensors arise as projections and inclusions of the decomposition of the product of two sectors $a \otimes b$.
+%
+The product $a_1 \otimes \dots \otimes a_N$ of an arbitrary number $N$ of sectors also decomposes as the direct sum of sectors.
+%
+It turns out that we can construct projections (inclusions) of that direct sum from the fusion (splitting) tensors by arranging them in a tree structure, which we call a fusion (splitting) tree.
+%
+In particular, consider the \emph{fusion tree} $X^{a_1,\dots,a_N}_{c,\alpha}: a_1\otimes\dots\otimes a_N \to c$
+\begin{equation}
+    \label{nonabelian:basics:def_fusion_tree}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (A1) {$a_1$};
+        \node[space, right=20pt of A1] (A2) {$a_2$};
+        \node[space, right=20pt of A2] (A3) {$a_3$};
+        \node[space, right=20pt of A3] (A4) {$\dots$};
+        \node[space, right=20pt of A4] (A5) {$a_N$};
+        \node[x tensor, above=20pt of -(A1)(A2)(A3)(A4)(A5)] (X) {$X^{a_1,\dots,a_N}_{c,\alpha}$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X.south)$);
+        \draw[arrow1] (A2.north) -- ($(A2.north |- X.south)$);
+        \draw[arrow1] (A3.north) -- ($(A3.north |- X.south)$);
+        \draw[arrow1, dotted] (A4.north) -- ($(A4.north |- X.south)$);
+        \draw[arrow1] (A5.north) -- ($(A5.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}}
+    \quad := ~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (A1) {$a_1$};
+        \node[space, right=20pt of A1] (A2) {$a_2$};
+        \node[space, right=20pt of A2] (A3) {$a_3$};
+        \node[space, right=20pt of A3] (A4) {$\dots$};
+        \node[space, right=20pt of A4] (A5) {$a_N$};
+        \node[x tensor, above=20pt of -(A1)(A2)] (X1) {$\mu_1$};
+        \node[x tensor, above=70pt of -(A2)(A3)] (X2) {$\mu_2$};
+        \node[x tensor, above=120pt of -(A3)(A4)] (X3) {$\dots$};
+        \node[x tensor, above=170pt of -(A4)(A5)] (X4) {$\mu_{N-1}$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X1.south)$);
+        \draw[arrow1] (A2.north) -- ($(A2.north |- X1.south)$);
+        \draw[arrow1] (A3.north) -- ($(A3.north |- X2.south)$);
+        \draw[arrow1, dotted] (A4.north) -- ($(A4.north |- X3.south)$);
+        \draw[arrow1] (A5.north) -- ($(A5.north |- X4.south)$);
+        \draw[arrow1={0.5}{above left}{$e_1$}] (X1.north) to[out=90,in=270] ($(A2.north |- X2.south)$);
+        \draw[arrow1={0.5}{above left}{$e_2$}] (X2.north) to[out=90,in=270] ($(A3.north |- X3.south)$);
+        \draw[arrow1={0.5}{above left}{$e_{N-2}$}] (X3.north) to[out=90,in=270] ($(A4.north |- X4.south)$);
+        \draw[arrow1] (X4.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}}
+\end{equation}
+which is labeled by a multi-index $\alpha = (e_1, \dots, e_{N-1}, \mu_1, \dots, \mu_{N-2})$.
+%
+We call the $e_i \in \mathcal{S}$ the \emph{inner sectors} and the $\mu_i \in \Nbb$ the \emph{inner multiplicities} of a tree.
+%
+Taking the dagger gives us a \emph{splitting tree} $Y^{a_1,\dots,a_N}_{c,\alpha} = \hconj{(X^{a_1,\dots,a_N}_{c,\alpha})} : c \to a_1\otimes\dots\otimes a_N$, which graphically is just a mirrored fusion tree.
+%
+Note that we have chosen a convention regarding the order of pairwise fusion; we always fuse the left-most pair of sectors first.
+%
+We call the $a_1, \dots, a_N$ the \emph{uncoupled} sectors of the tree and $c$ the \emph{coupled sector}.
+
+A tree index $\alpha$ is \emph{valid}, for fixed uncoupled and coupled sectors, if all of its inner multiplicities are within the correct ranges, meaning $1 \leq \mu_1 \leq N^{a_1a_2}_{e_1}$, as well as $1 \leq \mu_n \leq N^{e_{n-1},a_{n+1}}_{e_n}$ for all $n = 2, \dots, N - 2$, and $1 \leq \mu_{N-1} \leq N^{e_{N-2},a_N}_c$.
+%
+There is one condition of consistent fusion per vertex of the tree.
+%
+Note that this implies conditions on the inner sectors, namely that $e_1 \in \mathcal{F}_{a_1,a_2}$, and $e_n \in \mathcal{F}_{e_{n-1},a_{n+1}}$, as well as $c \in \mathcal{F}_{e_{N-2}, a_N}$, since otherwise the respective N symbol is zero, such that no valid $\mu_n$ is possible.
+
+The trees inherit orthonormality and completeness relations from the fusion and splitting tensors;
+\begin{gather}
+    \label{eq:nonabelian:basics:fusion_trees_orthonormal}
+    Y^{a_1,\dots,a_N}_{c,\alpha} \compose X^{a_1,\dots,a_N}_{d,\beta}
+    = \delta_{c,d} \delta_{\alpha,\beta} \id{c}
+    \\
+    \label{eq:nonabelian:basics:fusion_trees_complete}
+    \sum_{c,\alpha} X^{a_1,\dots,a_N}_{c,\alpha} \compose Y^{a_1,\dots,a_N}_{c,\alpha} = \id{a_1} \otimes \dots \otimes \id{a_N}
+    ~,
+\end{gather}
+where the sum goes over all valid trees $\alpha$.
+%
+We again understand the Kronecker delta in the sense of~\eqref{eq:nonabelian:basics:Kronecker_notation_abuse}.
+%
+This can easily be checked graphically by applying~\eqref{eq:nonabelian:basics:fusion_tensors_orthormal_and_complete} $N-1$ times.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Terminology and Jargon}
+\label{subsec:nonablian:basics:jargon}
+
+We assume a tensor category for our backend, which has all of the structures listed in the previous sections and all of the compatibility conditions between them.
+%
+In the following, we list keywords for all of these structures as they may appear in the broader literature.
+%
+For brevity, we do not list the various optional compatibility conditions between the separate structures.
+
+\begin{jargon} % custom enumitem list
+    \item[balanced]
+    A braided monoidal category is balanced if it has a natural isomorphism $\theta_A: A \to A$, the twist which fulfills~\eqref{eq:nonabelian:basics:twist_definining_property}. We made the specific choice~\eqref{eq:nonabelian:basics:def_twist} for the balanced structure, which fulfills that property by construction.
+    
+    \item[biproducts]
+    A category has biproducts if for any finite set of objects $A_1,\dots,A_N$, the direct sum $\bigoplus_n A_n$ exists as defined in section~\ref{subsec:nonablian:basics:direct_sums}.
+    
+    \item[braided]
+    A monoidal category is braided if it has a braiding structure as described in section~\ref{subsec:nonablian:basics:braids}.
+    
+    \item[dagger]
+    A dagger category is a category equipped with a dagger functor as described in section~\ref{subsec:nonablian:basics:dagger}.
+    
+    \item[duals]
+    A category ``has duals" if it is rigid.
+    
+    \item[enriched]
+    See linear. A linear category is also called enriched or $\mathbf{Vect}$-enriched since its Homspaces can be understood as objects in the category $\mathbf{Vect}$ of vector spaces.
+    
+    \item[linear]
+    A category is ($\Cbb$-)linear, if its homsets $\Homset{A}{B}$ form ($\Cbb$) vector spaces, with compatibility constraints, see section~\ref{subsec:nonablian:basics:linear_structure}. Weaker assumptions exist, such as defining scalars to be morphisms $I \to I$, which form only a commutative semiring, not a field, and only requiring an addition rule, as e.g.~done in reference~\cite[chpt. 2]{heunen2019}.
+    
+    \item[monoidal]
+    A category is monoidal if it has a tensor product as described in section~\ref{subsec:nonablian:basics:monoidal}.
+    
+    \item[pivotal]
+    A monoidal category with (right) duals is pivotal, if it has a monoidal natural transformation $\pi_A: A \to \doubledualspace{A}$, which can be shown to be an isomorphism. We made the specific choice~\eqref{eq:nonabelian:basics:pi_iso} for a pivotal structure.
+    Pivotality also guarantees the existence of left duals.
+    
+    \item[pre-fusion]
+    A pre-fusion category is a semisimple linear monoidal category.
+    
+    \item[ribbon (tortile)]
+    A ribbon category, a.k.a.~a tortile category, is a balanced monoidal category with duals for which either of the following equivalent conditions hold; either the twist fulfills $\transp{(\theta_A)} = \theta_{\dualspace{A}}$ or equation~\eqref{eq:nonabelian:basics:twist_left_equals_right} holds.
+    
+    \item[rigid]
+    A monoidal category is rigid if it has a (right) dual object $\dualspace{A}$ for every object $A$, with cup and cap maps $\eta_A$ and $\varepsilon_A$, which fulfill the snake equation~\eqref{nonabelian:basics:snake_equation}.
+    This is a special case of the stronger structure we define in section~\ref{subsec:nonablian:basics:duality}, where we have directly used the dagger and defined a suitable pivotal structure in such a way that the chosen duals are both-sided dagger duals.
+    
+    \item[semisimple]
+    This notion is not as well established in the literature as the others. In a linear category with direct sums (a.k.a.~biproducts), an object is simple if its endomorphism space is one-dimensional.
+    It is semisimple if it is isomorphic to a finite direct sum of simple objects.
+    The category is semisimple if all of its objects are semisimple.
+    See section~\ref{subsec:nonabelian:basics:sectors}.
+    
+    \item[spherical]
+    A pivotal category is spherical if the left and right trace coincide, that is if the last equality in~\eqref{eq:nonabelian:basics:def_trace} holds.
+    
+    \item[tensor]
+    A tensor category, as we define it here, is a category that has all of the structures listed above, meaning it is a pivotal spherical pre-fusion ribbon dagger category, such that all the compatibility conditions hold.
+    Note that slightly different -- commonly weaker -- definitions for the same term exist in the literature.
+\end{jargon}
+
+The following properties are not necessarily fulfilled by a tensor category but are, in principle, compatible, and there are relevant examples of tensor categories with these properties/structures.
+
+\begin{jargon}
+    \item[symmetric]
+    A symmetric category is a braided category where the braid is symmetric in the sense that $(\tau_{V,W})^{-1} = \tau_{W,V}$. This holds, e.g.~for, group symmetries represented by the category $\mathbf{FdRep}_G$ or fermionic grading, represented by the category $\mathbf{Ferm}$.
+    
+    \item[fusion category]
+    A fusion category is a pre-fusion category that is rigid and has a finite number of sectors.
+    %
+    Thus, tensor categories are almost fusion categories, except that we allow a countably infinite number of sectors for tensor categories.
+    %
+    As a non-example (a tensor category, which is not a fusion category), consider the category $\mathbf{FdRep}_{\SU{2}}$ of representations of $\SU{2}$, which has an infinite number of sectors, see section~\ref{sec:topo_data:SU2}.
+    
+    \item[modular]
+    A modular fusion category is a fusion category for which the modular S matrix~\eqref{eq:nonabelian:topo_data:S_matrix} is invertible.
+    %
+    They provide the mathematical framework for the theory of anyons and topological excitations.
+    %
+    Note that for symmetric braiding, a fusion category can only be modular if there is only a single sector, which makes it trivial.
+    %
+    In particular, this means that neither fermions nor the representations of a non-trivial group give rise to a modular fusion category.
+    %
+    However, some examples, such as $\mathbf{Fib}$ described in section~\ref{sec:topo_data:fib}, are modular and describe anyonic excitations.
+\end{jargon}
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Relation to graphical language of tensor networks}
+\label{subsec:nonablian:basics:graphical_notation_tensor networks}
+
+The graphical language for morphisms in a tensor category is closely related to, but slightly at odds with, the usual graphical notation for tensor networks, as employed, e.g., in chapter~\ref{ch:tensornets}.
+%
+Both approaches feature tensors as shapes in the plane and their legs/spaces as lines or wires.
+%
+The largest difference is the additional meaning assigned to the positions of the endpoints of wires on a tensor at its bottom (top) for legs in the domain (codomain).
+%
+We can easily reconcile this by assigning the legs of a tensor to either the domain or codomain and understand the tensor network notation as a lax version of the categorical notation, that allows moving the endpoints around if convenient.
+%
+As an example, consider the following (part of a larger) \acro{mpo}, expressed in the tensor network notation on the LHS and in the categorical language on the right.
+\begin{equation}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[mpo tensor] (W1) {$W^{[1]}$};
+        \draw (W1.east) -- ++(10pt,0) node[mpo tensor, right] (W2) {$W^{[2]}$};
+        \draw (W2.east) -- ++(10pt,0) node[mpo tensor, right] (W3) {$W^{[3]}$};
+        \draw[dashed] (W1.west) -- ++(-10pt,0);
+        \draw (W3.east) -- ++(10pt,0);
+        \draw (W1.north) -- ++(0,10pt);
+        \draw (W2.north) -- ++(0,10pt);
+        \draw (W3.north) -- ++(0,10pt);
+        \draw (W1.south) -- ++(0,-10pt);
+        \draw (W2.south) -- ++(0,-10pt);
+        \draw (W3.south) -- ++(0,-10pt);
+    \end{tikzpicture}}}}
+    ~~ = ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \coordinate (A);
+        \coordinate (B) at ($(A)+(20pt,0)$);
+        \coordinate (C) at ($(B)+(55pt,0)$);
+        \coordinate (D) at ($(C)+(20pt,0)$);
+        \coordinate (E) at ($(D)+(55pt,0)$);
+        \coordinate (F) at ($(E)+(20pt,0)$);
+        %
+        \node[morphism, below=of -(A)(B)] (W1) {$W^{[1]}$};
+        \node[morphism, below=of -(C)(D)] (W2) {$W^{[2]}$};
+        \node[morphism, below=of -(E)(F)] (W3) {$W^{[3]}$};
+        \coordinate (mid) at ($(W1.north)!0.5!(W1.south)$);
+        \node[mpo tensor, minimum width=2.3cm, minimum height=2.3cm] (W1mpo) at (W1) {};
+        \node[mpo tensor, minimum width=2.3cm, minimum height=2.3cm] (W2mpo) at (W2) {};
+        \node[mpo tensor, minimum width=2.3cm, minimum height=2.3cm] (W3mpo) at (W3) {};
+        %
+        \draw[dashed] (W1mpo.west) -- ++(-10pt,0);
+        \draw (W3mpo.east) -- ++(10pt,0);
+        \draw (W1mpo.east) -- (W2mpo.west) (W2mpo.east) -- (W3mpo.west);
+        \draw (W1mpo.south) -- ++(0,-10pt) (W2mpo.south) -- ++(0,-10pt) (W3mpo.south) -- ++(0,-10pt);
+        \draw (W1mpo.north) -- ++(0,10pt) (W2mpo.north) -- ++(0,10pt) (W3mpo.north) -- ++(0,10pt);
+        %
+        % \draw[arrow1] ($(A |- W1.north)$) -- ++(0,10pt);
+        \draw[arrow1] ($(B |- W1.north)$) -- ++(0,10pt);
+        \draw[arrow1rev] ($(A |- W1.south)$) -- ++(0,-10pt);
+        \draw[arrow1rev] ($(B |- W1.south)$) -- ++(0,-10pt);
+        \draw[dashed] ($(A |- W1.north)$) -- ++(0,10pt) to[out=90,in=90] ++(-15pt,0) to[out=270,in=0] (W1mpo.west);
+        \draw ($(B |- W1.north)$) -- ++(0,10pt) to[out=90,in=270] (W1mpo.north);
+        \draw ($(A |- W1.south)$) -- ++(0,-10pt) to[out=270,in=90] (W1mpo.south);
+        \draw ($(B |- W1.south)$) -- ++(0,-10pt) to[out=270,in=270] ++(15pt,0) to[out=90,in=180] (W1mpo.east);
+        %
+        \draw[arrow1] ($(C |- W2.north)$) -- ++(0,10pt);
+        \draw[arrow1] ($(D |- W2.north)$) -- ++(0,10pt);
+        \draw[arrow1rev] ($(C |- W2.south)$) -- ++(0,-10pt);
+        \draw[arrow1rev] ($(D |- W2.south)$) -- ++(0,-10pt);
+        \draw ($(C |- W2.north)$) -- ++(0,10pt) to[out=90,in=90] ++(-15pt,0) to[out=270,in=0] (W2mpo.west);
+        \draw ($(D |- W2.north)$) -- ++(0,10pt) to[out=90,in=270] (W2mpo.north);
+        \draw ($(C |- W2.south)$) -- ++(0,-10pt) to[out=270,in=90] (W2mpo.south);
+        \draw ($(D |- W2.south)$) -- ++(0,-10pt) to[out=270,in=270] ++(15pt,0) to[out=90,in=180] (W2mpo.east);
+        %
+        \draw[arrow1] ($(E |- W3.north)$) -- ++(0,10pt);
+        \draw[arrow1] ($(F |- W3.north)$) -- ++(0,10pt);
+        \draw[arrow1rev] ($(E |- W3.south)$) -- ++(0,-10pt);
+        \draw[arrow1rev] ($(F |- W3.south)$) -- ++(0,-10pt);
+        \draw ($(E |- W3.north)$) -- ++(0,10pt) to[out=90,in=90] ++(-15pt,0) to[out=270,in=0] (W3mpo.west);
+        \draw ($(F |- W3.north)$) -- ++(0,10pt) to[out=90,in=270] (W3mpo.north);
+        \draw ($(E |- W3.south)$) -- ++(0,-10pt) to[out=270,in=90] (W3mpo.south);
+        \draw ($(F |- W3.south)$) -- ++(0,-10pt) to[out=270,in=270] ++(15pt,0) to[out=90,in=180] (W3mpo.east);
+    \end{tikzpicture}}}}
+\end{equation}
+
+In this fashion, the two pictures can seamlessly be identified for planar tensor networks.
+%
+For non-planar diagrams, arising e.g.~in the context of \acro{peps}, see~\eqref{eq:tensornets:peps:bmps_bmpo_goal}, the chirality of the braid induced by wire crossings needs to be specified explicitly, unless the symmetry has symmetric braiding.
+%
+Note that arrows on the wires have a meaning in the categorical language and should not be used for other purposes, such that e.g.~the arrow notation in~\cite{lin2022}, which describes isometric properties, is incompatible.
+

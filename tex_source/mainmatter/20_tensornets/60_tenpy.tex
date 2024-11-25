@@ -1,0 +1,34 @@
+The \acrofull{tenpy} library~\cite{tenpySoftware} is a python package for tensor network simulations.
+%
+The library is based on previous (non-public) codes used in references~\cite{kjall2013, zaletel2013}, developed by the authors of these works.
+%
+It was rewritten in its current structure by Johannes Hauschild during his PhD and released as an open source package~\cite{hauschild2018b}.
+%
+The package is currently maintained by Johannes Hauschild and the author of this thesis, and has recently seen a version 1.0 release~\cite{hauschild2024}.
+%
+Current active development aims to improve the low-level part of the package handling linear algebra of tensors, to support nonabelian symmetries, generalized symmetries, and fermionic or anyonic degrees of freedom -- see chapter~\ref{ch:nonabelian} -- as well as hardware acceleration on \acrop{gpu}, to incorporate e.g.~the concepts discussed in chapter~\ref{ch:truncation}.
+%
+A prototype of the new implementation was developed by the author of this thesis, and is currently being optimized for performance and incorporated into the rest of the library.
+
+
+The package offers high-level functionality that abstracts entire simulations of, e.g.~a response function from time evolution or a phase diagram sweep that performs ground state search at many parameter values and extracts order parameters.
+%
+These are implemented in terms of ``mid-level" algorithms, such as e.g.~the \acro{dmrg}, \acro{tebd} and \acro{mpoEvolution} algorithms discussed in sections~\ref{subsec:mps:tebd}-\ref{subsec:mps:mpo_evolution} respectively, as well as \acro{tdvp} and \acro{vumps}.
+%
+The focus is currently mostly on \acro{mps} simulations in one and two spatial dimensions.
+%
+Many features exist to facilitate the specification of the physical models, in terms of a 1D, quasi-1D, or 2D lattice geometry.
+%
+As a result, Hamiltonians can be specified in the natural language of local operators and couplings on the lattice, and the construction of e.g.~\acro{mpo} representations of the Hamiltonian is fully automated.
+%
+This allows non-experts to set up, e.g.~a \acro{dmrg} simulation for a particular physical model without knowing any details of the tensor network representation of its Hamiltonian, or run \acro{tebd} without interacting with the Trotterization and the order in which gates are applied.
+%
+The low-level functionality offers linear algebra routines on symmetric tensors, supporting abelian symmetry groups, as discussed in section~\ref{sec:tensornets:symmetries}.
+
+%
+The code is open source and maintained publicly on GitHub~\cite{tenpySoftware}.
+%
+Refer to the online documentation\footnote{
+    \url{https://tenpy.readthedocs.io/en/latest/}
+}
+to get started.

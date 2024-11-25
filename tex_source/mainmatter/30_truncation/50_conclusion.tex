@@ -1,0 +1,34 @@
+In this chapter, we have established the properties of truncated factorizations that are actually required by common tensor network algorithms, e.g.~in terms of the \acrofull{dsvd} for \acro{mps} algorithms in isometric form.
+%
+We have proposed the \acro{qr}-based truncation routine, which is a \acro{dsvd}, discussed its relation to randomized numerical linear algebra, and suggested a best-of-both-worlds synthesis.
+%
+We have demonstrated that the \acro{qr}-based truncation scheme allows simulation of the time evolution of \acro{mps} to the same degree of accuracy, but compared to the \acro{svd}-based scheme drastically increases runtime, especially on \acro{gpu} hardware.
+%
+The improved scaling with the local Hilbert space dimension $d$ implies substantial performance increase even on CPU for large $d$, e.g.~in simulations of open systems or bosonic systems.
+
+
+The truncation schemes can be used to accelerate \acro{tns} truncation in a broader class of algorithmic settings.
+%
+This has already been successful for \acro{mpoEvolution} in Ref.~\cite{hefel2023}.
+%
+Applications of the randomized \acro{svd} have been suggested in \cite{mcculloch2024}, but to our knowledge, they have not been systematically compared in a published work.
+%
+Studying the interaction with the decompositions proposed in this chapter with \acro{dmrg}, and in particular subspace expansion approaches, is another interesting avenue for future development.
+%
+The algorithm should seamlessly apply to truncation steps in isometric \acro{tns}~\cite{zaletel2020, lin2022} as well.
+
+
+
+To our knowledge, it is an open question how to compute approximations to the \acro{svd}, such as e.g.~the \acro{qlp} for symmetric matrices.
+%
+This is because determining the target ranks for each block is challenging without access to the full singular value spectrum.
+
+
+
+We also suggest a full comparison of different methods for future work.
+%
+This should compare (a) the different range finders featured in Algorithm~\ref{algo:truncation:halko_rsvd}, in Algorithm~\ref{algo:truncation:qr_simple}, the synthesized version in equation~\eqref{eq:truncation:synthesized_range_finder}, or not performing randomized range finding at all and directly decomposing the full matrix.
+%
+Next (b), it should compare the dense matrix factorization steps, covering e.g.~the standard \acro{svd}, as well as the \acro{qrcp} and \acro{qlp}.
+%
+Lastly, it should run (c) and a wider class of different hardware and (d) consider conservation of symmetries versus not doing so.

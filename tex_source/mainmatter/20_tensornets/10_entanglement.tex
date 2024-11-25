@@ -1,0 +1,110 @@
+Entanglement is a key measure to quantify the complexity of strongly correlated quantum states.
+%
+It can be understood as a resource in quantum state preparation \cite{bennett2001, bennet2014, chitambar2019}, allows a classification of critical states, e.g.~in terms of the central charge in the presence of conformal invariance~\cite{calabrese2008, tagliacozzo2008a, pollmann2009a} and exhibits characteristic signatures of topological order \cite{levin2006, kitaev2006, li2008}.
+%
+The entanglement structure of a given target state is the basis for approximating it with a tensor network ansatz.
+%
+\subsection{Schmidt decomposition and Bipartite Entanglement}
+%
+The most common and most accessible measure for entanglement is given by the bipartite entanglement entropy.
+%
+Consider a quantum system described by a Hilbert space $\hilbert$ and a fixed bipartition $\hilbert = \hilbert_L \otimes \hilbert_R$, which is usually chosen as a \emph{spatial} bipartition, i.e.~$\hilbert_{L}$ describes the degrees of freedom within a certain spatial region of the whole system and $\hilbert_{R}$ its complement.
+%
+The bipartite entanglement entropy
+\begin{equation}
+    \label{eq:tensornets:entanglement:def_bipartite_entropy}
+    S_{L,R} = S_\text{vN}(\rho_L)
+\end{equation}
+of a pure state $\psiket\in\hilbert$ is then given by the von-Neumann entropy $S_\text{vN}(\rho_L) = -\tr{\rho_L \log \rho_L}$ of the reduced density matrix
+\begin{equation}
+    \label{eq:tensornets:entanglement:def_RDM}
+    \rho_L = \trArg{R}{\ketbra{\psi}{\psi}}.
+\end{equation}
+Note that the definition is symmetric, i.e.~$S_{L,R} = S_\text{vN}(\rho_B)$, which is particularly apparent using the Schmidt decomposition, which allows direct access to the entanglement entropy.
+
+%
+A Schmidt decomposition with respect to the bipartition $\hilbert = \hilbert_L \otimes \hilbert_R$ consists of two orthonormal sets $\set{\ket{L_\alpha}} \subset \hilbert_L$, and $\set{\ket{R_\alpha}} \subset \hilbert_R$ of states on either subsystem, known as the left and right \emph{Schmidt states}, together with non-negative real numbers $\Lambda_\alpha$, the \emph{Schmidt values}, such that
+\begin{equation}
+    \label{eq:tensornets:entanglement:schmidt_decomposition}
+    \psiket = \sum_{\alpha=1}^k \Lambda_\alpha \ket{L_\alpha} \otimes \ket{R_\alpha},
+\end{equation}
+where $k = \min(\dim\hilbert_L, \dim\hilbert_R)$.
+%
+It is guaranteed to exist for any state $\ket{\psi}$ and is unique up to the relative phase of the Schmidt states, $(L_\alpha, R_\alpha) \mapsto (\eto{\im\phi_\alpha} L_\alpha, \eto{-\im\phi_\alpha} R_\alpha)$, assuming non-degenerate Schmidt values.
+%
+The Schmidt decomposition allows direct access to the reduced density matrices and the bipartite entanglement entropy, as
+\begin{equation}
+    \label{eq:tensornets:entanglement:RDMs_from_schmidt_descomp}
+    \rho_L = \sum_{\alpha=1}^k \Lambda_\alpha^2 \ketbra{L_\alpha}{L_\alpha}
+    \quad \text{and} \quad 
+    \rho_R = \trArg{L}{\ketbra{\psi}{\psi}} = \sum_{\alpha=1}^k \Lambda_\alpha^2 \ketbra{R_\alpha}{R_\alpha}
+\end{equation}
+have the same set $\setdef{\Lambda_\alpha^2}{\Lambda_\alpha \neq 0}$ of nonzero eigenvalues, such that
+\begin{equation}
+    \label{eq:tensornets:entanglement:bipartite_entropy_from_schmidt_decomp}
+    S_{L,R} = -\sum_\alpha \Lambda_\alpha^2 \log \Lambda_\alpha^2
+    .
+\end{equation}
+
+\subsection{Area law}
+
+Let us now assume a many-body system consisting of $N$ sites, each with a Hilbert space $H$, such that the many-body Hilbert space is $\mathcal{H} = \bigotimes_{n=1}^{N} H$.
+%
+Further, consider a spatial bipartition into $L$ sites to the left and $R = N - L$ sites to the right such that $\mathcal{H}_L = \bigotimes_{n=1}^{L} H$ and $\mathcal{H}_R = \bigotimes_{n=L + 1}^{N} H$, and assume that $L \leq R$.
+%
+Now, for a generic state, the Schmidt spectrum w.r.t.~such a bipartition is roughly constant, that is $\Lambda_\alpha \approx 1 / \sqrt{k} = \const$ such that $S \approx \log k \approx L$.
+%
+It has been shown~\cite{page1993} that for $L = R = N/2$ we find on averaging over all states of the system an entropy of $S = L \log d - \tfrac{1}{2} \sim L$.
+%
+This scaling $S \sim L$ with the size/volume $L$ of the subsystem for $L \gg 1$ is commonly called \emph{volume law}.
+
+%
+This is in contrast to \emph{area law} states, for which entanglement scales only with the volume (``area" as a $(D-1)$-dimensional measure) of the boundary between the two subsystems.
+%
+In 1D, this is a constant, and it can be shown that these area law states correspond exactly to the ground states of gapped, local Hamiltonians.
+%
+The intuition here is that entanglement or correlations are a finite resource, and minimizing the energy of the local terms in the Hamiltonian prefers building correlations between spatially close degrees of freedom over correlations between distant sites.
+%
+As a result, the ground state has a correlation length $\xi$, and only those sites in a finite strip of width $\sim \xi$ to either side of the boundary contribute to the entanglement between the subsystems.
+%
+Thus, for large enough subsystems $L \gg \xi$, we find that the entropy $S \sim \abs{\partial L}$ scales with the volume of the boundary $\partial L$ of the subsystem.
+%
+While this heuristic carries over to higher dimensions and may be realized in this way for certain models, the correspondence between area law states and ground states of local Hamiltonians is not exact.
+
+For area law states, the distribution of Schmidt values in the decomposition~\eqref{eq:tensornets:entanglement:schmidt_decomposition} has its weight concentrated in a small number of Schmidt values.
+%
+As a result, we can efficiently approximate area law states by truncating the Schmidt spectrum.
+%
+In particular, the number $\chi$ of Schmidt values that are required to achieve a target error $\epsilon$, i.e.~such that
+\begin{equation}
+    \label{eq:tensornets:entanglement:error_truncated_schmidt_decomp}
+    \norm{
+        \ket{\psi} - \sum_{\alpha=1}^{\chi} \Lambda_\alpha \ket{L_\alpha} \otimes \ket{R_\alpha}
+    } \leq \epsilon
+\end{equation}
+is finite and \emph{independent of (sub-)system size}.
+
+For a given tensor network geometry, an upper bound for the entanglement scaling can easily be derived.
+%
+Find a minimal%
+    \footnote{
+        Any cut gives an upper bound. Choose a minimal cut for the tightest possible upper bound.
+    }
+cut through the tensor network that splits it into the bipartition of interest.
+%
+This cut gives a factorization of the many-body wave function with rank $K = \prod_i \chi_i$ given by the total dimension of the cut virtual legs, each with bond dimension $\chi_i$.
+%
+Thus, we have at most $K$ non-zero Schmidt values for the bipartition, and thus at most $S = \log K = \sum_i \log \chi_i$.
+%
+For \acro{mps}, we only need to cut a single bond and find an area law of $S \leq \log\chi = \const$.
+%
+For \acro{mera} in 1D, we need to cut a number of bonds that grows logarithmically with subsystem size, giving us logarithmic corrections $S \leq \log L \log \chi$, assuming all virtual bonds have the same dimension $\chi$.
+%
+For \acro{tps} in higher dimensions, we find an area law $S \leq \abs{\partial L} \log \chi$, assuming all virtual bonds have the same dimension $\chi$.
+%
+
+For \acro{mps} in 1D, any area law state can be efficiently approximated by an \acro{mps} with a bounded bond dimension, \emph{independent of system size}.
+%
+This is because the canonical form of \acro{mps} connects a truncation of \acro{mps} bond dimension on a single bond to a truncation of a Schmidt decomposition~\eqref{eq:tensornets:entanglement:error_truncated_schmidt_decomp}.
+%
+It can be shown that repeating this truncation for the remaining bonds results in an error that remains controllable, such that approximation within a fixed error threshold is still possible at finite bond dimension independent of (sub-)system size.

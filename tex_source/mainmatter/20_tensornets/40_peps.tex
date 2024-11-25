@@ -1,0 +1,791 @@
+A common way to approach the simulation of two-dimensional systems using tensor network methods is using \acro{mps} \cite{liang1994a, stoudenmire2012}.
+%
+Even though their intrinsic network connectivity and the variational power they are guaranteed by the entanglement paradigm are suggestive of a 1D geometry, the \acro{mps} algorithms, such as e.g.~\acro{dmrg} are exceptionally powerful and performant.
+%
+As a result, \acro{mps} simulations have been established as state-of-the-art tools to simulate systems with entanglement beyond the 1D area law that the entanglement paradigm would otherwise restrict them to.
+%
+This includes the study of 1D critical states~\cite{pirvu2012}, long-range interactions~\cite{crosswhite2008c}, two-dimensional systems~\cite{liang1994a, stoudenmire2012}, as well as non-equilibrium dynamics~\cite{daley2004, white2004, vidal2004a, haegeman2011a, zaletel2015a}.
+%
+It is particularly telling that rather than using the natively 2D ansaetze, such as \acro{peps}, it is common to numerically approach 2D systems by winding an \acro{mps} around a thin cylinder, mapping the 2D model to a 1D geometry~\cite{stoudenmire2012, grushin2015, zaletel2014, gong2014}.
+
+
+This is done by choosing either a thin strip (with open boundary conditions in the thin direction) or a thin cylinder (with periodic boundary conditions) and treating the system as effectively 1D along the ``long" direction, which we call the $x$ direction or horizontal direction.
+%
+There are two complementary perspectives on this approach.
+%
+On the one hand, we can think of embedding the \acro{mps} in a snake geometry through the strip or cylinder or as a coil around the cylinder and understanding it as tensor network ansatz for a 2D quantum state, where virtual bonds only exist between some pairs of neighboring sites.
+%
+Alternatively, we can think of mapping the 2D Hamiltonian to a 1D geometry, which comes at the price of increasing the range of horizontal couplings.
+%
+The resulting algorithms typically have an unfavorable scaling with the vertical system size $L_y$, i.e.~the width of the strip or circumference of the cylinder.
+%
+This is because, for vertical bipartition, a 2D area law state has a bipartite entanglement that scales linearly with $L_y$ and thus requires an \acro{mps} bond dimension \emph{exponential} in $L_y$ to approximate it up to some target precision.
+%
+As a result, while the horizontal system size can easily be chosen large, or even infinite using \acro{imps}, simulations are limited to thin systems, which can make extrapolation to the thermodynamic limit challenging.
+%
+Nevertheless, these \acro{mps} methods are competitive with (and in many cases preferred over) the natively 2D methods because of superior performance and stability.
+
+
+
+These 2D \acro{tns}, such as \acro{peps} \cite{nishio2004, verstraete2004} or \acro{mera} \cite{vidal2007a, vidal2008, evenbly2009}, on the other hand, are expected to well represent their class of target states -- 2D area law states and 2D critical states respectively -- at some finite bond dimension that does not scale with system size.
+%
+While they have been successfully used to simulate 2D models, e.g.~in Refs.~\cite{corboz2011, corboz2016, zheng2017}, the advantage over \acro{mps} methods in practice is not as pronounced as the above would suggest.
+%
+Algorithms to find good approximation within the variational manifold seem to be less powerful and less stable, and algorithmic development seems to have seen less progress compared to \acro{mps} methods.
+%
+As demonstrated by the benchmark results in section~\ref{sec:gradpeps:benchmark}, even for simple models such as the transverse field Ising model, established \acro{peps} algorithms do not come close to finding the optimal \acro{peps} at a given bond dimension.
+%
+Even just evaluating observables in a given \acro{peps} is a hard problem, both computationally and conceptually.
+%
+It is an open question to what extent this discrepancy is due to a fundamental barrier induced by the network geometry and to what extent algorithmic improvements on the \acro{peps} side can close the gap.
+%
+We believe that the difficulty of fixing the gauge or establishing some sort of canonical form in \acro{tns} with loops is one of the greater hurdles, and approaches to partial gauge fixing have brought improvements~\cite{lubasch2014a, phien2015}.
+
+
+
+
+
+For the rest of this section, we discuss the \acro{peps} ansatz for 2D systems, establish basic methods for evaluating observables, and briefly summarize established algorithms.
+%
+This introduction also appears in the manuscript~\cite{unfried2024} by the author.
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Projected Entangled Pair States (PEPS)}
+\label{subsec:tensornets:peps:ansatz}
+
+A \acrofull{peps} is a \acro{tns} that is the natural generalization of \acro{mps} to higher dimensions.
+%
+It results from the recipe of putting a tensor with a single physical leg on every site of the physical lattice and connecting neighboring tensors with a virtual leg.
+%
+We assume a 2D square lattice, but higher-dimensional versions have been proposed~\cite{vlaar2021, vlaar2023}, and other lattices are accessible by either generalizing the ansatz~\cite{jahromi2019} or mapping them to a square lattice.
+%
+The ansatz
+
+\begin{equation}
+    \label{eq:tensornets:peps:ansatz}
+    \psiket
+    ~=~
+    \sum_{i_{1,1},\dots,i_{X,Y}}
+    ~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,...,4}
+                {
+                \node[peps tensor] (A\x\y) at (30pt*\x+15pt*\y,20pt*\y) { };
+                \draw (A\x\y.south) -- ++(0,-7pt) coordinate (i\x\y);
+                }
+        %
+        \foreach \n in {0,...,4}
+            \foreach \m [count=\mi] in {0,...,3}
+                {
+                \draw (A\n\m) -- (A\n\mi);
+                \draw (A\m\n) -- (A\mi\n);
+                }
+        %
+        \node[below] at (i00) {$i_{1,1}$};
+        \node[below] at (i40) {$i_{X,1}$};
+        \node[below right] at (i44) {$i_{X,Y}$};
+        \node[right=20pt of (A41.south)] (exampleA) {$A^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.5!(exampleA.west)$) -- (A32.south east);
+        \draw[->] ($(exampleA.north west)!0.5!(exampleA.west)$) -- (A32.south east);
+    \end{tikzpicture}}}
+    \ket{i_{1,1},,\dots,i_{X,Y}}
+\end{equation}
+is given in terms of a five leg tensor $A^{[x,y]}$ for every lattice site $(x,y)$.
+%
+Throughout this section, we typeset graphical equations with a $5 \times 5$ system but understand this as a sketch with straightforward generalization to any system size $X \times Y$.
+%
+Additionally, we do not label every object and refer to e.g.~$A^{[x,y]}$ as a generic label instead of labeling all tensors $A^{[1,1]}, A^{[2, 1]}, \dots, A^{[X,Y]}$.
+%
+The tensors $A^{[x,y]}_{i_{x,y},u,l,d,r}$ each have a physical index $i_{x,y} \in \set{1, \dots, d}$ labeling an element $\ket{i_{x,y}}$ of an orthonormal basis for the local Hilbert space on site $(x,y)$, and four virtual indices, and may be different on each site.
+%
+At the boundary, the respective virtual indices that do not connect to a neighbor are assumed to be one-dimensional and can thus be removed.
+
+An infinite version, called \acrofull{ipeps} \cite{jordan2008}, can be obtained by repeating a rectangular unit cell of $A$ tensors to tile the infinite plane.
+%
+We focus on finite \acro{peps} throughout this section.
+
+Like for \acro{mps}, there is a gauge freedom for \acro{peps}.
+%
+While gauge fixing plays an important role in \acro{peps} algorithms \cite{lubasch2014a, phien2015}, and analogs for a canonical form have been proposed \cite{perez-garcia2010, evenbly2018, acuaviva2023}, isometric properties analogous to~\eqref{eq:tensornets:mps:isometric_A_property} that establish an orthogonality center can in general not be achieved by using the gauge freedom.
+%
+Enforcing 2D analogs of the isometric property and establishing an orthogonality center results in a strict subclass of \acro{peps}, called isometric PEPS, or isometric \acro{tns} \cite{zaletel2020, lin2022}.
+
+
+In analogy to \acrop{mpo}, defined in~\eqref{eq:tensornets:mps:mpo_network}, we define \acrop{pepo} as a tensor network with the same connectivity of virtual legs as a \acro{peps}, but with two physical legs on each site, representing an operator on the many-body Hilbert space.
+%
+Thus, a \acro{pepo} is an operator of the form
+\begin{equation}
+    \label{eq:tensornets:peps:pepo}
+    \sum_{\substack{i_{1,1} \dots i_{X,Y} \\ i_{1,1}' \dots i_{X,Y}'}}
+    ~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,...,4}
+                {
+                \node[pepo tensor] (A\x\y) at (30pt*\x+15pt*\y,20pt*\y) { };
+                \draw (A\x\y.south) -- ++(0,-7pt) coordinate (i\x\y);
+                \draw (A\x\y.north) -- ++(0,7pt) coordinate (ip\x\y);
+                }
+        %
+        \foreach \n in {0,...,4}
+            \foreach \m [count=\mi] in {0,...,3}
+                {
+                \draw (A\n\m) -- (A\n\mi);
+                \draw (A\m\n) -- (A\mi\n);
+                }
+        %
+        \node[below] at (i00) {$i_{1,1}$};
+        \node[above] at (ip00) {$i_{1,1}'$};
+        \node[below] at (i40) {$i_{X,1}$};
+        \node[above] at (ip04) {$i_{1,Y}'$};
+        \node[below right] at (i44) {$i_{X,Y}$};
+        \node[above right] at (ip44) {$i_{X,Y}'$};
+        \node[right=20pt of (A41.south)] (exampleA) {$W^{[x,y]}$};
+        \draw[overdraw=2pt, ->] ($(exampleA.north west)!0.5!(exampleA.west)$) -- (A32.south east);
+    \end{tikzpicture}}}
+    \ketbra{i_{1,1} \dots i_{X,Y}}{i'_{1,1} \dots i'_{X,Y}}
+    .
+\end{equation}
+
+Similar to the finite state machine construction for \acrop{mpo}, schemes to write local Hamiltonians as \acrop{pepo} have been proposed \cite{scheb2023, chepiga2019a}, and we provide an explicit construction for nearest neighbor models in section~\ref{subsec:gradpeps:benchmark:hamiltonian_pepos}.
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Contracting diagrams: boundary MPS method}
+\label{subsec:tensornets:peps:contraction}
+
+Since we do not have access to an isometric property for \acro{peps}, a simplification of the diagrams for norm or local expectation values similar to \acro{mps}, e.g. in~\eqref{eq:tensornets:mps:local_expval_using_isometric_property}, does not occur.
+%
+As a result, e.g., the norm of a \acro{peps} is given by
+\begin{equation}
+    \label{eq:tensornets:peps:norm_diagram}
+    \braket{\psi}{\psi} 
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,...,4}
+                {
+                \node[double layer tensor] (A\x\y) at (20pt*\x,20pt*\y) {};
+                }
+        %
+        \foreach \n in {0,...,4}
+            \foreach \m [count=\mi] in {0,...,3}
+                {
+                \draw (A\n\m) -- (A\n\mi);
+                \draw (A\m\n) -- (A\mi\n);
+                }
+        %
+        \node[right=20pt of (A41.south)] (exampleA) {$F^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A32.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A32.south east);
+    \end{tikzpicture}}}
+    \quad ; \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[double layer tensor] (A) {};
+        \draw (A.north) -- ++(0,7pt);
+        \draw (A.south) -- ++(0,-7pt);
+        \draw (A.west) -- ++(-7pt,0);
+        \draw (A.east) -- ++(7pt,0);
+        \node[above left=0pt of A] {$F^{[x,y]}$};
+        \node[below left=0pt of A] {\phantom{$F^{[x,y]}$}};  % hack for vertical alignment
+    \end{tikzpicture}}}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[peps tensor] (A) {};
+        \draw (A.west) -- ++(-7pt,0);
+        \draw (A.east) -- ++(7pt,0);
+        \draw (A.north east) -- ++(5pt,5pt);
+        \draw (A.south west) -- ++(-5pt,-5pt);
+        \draw (A.south) -- ++(0,-10pt) node[peps tensor, below] (Ac) {};
+        \node at (Ac) {$\star$};
+        \draw (Ac.west) -- ++(-7pt,0);
+        \draw (Ac.east) -- ++(7pt,0);
+        \draw (Ac.north east) -- ++(5pt,5pt);
+        \draw (Ac.south west) -- ++(-5pt,-5pt);
+        \node[right=10pt of A] {$A^{[x,y]}$};
+        \node[right=10pt of Ac] {$\conj{A}^{[x,y]}$};
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+where we defined the double layer tensor $F^{[x,y]}_{(uu')(ll')(dd')(rr')} := \sum_i A^{[x,y]}_{iuldr} \conj{A}^{[x,y]}_{iu'l'd'r'}$.
+%
+The respective virtual legs pointing in the same lattice direction, e.g.~$u,u'$ pointing upward are combined to a single leg.
+%
+Note that this composite object is mainly introduced for visualization purposes -- to avoid three-dimensional diagrams -- and should not be formed in practice.
+%
+Any contraction involving $F^{[x,y]}$ should instead be accomplished by performing the contractions with $A^{[x,y]}$ and with $\conj{A}^{[x,y]}$ sequentially, which is cheaper.
+
+Expectation values, e.g.~of a local operator $O$ acting on a site $(\tilde{x}, \tilde{y})$, are achieved by modifying one of the respective double layer tensors
+\begin{equation}
+    \label{eq:tensornets:peps:local_op_expval_diagram}
+    \braopket{\psi}{O}{\psi} 
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,2,3,4}
+                \node[double layer tensor] (A\x\y) at (20pt*\x,20pt*\y) {};
+        %
+        \node[double layer tensor] (A01) at (0pt,20pt) {};
+        \node[double layer tensor] (A11) at (20pt,20pt) {};
+        \node[double layer tensor] (A21) at (40pt,20pt) {};
+        \node[double layer tensor, fill=pink] (A31) at (60pt,20pt) {};
+        \node[double layer tensor] (A41) at (80pt,20pt) {};
+        %
+        \foreach \n in {0,...,4}
+            \foreach \m [count=\mi] in {0,...,3}
+                {
+                \draw (A\n\m) -- (A\n\mi);
+                \draw (A\m\n) -- (A\mi\n);
+                }
+        %
+        \node[right=20pt of (A42.north)] (exampleA) {$F^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A23.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A23.south east);
+        \node[right=20pt of (A40.north)] (exampleA2) {$F_O^{[\tilde{x},\tilde{y}]}$};
+        \draw[overdraw=3pt] ($(exampleA2.north west)!0.8!(exampleA2.west)$) -- (A31.south east);
+        \draw[->] ($(exampleA2.north west)!0.8!(exampleA2.west)$) -- (A31.south east);
+    \end{tikzpicture}}}
+    \quad ; \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[double layer tensor, fill=pink] (A) {};
+        \draw (A.north) -- ++(0,7pt);
+        \draw (A.south) -- ++(0,-7pt);
+        \draw (A.west) -- ++(-7pt,0);
+        \draw (A.east) -- ++(7pt,0);
+        \node[above left=0pt of A] {$F^{[\tilde{x},\tilde{y}]}_O$};
+        \node[below left=0pt of A] {\phantom{$F^{[\tilde{x},\tilde{y}]}_W$}};  % hack for vertical alignment
+    \end{tikzpicture}}}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[peps tensor] (A) {};
+        \draw (A.west) -- ++(-7pt,0);
+        \draw (A.east) -- ++(7pt,0);
+        \draw (A.north east) -- ++(5pt,5pt);
+        \draw (A.south west) -- ++(-5pt,-5pt);
+        \draw (A.south) -- ++(0,-10pt) node[peps tensor, fill=pink, below] (O) {};
+        \draw (O.south) -- ++(0,-10pt) node[peps tensor, below] (Ac) {};
+        \node at (Ac) {$\star$};
+        \draw (Ac.west) -- ++(-7pt,0);
+        \draw (Ac.east) -- ++(7pt,0);
+        \draw (Ac.north east) -- ++(5pt,5pt);
+        \draw (Ac.south west) -- ++(-5pt,-5pt);
+        \node[right=10pt of A] {$A^{[\tilde{x},\tilde{y}]}$};
+        \node[right=10pt of O] {$O$};
+        \node[right=10pt of Ac] {$\conj{A}^{[\tilde{x},\tilde{y}]}$};
+    \end{tikzpicture}}}
+    .
+\end{equation}
+The expectation values of a \acro{pepo} with tensors $\set{W^{[x,y]}}$ is given by a similar three-layer diagram
+%
+\begin{equation}
+    \label{eq:tensornets:peps:pepo_diagram}
+    \braopket{\psi}{O_{\text{PEPO}}}{\psi} 
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,...,4}
+                {
+                \node[double layer tensor, fill=red!60] (A\x\y) at (20pt*\x,20pt*\y) {};
+                }
+        %
+        \foreach \n in {0,...,4}
+            \foreach \m [count=\mi] in {0,...,3}
+                {
+                \draw (A\n\m) -- (A\n\mi);
+                \draw (A\m\n) -- (A\mi\n);
+                }
+        %
+        \node[right=20pt of (A41.south)] (exampleA) {$F_W^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A32.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A32.south east);
+    \end{tikzpicture}}}
+    ; \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[double layer tensor, fill=red!60] (A) {};
+        \draw (A.north) -- ++(0,7pt);
+        \draw (A.south) -- ++(0,-7pt);
+        \draw (A.west) -- ++(-7pt,0);
+        \draw (A.east) -- ++(7pt,0);
+        \node[above left=0pt of A] {$F^{[x,y]}_W$};
+        \node[below left=0pt of A] {\phantom{$F^{[x,y]}_W$}};  % hack for vertical alignment
+    \end{tikzpicture}}}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[peps tensor] (A) {};
+        \draw (A.west) -- ++(-7pt,0);
+        \draw (A.east) -- ++(7pt,0);
+        \draw (A.north east) -- ++(5pt,5pt);
+        \draw (A.south west) -- ++(-5pt,-5pt);
+        \draw (A.south) -- ++(0,-10pt) node[pepo tensor, below] (O) {};
+        \draw (O.south) -- ++(0,-10pt) node[peps tensor, below] (Ac) {};
+        \draw (O.west) -- ++(-7pt,0);
+        \draw (O.east) -- ++(7pt,0);
+        \draw (O.north east) -- ++(5pt,5pt);
+        \draw (O.south west) -- ++(-5pt,-5pt);
+        \node at (Ac) {$\star$};
+        \draw (Ac.west) -- ++(-7pt,0);
+        \draw (Ac.east) -- ++(7pt,0);
+        \draw (Ac.north east) -- ++(5pt,5pt);
+        \draw (Ac.south west) -- ++(-5pt,-5pt);
+        \node[right=10pt of A] {$A^{[x,y]}$};
+        \node[right=10pt of O] {$W^{[x,y]}$};
+        \node[right=10pt of Ac] {$\conj{A}^{[x,y]}$};
+    \end{tikzpicture}}}
+    .
+\end{equation}
+%
+Overlaps $\braket{\phi}{\psi}$ between different \acro{peps} or matrix elements $\braopket{\phi}{O}{\psi}$ of operators are structurally analogous and simply have different \acro{peps} tensors in the ket (top) layer than in the bra (bottom) layer.
+%
+Since all of these objects, norms, overlaps, expectation values, and matrix elements have the same structure of a square lattice of tensors and only differ in the details of their multi-layer structure, it is enough conceptually to focus on only the norm diagram.
+
+
+Evaluating the norm, or an expectation value, is exponentially expensive in the linear system size \cite{schuch2007}.
+%
+If we consider, for example, an $L \times L$ system and a \acro{peps} with bond dimension $D$ and evaluate the norm via pairwise tensor contraction, we will eventually encounter an intermediate tensor with an extensive number $\sim L$ of open $D$-dimensional legs.
+%
+Its number of entries is exponential in $L$, e.g. typically $D^{2L + 2}$, and thus the memory cost to store it and the \acro{flop} count to perform the next contraction are exponential as well.
+%
+This is unfeasible, even for moderate system sizes, and the goal of evaluating these quantities exactly must be relaxed.
+%
+Some approaches resort to Monte Carlo style sampling to obtain, e.g.~expectation values~\cite{wang2011, schuch2008a}.
+%
+Here, we focus on introducing approximations on the tensor network level, and in particular, the \acro{bmps} contraction method \cite{verstraete2004, lubasch2014, lubasch2014a}.
+%
+The intuition behind \acro{bmps} contraction is to view the rows\footnote{
+    This is a conventional choice. The contraction can also be analogously carried out column-wise.
+    Which way is better may depend on the details of the system size and bond dimensions of the state or the operators, which may have anisotropic bond dimensions.
+}
+of the diagram as either a state (for the top row) in a virtual Hilbert space of the \acro{peps} bonds or an operator on it (for the bulk rows).
+%
+Upon collapsing the multi-layer structure, the top row is a tensor network with the structure of an \acro{mps}, and it is commonly called a \acrofull{bmps}.
+%
+In analogy, we refer to the bulk rows as \acrop{bmpo}, which are \acrop{mpo} with additional multi-layer structure.
+%
+
+Evaluating a \acro{peps} diagram, such as e.g.~the norm $\braket{\psi}{\psi}$ or an expectation value $\braopket{\psi}{O}{\psi}$ thus amounts to applying a sequence of \acrop{bmpo} to a \acro{bmps}.
+%
+While rigorous justifications require further assumptions \cite{cirac2011, lubasch2014}, it is observed in practice that for relevant \acro{peps} arising e.g.~as candidates during ground state search of some 2D local, gapped Hamiltonian, the intermediate states on the virtual Hilbert space remain lowly entangled and can therefore be well-approximated by a \acro{bmps} of bounded bond dimension $\chi$.
+%
+Observables, and in particular the variational energy as a measure of the quality of the variational ground state approximation, should, in practice, be verified by a careful scaling analysis with $\chi$.
+%
+Sequentially applying the \acrop{bmpo}, introducing approximations where necessary to keep the \acro{bmps} bond dimension bounded gives us a scheme
+%
+\begin{equation}
+    \label{eq:tensornets:peps:bmps_contraction_overview}
+    % \braket{\psi}{\psi} 
+    % ~~ = ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,...,4}
+                {
+                \node[double layer tensor] (A\x\y) at (20pt*\x,20pt*\y) {};
+                }
+        %
+        \foreach \n in {0,...,4}
+            \foreach \m [count=\mi] in {0,...,3}
+                {
+                \draw (A\n\m) -- (A\n\mi);
+                \draw (A\m\n) -- (A\mi\n);
+                }
+        %
+        \node[right=20pt of (A41.south)] (exampleA) {$F^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A32.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A32.south east);
+        %
+        \begin{scope}[on background layer]
+            \draw[fill=orange!30, draw=orange] ($(A04.north west)+(-2pt,2pt)$) rectangle ($(A43.south east)+(2pt,-2pt)$);
+        \end{scope}
+        %
+        \draw[decoration={brace,mirror}, decorate, thick]
+        ($(A43.south east)+(10pt,-2pt)$) -- ($(A43.north east)+(10pt,2pt)$) node[midway, right] {~bMPO};
+        \draw[decoration={brace,mirror}, decorate, thick]
+        ($(A44.south east)+(10pt,-2pt)$) -- ($(A44.north east)+(10pt,2pt)$) node[midway, right] {~bMPS};
+    \end{tikzpicture}}}}
+    \approx \quad
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,...,2}
+                \node[double layer tensor] (A\x\y) at (20pt*\x,20pt*\y) {};
+        \foreach \x in {0,...,4}
+            \node[double layer tensor, fill=orange!60] (A\x3) at (20pt*\x,60pt) {};
+        \node[double layer tensor, draw=white, fill=none] at (0pt,80pt) {};  % hack for vertical alignment
+        %
+        \foreach \x in {0,...,4}
+            \foreach \y [count=\yi] in {0,...,2}
+                {
+                \draw (A\x\y) -- (A\x\yi);
+                }
+        \foreach \x [count=\xi] in {0,...,3}
+            \foreach \y in {0,...,3}
+                {
+                \draw (A\x\y) -- (A\xi\y);
+                }
+        %
+        \node[above=3pt of (A33)] {$M^{[x]}$};
+    \end{tikzpicture}}}}
+    ~~ \approx ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            {
+            \node[double layer tensor] (A\x0) at (20pt*\x,0pt) {};
+            \node[double layer tensor] (A\x1) at (20pt*\x,20pt) {};
+            \node[double layer tensor, fill=orange!60] (A\x2) at (20pt*\x,40pt) {};
+            }
+        %
+        \node[double layer tensor, draw=white, fill=none] at (0pt,80pt) {};  % hack for vertical alignment
+        %
+        \foreach \x in {0,...,4}
+            \foreach \y [count=\yi] in {0,...,1}
+                {
+                \draw (A\x\y.north) -- (A\x\yi.south);
+                }
+        \foreach \x [count=\xi] in {0,...,3}
+            \foreach \y in {0,...,2}
+                {
+                \draw (A\x\y.east) -- (A\xi\y.west);
+                }
+        %
+        \node[above=3pt of (A32)] {$\tilde{M}^{[x]}$};
+    \end{tikzpicture}}}}
+    ~~ \approx \dots
+\end{equation}
+%
+to evaluate \acro{peps} diagrams.
+%
+Note that the orange \acro{bmps} tensors $\set{M^{[x]}}$ or $\set{\tilde{M}^{[x]}}$ do \emph{not} have a double layer structure.
+%
+Therefore, the \acro{bmps} in the norm diagram, preserve the property of positivity as a map from the bottom layer legs associated with the bra \acro{peps} to the top layer (ket) legs only approximately.
+%
+While preserving positivity exactly would be desirable, enforcing it leads to inferior algorithms, see e.g.~discussion in~\cite{lubasch2014, lubasch2014a}.
+
+Let us now focus on the problem of (approximately) applying a \acro{bmpo} to a \acro{bmps} that is
+\begin{equation}
+    \label{eq:tensornets:peps:bmps_bmpo_goal}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            {
+            \node[peps tensor] (B\x) at (20pt*\x,0pt) {};
+            \node[peps tensor] (K\x) at (20pt*\x,20pt) {};
+            \node at (B\x) {$\star$};
+            \node[double layer tensor, fill=orange!60] (M\x) at ($(K\x.center)+(15pt,10pt)$) {};
+            %
+            \draw (B\x.north) -- (K\x.south);
+            \draw (B\x.south west) -- ++(-5pt,-5pt);
+            \draw (K\x.south west) -- ++(-5pt,-5pt);
+            %
+            \draw (B\x.north east) to[out=45,in=260] (M\x.center);
+            \draw (K\x.north east) to[out=45,in=190] (M\x.center);
+            }
+        % horizontal bonds
+        \foreach \x [count=\xi] in {0,...,3}
+            {
+            \draw (B\x.east) -- (B\xi.west);
+            \draw[overdraw=3pt] (K\x.east) -- (K\xi.west);
+            \draw (M\x.east) -- (M\xi.west);
+            }
+        \node[above=3pt of (M3)] {$M^{[x]}$};
+        \node[below right=3pt of (B3)] {$\conj{A}^{[x,y]}$};
+    \end{tikzpicture}}}
+    \quad \approx \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            {
+            \coordinate (B\x) at (20pt*\x,0pt) {};
+            \coordinate (K\x) at (20pt*\x,20pt) {};
+            \node[double layer tensor, fill=orange!60] (M\x) at ($(K\x.center)+(15pt,10pt)$) {};
+            %
+            \draw ($(B\x.north east)+(4pt,4pt)$) to[out=45,in=260] (M\x.center);
+            \draw ($(K\x.north east)+(4pt,4pt)$) to[out=45,in=190] (M\x.center);
+            }
+        % horizontal bonds
+        \foreach \x [count=\xi] in {0,...,3}
+            {
+            \draw (M\x.east) -- (M\xi.west);
+            }
+        \node[above=3pt of (M3)] {$\tilde{M}^{[x]}$};
+        % phantom for vertical alignment
+        \node[below right=6pt of (B3)] {\vphantom{$\conj{A}^{[x,y]}$}};
+    \end{tikzpicture}}}
+    ~~.
+\end{equation}
+%
+We can achieve this using the methods developed in the context of \acro{mpoEvolution}, discussed in section~\ref{subsec:mps:mpo_evolution}.
+%
+The multi-layer structure of the \acro{bmpo} makes no difference conceptually, and in practice only needs to be considered in the contraction orders.
+%
+Whenever an object needs to be contracted with a \acro{bmpo} tensor $F^{[x,y]}$, it should be contracted with its factors layer by layer.
+%
+We give the computational cost scaling in table~\ref{tab:peps:bmps_contraction_costs}.
+%
+These are essentially the costs of \acro{mpoEvolution} summarized in table~\ref{tab:tensornets:mps:mpo_evolution_costs} where ``physical" dimension and \acro{bmpo} dimension coincide as $D^2$ for the norm and $\eta D^2$ for the expectation value, but takes into account that contractions are cheaper due to the multi-layer structure.
+
+\begin{table}[ht]
+    \centering
+    \renewcommand{\arraystretch}{1.}
+    \begin{tabular}{llll}
+        \toprule
+        Method & norm & expectation value & dominant step(s)
+        \\ \midrule
+        Two-Site Var.
+            & $\bigO(D^6 \chi^3) + \mathcal{C}_\text{init}$
+            & $\bigO(\eta^3 D^6 \chi^3) + \mathcal{C}_\text{init}$
+            & Contractions \& \acro{dsvd}
+        \\
+        Single-Site Var.
+            & $\bigO(D^4 \chi^3) + \mathcal{C}_\text{init}$
+            & $\bigO(\eta^2 D^4 \chi^3) + \mathcal{C}_\text{init}$
+            & Contractions \& \acroshort{qr}
+        \\
+        \acro{svd} compression 
+            & $\bigO(D^{10} \chi^3)$
+            & $\bigO(\eta^5 D^{10} \chi^3)$
+            & \acroshort{qr}
+        \\
+        Zip-up
+            & $\bigO(D^6 \chi^3)$
+            & $\bigO(\eta^3 D^6 \chi^3)$
+            & \acro{dsvd}
+        \\ \bottomrule
+    \end{tabular}
+    \caption[
+        Computational cost for PEPS contraction using the bMPS method.
+    ]{
+        Computational cost scaling for PEPS contraction using the bMPS method.
+        %
+        The methods are the same \acro{mpoEvolution} methods as in table~\ref{tab:tensornets:mps:mpo_evolution_costs}.
+        %
+        We give the cost for (a) evaluating the norm of a \acro{peps} with bond dimension $D$ and (b) the expectation value of a \acro{pepo} with bond dimension $\eta$ in such a \acro{peps}, both at a (maximum) \acro{bmps} bond dimension $\chi$.
+        %
+        We have simplified the scalings under the assumptions $d D^2 \leq \chi^2$ and $d \eta^2 \leq D^2$.
+        %
+        Note that using the multi-layer structure of the \acro{bmpo} reduces the cost of contraction steps, e.g.~down to the same scaling as the decompositions for the variational methods.
+        %
+        Here, $\mathcal{C}_\text{init}$ denotes the cost of computing the initial guess for the variational methods, for which we propose either the zip-up method, a random \acro{bmps}, or the \acro{bmps} tensors from a related \acro{peps} contraction in a previous iteration of an outer loop of a \acro{peps} algorithm.
+    }
+    \label{tab:peps:bmps_contraction_costs}
+\end{table}
+
+
+Returning to the task of contracting an entire diagram~\eqref{eq:tensornets:peps:bmps_contraction_overview}, we can evaluate the norm of a \acro{peps}, or an expectation value by absorbing rows into a top or bottom \acro{bmps}, until all but one row of the diagram are absorbed.
+%
+Then, we can evaluate them as
+\begin{equation}
+    \label{eq:tensornets:peps:bmps_example_norm}
+    \braket{\psi}{\psi} 
+    ~ \approx ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            {
+            \node[double layer tensor, fill=orange!60] (A\x0) at (20pt*\x,0pt) {};
+            \node[double layer tensor] (A\x1) at (20pt*\x,20pt) {};
+            \node[double layer tensor, fill=orange!60] (A\x2) at (20pt*\x,40pt) {};
+            }
+        %
+        %
+        \foreach \x in {0,...,4}
+            \foreach \y [count=\yi] in {0,...,1}
+                {
+                \draw (A\x\y.north) -- (A\x\yi.south);
+                }
+        \foreach \x [count=\xi] in {0,...,3}
+            \foreach \y in {0,...,2}
+                {
+                \draw (A\x\y.east) -- (A\xi\y.west);
+                }
+        %
+        \node[above=3pt of (A32)] {$\tilde{M}^{[x]}$};
+        \node[below=3pt of (A30)] {$M^{[x]}$};
+        \node[right=20pt of (A40.south)] (exampleA) {$F^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A31.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A31.south east);
+    \end{tikzpicture}}}}
+    %
+    %
+    %
+    \!\! ; \quad
+    \braopket{\psi}{O}{\psi} 
+    ~ \approx ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            {
+            \node[double layer tensor, fill=orange!60] (A\x0) at (20pt*\x,0pt) {};
+            \node[double layer tensor, fill=orange!60] (A\x2) at (20pt*\x,40pt) {};
+            }
+        \node[double layer tensor] (A01) at (0pt,20pt) {};
+        \node[double layer tensor] (A11) at (20pt,20pt) {};
+        \node[double layer tensor] (A21) at (40pt,20pt) {};
+        \node[double layer tensor, fill=pink] (A31) at (60pt,20pt) {};
+        \node[double layer tensor] (A41) at (80pt,20pt) {};
+        %
+        %
+        \foreach \x in {0,...,4}
+            \foreach \y [count=\yi] in {0,...,1}
+                {
+                \draw (A\x\y.north) -- (A\x\yi.south);
+                }
+        \foreach \x [count=\xi] in {0,...,3}
+            \foreach \y in {0,...,2}
+                {
+                \draw (A\x\y.east) -- (A\xi\y.west);
+                }
+        %
+        \node[above=3pt of (A32)] {$\tilde{M}^{[x]}$};
+        \node[below=3pt of (A30)] {$M^{[x]}$};
+        \node[right=20pt of (A40.south)] (exampleA) {$F_O^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A31.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A31.south east);
+    \end{tikzpicture}}}}
+    \!\!,
+\end{equation}
+via pairwise contraction.
+%
+The cost of this contraction is in $\bigO(D^4\chi^3)$ for the norm diagram of a local operator and in $\bigO(\eta^2 D^4 \chi^3)$ for a three-layer diagram with a \acro{pepo}.
+%
+This is the same scaling as for the cheapest method to perform the \acro{bmps}-\acro{bmpo} absorption, single-site variational sweeping, and thus never dominant.
+%
+Note that for a local operator $O$ it is convenient to sandwich the row on which the operator acts, since then the \acro{bmps} are the same as for the norm diagram and may be re-used.
+
+From the \acro{bmps} contraction, we get access to the \emph{effective environment} of a given site $(x, y)$, which consists of the four tensors surrounding $F^{[x,y]}$ on the RHS of
+\begin{equation}
+    \label{eq:tensornets:peps:norm_environment}
+    \braket{\psi}{\psi} 
+    ~~ \approx ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \foreach \x in {0,...,4}
+            {
+            \node[double layer tensor, fill=orange!60] (A\x0) at (20pt*\x,0pt) {};
+            \node[double layer tensor] (A\x1) at (20pt*\x,20pt) {};
+            \node[double layer tensor, fill=orange!60] (A\x2) at (20pt*\x,40pt) {};
+            }
+        %
+        %
+        \foreach \x in {0,...,4}
+            \foreach \y [count=\yi] in {0,...,1}
+                {
+                \draw (A\x\y.north) -- (A\x\yi.south);
+                }
+        \foreach \x [count=\xi] in {0,...,3}
+            \foreach \y in {0,...,2}
+                {
+                \draw (A\x\y.east) -- (A\xi\y.west);
+                }
+        %
+        \node[above=3pt of (A32)] {$\tilde{M}^{[x]}$};
+        \node[below=3pt of (A30)] {$M^{[x]}$};
+        \node[right=20pt of (A40.south)] (exampleA) {$F^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A31.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A31.south east);
+    \end{tikzpicture}}}
+    %
+    ~~ =: ~~
+    %
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[double layer tensor, fill=green!40] (A01) at (0pt,20pt) {};
+        \node[double layer tensor, fill=orange!60] (A10) at (20pt,0pt) {};
+        \node[double layer tensor] (A11) at (20pt,20pt) {};
+        \node[double layer tensor, fill=orange!60] (A12) at (20pt,40pt) {};
+        \node[double layer tensor, fill=green!40] (A21) at (40pt,20pt) {};
+        \draw
+            (A11.west) -- (A01.east)
+            (A11.north) -- (A12.south)
+            (A11.south) -- (A10.north)
+            (A11.east) -- (A21.west)
+        ;
+        \draw
+            (A01.north) to[out=90,in=180] (A12.west)
+            (A12.east) to[out=0,in=90] (A21.north)
+            (A21.south) to[out=270,in=0] (A10.east)
+            (A10.west) to[out=180,in=270] (A01.south)
+        ;
+        \node[above=3pt of (A12)] {$\tilde{M}^{[x]}$};
+        \node[below=3pt of (A10)] {$M^{[x]}$};
+        \node[left=3pt of (A01)] {$L_x$};
+        \node[right=3pt of (A21)] {$R_x$};
+        \node[right=40pt of (A10.south)] (exampleA) {$F^{[x,y]}$};
+        \draw[overdraw=3pt] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A11.south east);
+        \draw[->] ($(exampleA.north west)!0.8!(exampleA.west)$) -- (A11.south east);
+    \end{tikzpicture}}}
+    .
+\end{equation}
+It is a central object in variational updating algorithms, and may also be evaluated using different approximate contraction schemes, such as e.g.~\acro{ctmrg}~\cite{nishino1996}.
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{PEPS ground state search algorithms}
+\label{subsec:tensornets:peps:ground states}
+
+Let us now review algorithms to find a good approximation to the ground state of a Hamiltonian within the manifold of \acro{peps} of a given bond dimension $D$.
+%
+We focus on methods that apply to finite systems.
+
+In the original \acro{peps} work in Ref. \cite{verstraete2004}, the authors propose both a  variational energy minimization, as well as an imaginary time evolution approach.
+%
+The variational approach is conceptually related to the single site \acro{dmrg} algorithm, iterating single-site updates which keep all other tensors constant, but crucially without an isometric form.
+%
+As a consequence, the local problem, analogous to~\eqref{eq:tensornets:mps:dmrg:local_optimization_problem} comes with a non-trivial effective norm environment $N_\text{eff}$ arising from~\eqref{eq:tensornets:peps:norm_environment} and finding its optimal solution requires solving a generalized eigenvalue problem $H_\text{eff} \cdot \theta = \varepsilon N_\text{eff} \cdot \theta$, which is often ill-conditioned.
+%
+We expect these single-site updates without mixing approaches to suffer from similar convergence issues as single-site \acro{dmrg}.
+%
+The imaginary time evolution approach involves applying a global approximation $\eto{-H\delta\tau} \approx \eye - H \delta\tau$ of the time evolution operator, and subsequently truncating the \acro{peps} bonds variationally, similar to variational \acro{mpoEvolution}, see section~\ref{subsec:mps:mpo_evolution}.
+%
+Again, since there is no canonical form established, the local problem involves a non-trivial effective norm matrix and is often ill-conditioned.
+
+
+
+The \acro{fu} algorithm~\cite{jordan2008} implements imaginary time by applying the two-body gates arising from a Trotter decomposition sequentially, i.e.~one at a time.
+%
+Many adaptations of the \acro{fu}, including reduced local updates \cite{corboz2010, lubasch2014a}, as well as gauge fixing \cite{lubasch2014, phien2015} have been employed to improve stability and performance.
+%
+The \acro{su} algorithm~\cite{jiang2008}, on the other hand can be viewed as a version of the \acro{fu} that makes strong simplifications of the effective norm environment.
+%
+As a result, updates are in general further from optimality, since they are derived from a norm that is a worse approximation of the true many body norm, but are significantly cheaper, and thus allow larger bond dimensions.
+%
+Thus, the \acro{su} allows ground state search in a larger variational manifold, that generically contains a better approximation to the true ground state, but the search algorithm is inferior and generically finds a worse candidate then a \acro{fu} search in the same manifold would.
+%
+It is an open question, under what circumstances the trade-off introduced by relaxing to a \acro{su} is worth it.
+%
+Note that (generically), the \acro{fu} does not find the optimal ground state approximation in its search manifold either, as we demonstrate in section~\ref{sec:gradpeps:benchmark}.
+
+
+Gradient-based approaches have been employed for both finite \cite{liu2017, liu2021, vieijra2021, orourke2023, scheb2023} or infinite systems \cite{vanderstraeten2016, hasik2021, liao2019, francuz2023}, and minimize the variational energy, by globally updating all tensors at once.
+%
+For infinite systems, it is common to evaluate gradients using \acro{autodiff}, which seems to work well and give stable optimization trajectories.
+%
+For finite systems, a similar approach seems to interact poorly with the approximations needed to evaluate the variational energy, e.g.~using the \acro{bmps} method.
+%
+We propose an approach to stable gradient-based optimization of finite \acro{peps} in chapter~\ref{ch:gradpeps}.
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{PEPS time evolution algorithms}
+\label{subsec:tensornets:peps:time_evolution}
+
+Regarding simulation of time evolution, \emph{infinite} \acro{peps} simulations typically employ sequential gate application \cite{czarnik2019, dziarmaga2021}.
+%
+The derivation of the update conceptually breaks the translational invariance of the ansatz, by assuming that the infinite environment surrounding a unit cell remains fixed, while deriving a local update for a few, typically two, tensors in the unit cell.
+%
+Translational invariance is then restored by performing the so derived update in all unit cells.
+%
+This is an approximation to a truly translationally invariant application of the gate to all unit cells simultaneously.
+%
+In addition to the \acro{fu} and \acro{su} environment schemes, a significant performance improvement was gained by the invention of the \acro{ffu}~\cite{phien2015}, which exploits that the state does not change much under small time steps and thus new environments can be obtained from the old environments in only a single \acro{ctmrg}~\cite{orus2009} renormalization step.
+
+While the original \acro{peps} work~\cite{verstraete2004} mentions applying the evolution approach also to real time dynamics, we are not aware of any published works simulating real-time dynamics of \emph{finite} \acro{peps}, and we have not been able to obtain sensible results from variational schemes with local updates.
+
+Simulating local quench dynamics, e.g.~to extract response functions, however, requires either a finite system, or a translationally invariant state with a large unit cell.
+%
+In either case, the system is expected to well-approximate the thermodynamic limit for a limited time, until correlations from the initial quench have spread to the boundary of the finite system or the unit cell.
+%
+The approach using infinite systems with a large unit cell ($15 \times 15$) is done in Ref.~\cite{espinoza2024}, using sequential time evolution with local updates derived from \acro{ffu} environments.
+%
+Let us mention for completeness the approach of Ref.~\cite{hubig2020a} to simulate local excitations using a translationally invariant superposition, employing \acro{su} simulations with a small ($2\times 2$) unit cell.
+
+We propose a gradient-based time evolution algorithm for finite \acro{peps} in chapter~\ref{ch:gradpeps}.

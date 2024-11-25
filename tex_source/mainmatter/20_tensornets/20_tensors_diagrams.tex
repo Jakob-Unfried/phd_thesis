@@ -1,0 +1,103 @@
+The building blocks of \acrop{tns} are tensors.
+%
+From a mathematical perspective, tensors are elements of a tensor product space, e.g.~$T \in \Cbb^5 \otimes \Cbb^3 \otimes \Cbb^2$ is a three-leg tensor.
+%
+More straight-forwardly we can think of tensors as multi-dimensional arrays of numbers, generalizing the notion of a matrix $A$ with entries $A_{ij}$ to more (or fewer) than two indices, giving us tensors such as e.g.~$T$ with entries $T_{ijk}$.
+%
+There is a graphical notation for tensors and tensor networks that is established in the community.
+%
+Tensors are represented with shapes with legs, which represent the indices, e.g.~
+\begin{equation}
+    \label{eq:tensornets:tensors_diagrams:example_tensor}
+    T_{ijk} ~~ =: \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (T) {$T$};
+        \draw (T.west) -- ++(-10pt, 0) node[space, left] {$i$};
+        \draw (T.south) -- ++(0, -10pt) node[space, below] {$j$};
+        \draw (T.east) -- ++(10pt,0) node[space, right] {$k$};
+    \end{tikzpicture}}}
+    .
+\end{equation}
+This involves a fixed convention regarding which leg points in which direction.
+
+Tensor contraction, that is a sum over a shared index, is represented by connecting the legs, that is, e.g.
+\begin{equation}
+    \label{eq:tensornets:tensors_diagrams:contraction}
+    \sum_k T_{ijk} B_{k\ell m} ~~ =: \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (T) {$T$};
+        \draw (T.west) -- ++(-10pt, 0) node[space, left] {$i$};
+        \draw (T.south) -- ++(0, -10pt) node[space, below] {$j$};
+        \draw (T.east) -- ++(30pt,0) node[tensor, right] (B) {$B$};
+        \draw (B.south) -- ++(0, -10pt) node[space, below] {$\ell$};
+        \draw (B.east) -- ++(10pt,0) node[space, right] {$m$};
+    \end{tikzpicture}}}
+    .
+\end{equation}
+The labels $i, j, \ell, m$ are typically omitted in equations where both sides are given diagrammatically, such as e.g.~in~\eqref{eq:tensornets:tensors_diagrams:svd}, and indices are identified not by matching index, but by matching position and orientation of the leg.
+
+Another ubiquitous step in tensor networks is to apply matrix decompositions to tensors.
+%
+This is done by first reshaping to a matrix, meaning combining indices into two groups $T_{ijk\ell} = T_{(ij),(k\ell)}$ and understanding the result as a matrix, and performing standard factorization, such as e.g.~an \acro{svd} on that matrix.
+%
+Finally, we ungroup the legs of the factors, e.g.~as $U_{(ij),m} = U_{ijm}$ to obtain a tensor factorization, which shares the properties of the \acro{svd}
+
+\begin{equation}
+    \label{eq:tensornets:tensors_diagrams:svd}
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+            \node[tensor, minimum width=2cm] (T) {$T$};
+            \draw (T.west) -- ++(-10pt, 0);
+            \draw ($(T.south)!0.8!(T.south west)$) -- ++(0, -10pt);
+            \draw ($(T.south)!0.8!(T.south east)$) -- ++(0, -10pt);
+            \draw (T.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~~ \mapsto ~~
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+            \node[tensor, minimum width=2cm] (T) {$T$};
+            \draw (T.west) -- ++(-10pt, 0) coordinate (L);
+            \draw (T.east) -- ++(10pt,0) coordinate (R);
+            \draw ($(T.south)!0.8!(T.south west)$) -- ++(0, -10pt) to[out=270,in=0] ($(L)+(0,-2pt)$);
+            \draw ($(T.south)!0.8!(T.south east)$) -- ++(0, -10pt) to[out=270,in=180] ($(R)+(0,-2pt)$);
+    \end{tikzpicture}}}}
+    ~~ \overset{\text{\acroshort{svd}}}{=} ~~
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+            \node[left iso] (T) {$U$};
+            \draw (T.west) -- ++(-10pt, 0) coordinate (L);
+            \draw (T.east) -- node[above] {} ++(10pt,0) node[tensor, right] (B) {$S$};
+            \draw (B.east) -- node[above] {} ++(10pt,0) node[right iso, right] (V) {$W$};
+            \draw (V.east) -- ++(10pt,0) coordinate (R);
+            \draw (T.south) -- ++(0, -10pt) to[out=270,in=0] ($(L)+(0,-2pt)$);
+            \draw (V.south) -- ++(0, -10pt) to[out=270,in=180] ($(R)+(0,-2pt)$);
+    \end{tikzpicture}}}}
+    ~~ \mapsto ~~
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+            \node[left iso] (T) {$U$};
+            \draw (T.west) -- ++(-10pt, 0) coordinate (L);
+            \draw (T.east) -- node[above] {} ++(10pt,0) node[tensor, right] (B) {$S$};
+            \draw (B.east) -- node[above] {} ++(10pt,0) node[right iso, right] (V) {$W$};
+            \draw (V.east) -- ++(10pt,0) coordinate (R);
+            \draw (T.south) -- ++(0, -10pt);
+            \draw (V.south) -- ++(0, -10pt);
+    \end{tikzpicture}}}}
+    .
+\end{equation}
+
+We use boxes with one rounded side for the isometric tensors $U, W$, where a left (right) isometry, such as, e.g., $U$ ($W$), is an isometric map from the group of the left (right) and a bottom leg to the right (left) leg.
+%
+In particular, this means
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (M1) {$U$};
+        \draw (M1.south) -- ++(0,-10pt) node[left iso, below] (M2) {$\conj{U}$};
+        \draw (M1.east) -- ++(10pt,0);
+        \draw (M2.east) -- ++(10pt,0);
+        \draw (M1.west) -- ++(-10pt,0) coordinate (XL) to[out=180,in=180] ($(XL |- M2.west)$) -- (M2.west);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (M1) {\vphantom{$A^{[1]}$}};
+        \path (M1.south) -- ++(0,-10pt) node[space, below] (M2) {\vphantom{$A^{[1]}$}};
+        \draw (M1.west) -- ++(-10pt,0) coordinate (X) to[out=180,in=180] ($(X |- M2.west)$) -- (M2.west);
+    \end{tikzpicture}}}
+    .
+\end{equation}

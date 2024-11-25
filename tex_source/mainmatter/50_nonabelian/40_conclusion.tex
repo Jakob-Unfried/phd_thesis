@@ -1,0 +1,18 @@
+In this chapter, we have provided a mathematical framework for symmetric tensors that allows us to enforce abelian and non-abelian symmetries and covers tensors that live in a more general tensor category, e.g.~with the statistics of fermionic or anyonic degrees of freedom.
+%
+We have defined a graphical language for the basic concepts, identified the free parameters of symmetric tensors, and developed in detail how to perform operations on the tensors, such as contractions, leg manipulations, and factorizations.
+%
+This may serve as an implementation guide for a tensor backend and is the basis of the prototype implementation, which is publicly available in the \acro{tenpy} repository~\cite{tenpySoftware}.
+
+For the group case, we have demonstrated the speedups that can be obtained by exploiting non-abelian groups in basic tensor algebra operations, compared to only enforcing the largest abelian subgroup, which is possible with an abelian tensor backend.
+%
+The general categorical case allows simulations of many-body quantum states of degrees of freedom with non-trivial exchange statistics, such as fermions or anyons, by enforcing the respective grading on the tensor level.
+
+Future directions for the concrete implementation in \acro{tenpy} are performance optimization and integration into the rest of the library.
+%
+As a first step towards interoperability in the vast landscape of tensor algebra libraries, we propose to establish a unified storage format of symmetric tensors.
+%
+In the context of tensor network methods, this may eventually be extended to unified storage formats for the common classes of tensor network states, such as e.g.~\acro{mps}.
+%
+An additional avenue for future development in this framework is how to incorporate generalized, non-invertible symmetries~\cite{lootens2023}.
+

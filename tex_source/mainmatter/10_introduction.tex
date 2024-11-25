@@ -1,0 +1,128 @@
+Understanding the rich phenomenology of strongly correlated quantum many-body systems, such as e.g.~high-temperature superconductivity~\cite{bednorz1986, anderson1987} or the fractional quantum Hall effect~\cite{tsui1982, stormer1999, leonard2023} remains an open challenge in condensed matter physics.
+%
+One key step in this quest is extracting predictions of measurable quantities from candidate theories, allowing for a connection to experiments.
+%
+Due to the strong correlations, even in idealized models, such as the Hubbard model \cite{hubbard1963electron} and the related t-J model, which are proposed as minimal models to understand superconductivity~\cite{zhang1988, dagotto1994, simonscollab2020}, this is not possible analytically without further simplification or approximation, and thus requires numerical methods.
+
+
+
+The main challenge in numerical approaches to analyzing these quantum many-body models is the \emph{curse of dimensionality}, meaning that the dimension of the many-body Hilbert space grows exponentially with system size.
+%
+Thus, direct approaches -- commonly dubbed \acro{ed} -- which find the ground state of a Hamiltonian by directly tackling the eigenvalue problem numerically, are limited to small system sizes.
+%
+Quantum Monte Carlo methods~\cite{becca2017} do not operate on these exponentially dimensional objects and instead stochastically sample the quantities of interest such that large systems can be simulated efficiently.
+%
+Thus, if the sign problem~\cite{troyer2005} can be addressed, Monte Carlo methods offer arguably the most stable and efficient numerical approach to simulating quantum many-body systems.
+%
+They encounter difficulties, however, in fermionic or geometrically frustrated settings and simulation of real-time dynamics.
+%
+In these settings, variational methods and, in particular, tensor network methods are usually the most stable numerical approach to simulating these systems.
+%
+In this thesis, we focus on tensor network methods.
+
+
+
+Conventional wisdom in the community is that the key property to identify the correct class of tensor network to approximate a given target state is its entanglement.
+%
+This correspondence between entanglement structure and variational power is exact for \acrop{mps}, where it is proven that ground states of gapped, local 1D Hamiltonians fulfill the area law of entanglement~\cite{hastings2007a} and that any area law state can be efficiently approximated as an \acro{mps}~\cite{schuch2008, gottesman2010}.
+%
+For the other classes of tensor network ansaetze and corresponding models, analogous statements are not as straightforward to establish rigorously but are believed to hold for most relevant models.
+%
+This includes \acrop{ttn}~\cite{fannes1992b, shi2006, murg2010} or the \acro{mera}~\cite{vidal2007a, vidal2008, evenbly2009} in one or more dimensions, which can capture the scale invariance and the entanglement structure of critical states, with a logarithmic correction and have indeed been found to describe some critical systems well.
+%
+A generalization of \acro{mps} to higher dimensions gives the \acro{peps}~\cite{nishio2004, verstraete2004}.
+%
+While the correspondence between ground states of local gapped Hamiltonians and states that can be efficiently approximated by \acro{tps} is believed to generalize to higher dimensions, at least for a wide class of physically relevant systems, establishing it both rigorously and on general terms was not possible so far.
+
+
+
+While the entanglement structure of the target state may establish that it can \emph{in principle} be well-approximated by a \acro{tns} of the chosen structure, this is only half of the story, as we also need an algorithm to efficiently find this good approximation within the variational manifold.
+%
+For \acro{mps} in 1D, this has been realized by e.g.~the \acro{dmrg}~\cite{dukelsky1998, schollwock2011} and \acro{vumps}~\cite{zauner-stauber2018a} ground state search algorithms, which exploit the canonical form~\cite{haegeman2013, vanderstraeten2019a} of \acro{mps} -- a particularly convenient choice to fix the internal gauge degrees of freedom.
+%
+The expectation of finding similar success using natively higher-dimensional \acro{tns} such as \acro{peps}, however, has not been met, and \acro{peps} simulations are typically less stable and more challenging conceptually and computationally.
+
+
+
+In this thesis, we pursue three avenues to push the performance of tensor network simulations, extending the limits of what is accessible to them.
+%
+%
+Exploiting (i) hardware acceleration, such as e.g.~the power of \acrop{gpu} or dedicated \acrop{tpu} is a promising avenue for pushing the boundaries of what is accessible to \acro{tns} simulations~\cite{ganahl2023, menczer2023a, menczer2024}.
+%
+As such, tensor networks follow in the footsteps of neural networks, where hardware acceleration played a central role in the rise of artificial intelligence and machine learning tools.
+%
+From an algorithmic point of view, this requires using linear algebra routines that are efficient on \acro{gpu}, and in particular, to avoid the standard \acro{svd}, which is inefficient on \acrop{gpu}.
+%
+%
+Next (ii), we explore global gradient-based optimization methods that recently gained traction as a more robust way to optimize \acro{peps}, and in particular for ground state search on infinite systems, in new algorithmic settings, such as dynamics of finite \acro{peps}.
+%
+Lastly (iii), exploiting symmetries of the model, which is a well-established technique to improve the accuracy and performance of tensor network algorithms~\cite{singh2010b, weichselbaum2012}.
+%
+Symmetric states can be targeted by constructing them as a variational tensor network of symmetric tensors.
+%
+These symmetric tensors require fewer free parameters than general tensors, such that storing them requires less memory and operating on them requires fewer \acro{cpu} operations, increasing performance.
+%
+Additionally, enforcing the conservation of a symmetry can increase the accuracy of the simulation, allows targeting specific charge sectors explicitly, and gives access to symmetry-resolved data.
+
+
+The thesis is structured as follows.
+
+
+In chapter~\ref{ch:tensornets}, we review tensor network methods, introducing relevant concepts, notation, and the established \acro{tns} algorithms.
+%
+In particular, we discuss the connection between entanglement and the variational power of common classes of \acro{tns}.
+%
+We introduce the class of \acro{mps}, their isometric and canonical form, and the \acro{dmrg}, \acro{tebd} and \acro{mpoEvolution} algorithms.
+%
+We discuss tensor networks in higher-dimensional systems, mainly focusing on \acro{peps} for 2D systems.
+%
+We introduce the ansatz, approximate contraction methods, and briefly summarize common algorithms.
+%
+We discuss how to exploit symmetries in \acro{tns} simulations in terms of the block-sparse structure that a symmetry imposes on tensors, focusing on abelian symmetry groups for concreteness.
+%
+We briefly introduce the \acro{tenpy} python package that offers \acro{mps} simulations, exploiting abelian symmetry groups.
+
+In chapter~\ref{ch:truncation}, we develop techniques to accelerate truncation steps in \acro{tns} algorithms by replacing the truncated \acro{svd} that is commonly used to renormalize the bond dimension of a tensor network with other low-rank factorization routines.
+%
+We first focus on one particular routine developed in a previous publication~\cite{unfried2023} in the context of the \acro{tebd} algorithm for \acro{mps} time evolution, which we dubbed the \acro{qr}-based truncation.
+%
+We then discuss how this approach is related to randomized linear algebra and, in particular, can be understood as a modified version of a \acro{rsvd} that is particularly suited for the \acro{mps} context.
+%
+We propose a best-of-both-worlds synthesis of the truncation algorithm before showing benchmark results of the \acro{qr}-based truncation routine.
+
+In chapter~\ref{ch:gradpeps}, we propose an approach to the global, gradient-based optimization of finite \acro{peps}, motivated by the success of similar methods for infinite systems~\cite{liao2019, hasik2021, francuz2023}, using automatic differentiation.
+%
+We study the interplay of numerical gradient evaluation with the approximation methods needed to evaluate the cost function and the pathologies that we find arise.
+%
+These pathological optimization trajectories optimize the approximately evaluated cost function not by optimizing the exact expression for the cost but rather by causing the approximation to become uncontrolled.
+%
+We propose to remedy this by using the approximate contraction methods to evaluate an exact expression for the gradient instead of following the scheme of automatic differentiation, which computes the derivative of the approximation.
+%
+We formulate a ground state search algorithm, as well as a time stepper, and showcase benchmark results, simulating the 2D quantum transverse field Ising model, computing ground states, and extracting the dynamical spin structure factor from quench dynamics.
+
+
+In chapter \ref{ch:nonabelian}, we introduce strategies to enforce nonabelian symmetries in tensor networks on the tensor level, based on fusion trees.
+%
+We give a detailed pedagogical introduction to the underlying mathematical framework -- the theory of monoidal categories, providing side-by-side an intuitive and a more rigorous perspective, with a common graphical language.
+%
+This categorical approach to symmetries allows the machinery to be applied to tensors that intrinsically have the statistics of fermionic or anyonic excitations and can thus be used to build tensor network representations or approximations of fermionic/anyonic many-body states.
+%
+We identify the free parameters of a symmetric tensor and derive in detail how to perform common linear algebra routines on them, such as combining, splitting, or re-arranging legs, pairwise contraction, and factorizations.
+%
+This is the basis for a new version of \acro{tenpy}, currently under active development, with a working prototype developed by the author.
+%
+
+We conclude with a summary, a discussion of common themes throughout the chapters, and an outlook regarding future directions in chapter~\ref{ch:conclusion}.
+
+In appendix~\ref{ch:topo_data}, we provide the topological data of common symmetries.
+%
+This is the data required to use the given symmetry in the framework of chapter~\ref{ch:nonabelian}, to represent and operate on tensors that have this symmetry.
+%
+This includes a review a representation theory in section~\ref{sec:topo_data:review_rep_thry}, and data for the group symmetries $\Zbb_N$, $\U{1}$ and $\SU{2}$ in sections~\ref{sec:topo_data:ZN}-\ref{sec:topo_data:SU2} respectively, for fermionic grading in section~\ref{sec:topo_data:ferm}, for Fibonacci anyons in section~\ref{sec:topo_data:fib}, and how to combine multiple symmetries in section~\ref{sec:topo_data:product}.
+
+In appendix~\ref{ch:autodiff_derivations}, we provide derivations for the autodiff formulae stated in section~\ref{sec:gradpeps:autodiff}.
+
+The author emphasizes the benefits of open-source culture in science and provides all code associated with this thesis publicly on GitHub\footnote{
+    \url{https://github.com/Jakob-Unfried/phd_thesis}
+}.
+

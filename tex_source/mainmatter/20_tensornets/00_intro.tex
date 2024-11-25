@@ -1,0 +1,47 @@
+Tensor networks have a long history, and related concepts were independently discovered from multiple perspectives, traced in detail, e.g.~in~\cite[Sec. I.B]{cirac2021}.
+%
+The first works that can be considered precursors to the modern tensor network perspective dealt with classical statistical mechanics problems~\cite{kramers1941, baxter1968}.
+%
+First applications of related ideas in the realm of quantum mechanics, as a wavefunction ansatz~\cite{accardi1981, affleck1987} led to the development of the class of \acrop{fcs}~\cite{fannes1989, fannes1992a, fannes1994}, which are closely related to \acrop{mps}.
+%
+The reformulation of the \acrofull{dmrg} \cite{white1992a, white1993a} -- an algorithm designed to study ground states of 1D systems -- as a variational ground state search in the class of \acrop{mps} \cite{fannes1992a, ostlund1995, dukelsky1998, schollwock2011} established \acro{tns} methods in their modern form.
+%
+Various technical improvements of the algorithm have since pushed the boundaries of what can be efficiently simulated using \acrop{mps}.
+%
+For example, exploiting abelian \cite{singh2010b, singh2011a} or nonabelian \cite{mcculloch2002a, singh2012b, weichselbaum2012} symmetries, representation in hybrid real and momentum spaces \cite{motruk2016,ehlers2017}, and density matrix perturbations \cite{white2005b, hubig2015} have improved convergence, accuracy and performance of \acro{dmrg} simulations.
+%
+A formulation for translationally invariant \acro{imps} allows to study the thermodynamic limit directly, using infinite \acro{dmrg}~\cite{mcculloch2008} or \acro{vumps}~\cite{zauner-stauber2018a} methods, as well as excitations on top of the ground states using tangent space methods~\cite{haegeman2013, vanderstraeten2015, vanderstraeten2019a}.
+%
+Beyond ground states, thermal states can be simulated using purification methods \cite{verstraete2004a, barthel2009}, and real-time evolution \cite{paeckel2019} allows access to e.g.~transport properties and non-equilibrium phenomena.
+%
+In the field of quantum computing, \acro{mps} methods can serve as a benchmark \cite{dang2019, tindall2024} or a simulation of the quantum device itself \cite{banuls2006, nguyen2022}.
+%
+
+%
+Beyond \acro{mps}, various other tensor network ansaetze with different connectivity of the tensors have been developed to address different settings and fall under the umbrella term of \acropfull{tns}.
+%
+This includes \acrop{ttn} \cite{shi2006} and the \acro{mera} \cite{vidal2007a, evenbly2009} for studying critical systems, originally in 1D, but readily generalized to higher dimensions \cite{tagliacozzo2009, cincio2008}, as well as \acro{peps}~\cite{nishio2004, verstraete2004}, which are the direct generalization of \acro{mps} to higher-dimensional systems.
+%
+Various algorithms for optimizing variational \acro{peps} ansaetze in both finite and infinite systems range from \acro{fu} \cite{yang2017} to gradient-based methods \cite{liao2019, hasik2021, francuz2023}, and many more.
+%
+These natively higher-dimensional approaches, however, lack many of the favorable properties of \acro{mps} in 1D, such as prominently the canonical form.
+%
+While attempts have been made at establishing canonical forms~\cite{zaletel2020, lin2022} and fixing the gauge freedom~\cite{evenbly2018} of \acro{peps}, they fall short of the advantageous properties of the canonical form in \acro{mps}.
+%
+This discrepancy goes so far that \acro{mps} simulations are often the preferred way of studying 2D systems by mapping a thin stripe or thin cylinder to a chain at the cost of increasing the range of couplings in the Hamiltonian.
+
+In this chapter, we provide a pedagogical introduction to many aspects of tensor network simulations.
+%
+This compilation covers only select topics, and we refer the interested reader to the review articles~\cite{orus2014a, schollwock2011, paeckel2019, cirac2021, banuls2023a}.
+%
+In section~\ref{sec:tensornets:entanglement}, we introduce basic concepts of (bipartite) entanglement, the area law, and how the entanglement structure of the target state determines the appropriate \acro{tns} ansatz.
+%
+In section~\ref{sec:tensornets:tensors}, we briefly introduce the graphical notation of tensor networks and basic operations on tensors before discussing \acrop{mps} in section~\ref{sec:tensornets:mps}.
+%
+We cover the canonical form, emphasizing its weaker, more general version, the isometric form, and discuss the \acro{dmrg} ground state search, as well as \acro{tebd} and \acro{mpoEvolution} methods for simulating dynamics.
+%
+We discuss \acro{tns} approaches to higher-dimensional (more than one spatial dimension) systems in section~\ref{sec:tensornets:peps}, with a focus on \acro{peps} methods.
+%
+In section~\ref{sec:tensornets:symmetries}, we review in detail the mathematical framework for exploiting (abelian) symmetries in tensor networks as a basis for discussing decomposition routines for symmetric tensors in chapter~\ref{ch:truncation}, and as the base case for discussion of more general symmetries in chapter~\ref{ch:nonabelian}.
+%
+Finally, we highlight the \acro{tenpy} software package for tensor network simulations in section~\ref{sec:tensornets:tenpy}.

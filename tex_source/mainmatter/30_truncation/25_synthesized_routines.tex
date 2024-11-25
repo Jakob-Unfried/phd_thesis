@@ -1,0 +1,103 @@
+In this section, we propose combined routines, incorporating the lessons learned from comparison with randomized linear algebra into the \acroshort{qr}-based truncation routines.
+
+We keep the two-stage structure of a range-finding stage and a post-processing stage.
+%
+First, for the test matrix $\Omega$ in the range finder, we propose to use rows from the pre-update factor\footnote{
+    Recall that we assume that we have access to a related matrix $\hat\theta \approx \theta$
+    with an exact factorization $\hat\theta = \hat{E} \hat{F}$ with rank $\hat k \leq k$.
+} $\hat F$, and add additional samples from \acro{srft} to achieve the target oversampled rank $\ell$, that is choosing 
+\begin{equation}
+    \label{eq:truncation:synthesized_range_finder}
+    \Omega = \begin{bmatrix} \hconj{\hat{F}} & \sqrt{\frac{n}{\ell - \hat{k}}} D F \tilde\Pi\end{bmatrix}
+    ~,
+\end{equation}
+where, as in the previous section, the second block can be computed via subsampled \acro{fft}.
+
+After the range finder stage, we found a $Q$ such that $\theta \approx Q(\hconj{Q}\theta)$, and perform a standard factorization of $Y = \hconj{Q}\theta$ next.
+%
+There are approaches to avoid forming the explicit matrix product that defines $Y$ to bring down the computational cost, losing some accuracy as a trade-off, as outlined in reference \cite[section 5.2]{halko2010}.
+%
+In a \acro{tns} context, this is typically not worth it, as the tensor contractions in the rest of the algorithm -- outside the truncation subroutine -- have a cost with the same or higher cost scaling than forming $Y$ anyway.
+%
+In \acro{tebd}, for example, forming the two-site wavefunction $\theta$ in the first place has the same formal scaling in $\bigO(d^2 \chi^3)$ as forming $Y$ explicitly.
+
+The straightforward choice for the standard factorization of $Y$ is an \acro{svd}.
+%
+Having \acro{gpu} acceleration in mind, however, we propose to investigate other choices, which result in a factorization of $\theta$ with weaker properties.
+%
+In particular, we consider as alternatives the \acrofull{dsvd} or \acro{tqr}, see sections~\ref{subsec:truncation:factorizations:deformed_svd} and~\ref{subsec:truncation:factorizations:tqr}.
+
+Any of these factorizations can be post-processed into any other.
+%
+If given an \acro{svd} $\theta_\text{approx} = U S \hconj{V}$, we already have a \acro{dsvd} trivially and $\theta_\text{approx} = U (S \hconj{V})$ is a \acro{tqr}.
+%
+Given a \acro{dsvd} $\theta_\text{approx} = \tilde U \tilde S \hconj{\tilde V}$, we can perform an \acro{svd} of $\tilde S = U' S \hconj{(V')}$, to obtain the \acro{svd} $\theta_\text{approx} = (\tilde U U') S \hconj{(\tilde V V')}$, or form the \acro{tqr} $\theta_\text{approx} = \tilde U (\tilde S \hconj{\tilde V})$.
+%
+Given a \acro{tqr} $\theta_\text{approx} = Q R$, we can perform an \acro{svd} $R = U' S \hconj{V}$ of $R$, to obtain the \acro{svd} $\theta_\text{approx} = (Q U') S \hconj{V}$, or if we just want a \acro{dsvd}, it is enough to perform either a \acroshort{qr} or \acro{tqr} of $\hconj{R} = Q' \tilde S'$ to obtain the \acro{dsvd} $\theta_\text{approx} = Q \hconj{S'} \hconj{Q'}$.
+
+
+
+We can understand the relationship between these different forms of factorization in the following way;
+%
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor, fill=gray!20] (U1) {$\theta$};
+        \draw[ultra thick] (U1.west) -- ++(-7pt,0) (U1.east) -- ++(7pt,0);
+    \end{tikzpicture}}}
+    ~ \approx ~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso, fill=red!20] (U1) {$\tilde{U}$};
+        \node[tensor, right=10pt of U1, fill=gray!20] (U2) {$Q^\dagger$};
+        \node[tensor, right=10pt of U2, fill=blue!40] (S) {$S$};
+        \node[tensor, right=10pt of S, fill=gray!20] (V2) {$P$};
+        \node[right iso, right=10pt of V2, fill=red!20] (V1) {$\tilde{V}^\dagger$};
+        \draw[ultra thick] (U1.west) -- ++(-7pt,0) (V1.east) -- ++(7pt,0);
+        \draw (U1.east) -- (U2.west) (U2.east) -- (S.west) (S.east) -- (V2.west) (V2.east) -- (V1.west);
+    \end{tikzpicture}}}}
+    ~ =: ~
+    \begin{cases}
+        \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+            \node[left iso, fill=red!50] (U) {$U$};
+            \node[tensor, right=10pt of U, fill=blue!40] (S) {$S$};
+            \node[right iso, right=10pt of S, fill=red!50] (V) {$V^\dagger$};
+            \draw[ultra thick] (U.west) -- ++(-7pt,0) (V.east) -- ++(7pt,0);
+            \draw (U.east) -- (S.west) (S.east) -- (V.west);
+        \end{tikzpicture}}}}
+        & \text{\acroshort{svd}}
+        \\[3ex]
+        \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+            \node[left iso, fill=red!20] (U) {$\tilde{U}$};
+            \node[tensor, right=10pt of U, fill=blue!20] (S) {$\Xi$};
+            \node[right iso, right=10pt of S, fill=red!20] (V) {$\tilde{V}^\dagger$};
+            \draw[ultra thick] (U.west) -- ++(-7pt,0) (V.east) -- ++(7pt,0);
+            \draw (U.east) -- (S.west) (S.east) -- (V.west);
+        \end{tikzpicture}}}}
+        & \text{\acroshort{dsvd}}
+        \\[3ex]
+        \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+            \node[left iso, fill=red!20] (U) {$\tilde{U}$};
+            \node[tensor, right=10pt of U, fill=gray!20] (S) {$C$};
+            \draw[ultra thick] (U.west) -- ++(-7pt,0) (S.east) -- ++(7pt,0);
+            \draw (U.east) -- (S.west);
+        \end{tikzpicture}}}}
+        & \text{\acroshort{tqr}}
+    \end{cases}
+\end{equation}
+
+The inner legs describe the fine-tuned basis choice of the singular vectors of $\theta$, such that the central factor $S$ is real, non-negative, and diagonal.
+%
+Then, the unitary basis transformations $Q, P$ map to some other basis of the same respective subspaces, such that the combined central matrix $\Xi := Q^\dagger S P$ no longer has any particular properties.
+%
+Since the bases span the same spaces, however, any optimal truncation properties are inherited from the \acro{svd}.
+%
+We can combine the factors in different ways as indicated to obtain the different types of factorizations.
+
+
+
+Going from one factorization to the other is cheap compared to forming them in the first place, as the procedures above act on matrices that have the smaller truncated dimension $k <min(m, n)$ as either width or height.
+%
+Nevertheless, we emphasize that it is worth it to reconsider in the \acro{tns} algorithm, which properties are actually needed and meet the truncation routine halfway.
+
+
+
+Finally, to post-process $\theta\approx Q Y$ to any of the three classes of factorizations (\acro{svd}, \acro{dsvd} and \acro{tqr}), we need to perform the same kind of decomposition of $Y$ and absorb its left factor into $Q$.

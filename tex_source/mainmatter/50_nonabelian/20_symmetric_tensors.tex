@@ -1,0 +1,1576 @@
+In this section, we establish the free parameters of symmetric tensors, as well as how to do common operations, such as leg rearrangement, contraction, or decomposition on them.
+%
+
+Let us first introduce some terminology.
+%
+A symmetric tensor is a symmetric map
+%
+\begin{equation}
+    T : W_1 \otimes \dots \otimes W_K \to V_1 \otimes \dots \otimes V_J
+\end{equation}
+%
+from the \emph{domain} $\mathcal{W} := W_1 \otimes \dots \otimes W_K$ to the \emph{codomain} $\mathcal{V} := V_1 \otimes \dots \otimes V_J$.
+%
+If there are no spaces in the (co-)domain, that is, if $K=0$ ($J=0$), we understand the empty tensor product to mean the monoidal unit $\mathcal{W} = I$ ($\mathcal{V} = I$).
+%
+By bending a bunch of lines, i.e.~applying cups below, the tensor $T$ is equivalent to a map
+\begin{equation}
+    \tilde T : I \to V_1 \otimes \dots \otimes V_J \otimes \dualspace{(W_K)} \otimes \dots \otimes \dualspace{(W_1)}
+    .
+\end{equation}
+%
+Thus we define the \emph{legs} of a tensor $T$ to be $V_1, \dots, V_J, \dualspace{(W_K)}, \dots,\dualspace{(W_1)}$, i.e.~is the spaces in the codomain, followed by the duals of the spaces in the domain \emph{in reverse order}, see figure~\ref{fig:nonabelian:tensors:leg_order}.
+%
+As a result, the legs do not change if we bend lines, which allows a tensor backend to hide the bipartition of legs into codomain and domain from high-level functionality as an implementation detail.
+
+\begin{figure}[ht]
+    \centering
+    \begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=10pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=10pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=10pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (T) {$T$};
+        % below T
+        \draw[arrow1rev={0.7}{}{}] ($(LL3 |- T.south)$) -- ++(0,-30pt) node[space, below] (LL2) {$W_1$};
+        \draw[arrow1={0.7}{}{}] ($(L3 |- T.south)$) -- ++(0,-30pt) node[space, below] (L2) {$W_2$};
+        \draw[arrow1rev={0.7}{}{}] ($(R3 |- T.south)$) -- ++(0,-30pt) node[space, below] (R2) {$\dots$};
+        \draw[arrow1rev={0.7}{}{}] ($(RR3 |- T.south)$) -- ++(0,-30pt) node[space, below] (RR2) {$W_K$};
+        \node[right=40pt of RR2] (dom) {$\Big\rbrace$   domain};
+        % above T
+        \coordinate (L4) at ($(LL3.north)!0.5!(L3.north)$);
+        \coordinate (C4) at ($(L3.north)!0.5!(R3.north)$);
+        \coordinate (R4) at ($(R3.north)!0.5!(RR3.north)$);
+        \coordinate (L5) at ($(L4 |- T.north)$);
+        \coordinate (C5) at ($(C4 |- T.north)$);
+        \coordinate (R5) at ($(R4 |- T.north)$);
+        \draw[arrow1rev={0.7}{}{}] (L5) -- ++(0,30pt) node[space, above] (L6) {$V_1$};
+        \draw[arrow1={0.7}{}{}] (C5) -- ++(0,30pt) node[space, above] (C6) {$\dots$};
+        \draw[arrow1={0.7}{}{}] (R5) -- ++(0,30pt) node[space, above] (R6) {$V_J$};
+        \node[anchor=west] at ($(dom.west |- R6)$) {$\Big\rbrace$   codomain};
+        % arrow
+        \coordinate (Tnw) at ($(T.west |- T.north)$);
+        \coordinate (arcT) at ($(T.north east)+(0,10pt)$);
+        \coordinate (arcB) at ($(T.south east)+(0,-10pt)$);
+        \draw[-{Latex}, line width=5pt, orange!80]
+            let \p{radius}=($0.5*(arcT)-0.5*(arcB)$) in
+            (Tnw) ++(0,10pt)
+            -- (arcT)
+            arc [start angle=90, end angle=-90, radius=\y{radius}]
+            -- ($(T.south west)+(-20pt,-10pt)$)
+            node[left] {\color{orange} leg order};
+    \end{tikzpicture}
+    \caption[
+        Canonical leg order for symmetric tensors.
+    ]{
+        We choose a canonical order of legs as the legs of the codomain, followed by the duals of the legs in the domain in reverse order.
+    }
+    \label{fig:nonabelian:tensors:leg_order}
+\end{figure}
+
+It is convenient in practice to keep track of duality explicitly, that is, to allow any number of legs on the tensor to have an explicit duality star and to understand a general tensor as, e.g.~a map
+\begin{equation}
+    \label{eq:nonabelian:tensors:example_tensor}
+    T: W_1 \otimes \dualspace{(W_2)} \otimes \dots \otimes W_K \to \dualspace{(V_1)} \otimes \dots \otimes V_J
+    ,
+\end{equation}
+where we picked some example positions for the explicit duality stars, but any of the spaces may or may not be explicitly dual.
+%
+
+The strategy is to identify components of a tensor that are maps between sectors, such that~\eqref{eq:nonabelian:basics:sector_map_is_multiple_of_id} applies.
+%
+That is, we want to systematically build the sector decomposition of the entire domain (codomain).
+%
+We want to do this in such a way that each leg of the tensor is treated on an equal footing so that we can readily permute (braid) the legs or move them between codomain and domain.
+%
+Therefore, we start from the sector decomposition~\eqref{eq:nonabelian:basics:sector_decomposition_general_space}, of each individual leg, e.g.
+\begin{equation}
+    \label{eq:nonabelian:tensors:leg_sector_decomposition}
+    V_k \cong \bigoplus_{a} \bigoplus_{n=1}^{N^{V_k}_{a}} a
+    ,
+\end{equation}
+with projections $p^{V_k}_{a,n}$ and inclusions $i^{V_k}_{a,n} = \hconj{(p^{V_k}_{a,n})}$.
+%
+If we had an explicitly dual space instead, we find
+\begin{equation}
+    \label{eq:nonabelian:tensors:leg_sector_decomposition_explicit_dual}
+    \dualspace{(V_k)} \cong \bigoplus_{a} \bigoplus_{n=1}^{N^{V_k}_{a}} \dualspace{a}
+\end{equation}
+since we can construct projections $p^{\dualspace{(V_k)}}_{\dualspace{a},n} := \transp{(i^{V_k}_{a,n})}$ and inclusions as their daggers.
+%
+This allows us to extract components $a_1 \otimes \dualspace{(a_2)} \otimes \dots \otimes a_K \to \dualspace{(b_1)} \otimes \dots \otimes b_J$ that map between tensor products of (duals of) sectors.
+%
+Unlike the abelian case discussed in section~\ref{sec:tensornets:symmetries}, we can not formulate a charge rule at this level.
+%
+Instead, we need to extract components that map from a single sector to another single sector.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\clearpage
+\subsection{Generalized Fusion Trees}
+\label{subsec:nonabelian:tensors:generalized_fusion_trees}
+
+This basis change can be provided by the fusion trees~\eqref{nonabelian:basics:def_fusion_tree},
+if we allow the following modification.
+%
+The fusion trees only allow sectors as inputs, not their duals.
+%
+To also capture duals, we can include Z isomorphisms where appropriate and define the following composite as a (generalized) fusion tree.
+
+\begin{equation}
+    \label{eq:nonabelian:tensors:def_generalized_fusion_tree}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (A1) {$a_1$};
+        \node[space, right=20pt of A1] (A2) {$\dualsector{a_2}$};
+        \node[space, right=20pt of A2] (A3) {$a_3$};
+        \node[space, right=20pt of A3] (A4) {$\dualsector{a_4}$};
+        \node[space, right=20pt of A4] (A5) {$a_5$};
+        \node[x tensor, above=20pt of -(A1)(A2)(A3)(A4)(A5)] (X) {$X^{a_1,a_2,a_3,a_4,a_5}_{c,\alpha}$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X.south)$);
+        \draw[arrow1rev] (A2.north) -- ($(A2.north |- X.south)$);
+        \draw[arrow1] (A3.north) -- ($(A3.north |- X.south)$);
+        \draw[arrow1rev] (A4.north) -- ($(A4.north |- X.south)$);
+        \draw[arrow1] (A5.north) -- ($(A5.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}}
+    ~~ := ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (A1) {$a_1$};
+        \node[space, right=20pt of A1] (A2) {$\dualsector{a_2}$};
+        \node[space, right=20pt of A2] (A3) {$a_3$};
+        \node[space, right=20pt of A3] (A4) {$\dualsector{a_4}$};
+        \node[space, right=20pt of A4] (A5) {$a_N$};
+        \node[x tensor, above=60pt of -(A1)(A2)(A3)(A4)(A5)] (X) {$X^{a_1,a_2,a_3,a_4,a_5}_{c,\alpha}$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X.south)$);
+        \node[z iso, above=20pt of A2] (Z2) {};
+        \draw[arrow1rev] (A2.north) -- (Z2.south);
+        % \draw[arrow1rev] (A2.north) -- ++(0,20pt) node[z iso, above] (Z2) {};
+        \draw[arrow1={0.5}{left}{$a_2$}] (Z2.north) -- ($(Z2.north |- X.south)$);
+        \draw[arrow1] (A3.north) -- ($(A3.north |- X.south)$);
+        \node[z iso, above=20pt of A4] (Z4) {};
+        \draw[arrow1rev] (A4.north) -- (Z4.south);
+        % \draw[arrow1rev] (A4.north) -- ++(0,20pt) node[z iso, above] (Z4) {};
+        \draw[arrow1={0.5}{left}{$a_4$}] (Z4.north) -- ($(Z4.north |- X.south)$);
+        \draw[arrow1] (A5.north) -- ($(A5.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}}
+\end{equation}
+
+Note that we still label the generalized fusion tree with the sectors above the layer of possible Z isomorphisms, not by its input sectors.
+%
+This is chosen because these sectors are relevant for the behavior of the fusion tree under manipulations, such as braids.
+%
+The presence of Z isomorphisms is unambiguously implied by the arrow directions.
+
+A (generalized) fusion tree is thus fully specified by the following data.
+\begin{itemize}
+    \item The uncoupled sectors $a_1,\dots,a_N$.
+    \item The coupled sector $c$.
+    \item The inner sectors $e_1,\dots,e_{N-2}$.
+    \item The multiplicity labels $\mu_1,\dots,\mu_{N-1}$.
+    \item A boolean flag for every uncoupled sector, indicating if there is a Z isomorphism below or not.
+\end{itemize}
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Parametrization of symmetric tensors}
+\label{subsec:nonabelian:tensors:parametrization}
+
+Now, we can insert a bunch of resolutions of identity both above and below the tensor $T$, first projecting each leg to a single sector via the projections of~\eqref{eq:nonabelian:tensors:leg_sector_decomposition} or~\eqref{eq:nonabelian:tensors:leg_sector_decomposition_explicit_dual}, then mapping the uncoupled sectors to a single coupled sector with a generalized fusion tree~\eqref{eq:nonabelian:tensors:def_generalized_fusion_tree}.
+%
+The resulting components are maps $c \to d$ between sectors
+\begin{equation}
+    \label{eq:nonabelian:tensors:def_free_params}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=20pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=20pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=20pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (T) {$T$};
+        % inclusions below T
+        \draw[arrow1rev={0.5}{left}{$W_1$}] ($(LL3 |- T.south)$) -- ++(0,-20pt)
+            node[inclusion, below] (LL2) {$n_1$};
+        \draw[arrow1={0.5}{left}{$W_2$}] ($(L3 |- T.south)$) -- ++(0,-20pt)  node[inclusion, below] (L2) {$n_2$};
+        \draw[arrow1rev] ($(R3 |- T.south)$) -- ++(0,-20pt)  node[inclusion, below] (R2) {\dots};
+        \draw[arrow1rev={0.5}{right}{$W_K$}] ($(RR3 |- T.south)$) -- ++(0,-20pt)
+            node[inclusion, below] (RR2) {$n_K$};
+        % splitting tree below inclusions
+        \node[y tensor, below=20pt of -(LL2)(L2)(R2)(RR2)] (Y) {$Y^{b_1\dots b_K}_{c,\beta}$};
+        \draw[arrow1={0.5}{left}{$b_1$}] ($(Y.north -| LL2.south)$) -- (LL2.south);
+        \draw[arrow1rev={0.5}{left}{$\dualsector{b_2}$}] ($(Y.north -| L2.south)$) -- (L2.south);
+        \draw[arrow1] ($(Y.north -| R2.south)$) -- (R2.south);
+        \draw[arrow1={0.5}{right}{$b_K$}] ($(Y.north -| RR2.south)$) -- (RR2.south);
+        \draw[arrow1rev] (Y.south) -- ++(0,-20pt) node[space, below] {$c$};
+        % projections above T
+        \coordinate (L4) at ($(LL3.north)!0.5!(L3.north)$);
+        \coordinate (C4) at ($(L3.north)!0.5!(R3.north)$);
+        \coordinate (R4) at ($(R3.north)!0.5!(RR3.north)$);
+        \coordinate (L5) at ($(L4 |- T.north)$);
+        \coordinate (C5) at ($(C4 |- T.north)$);
+        \coordinate (R5) at ($(R4 |- T.north)$);
+        \draw[arrow1rev={0.5}{left}{$V_1$}] (L5) -- ++(0,20pt) node[projection, above] (L6) {$m_1$};
+        \draw[arrow1] (C5) -- ++(0,20pt) node[projection, above] (C6) {$\dots$};
+        \draw[arrow1={0.5}{right}{$V_J$}] (R5) -- ++(0,20pt) node[projection, above] (R6) {$m_J$};
+        % fusion tree above projections
+        \node[x tensor, above=20pt of -(L6)(C6)(R6)] (X) {$X^{a_1\dots a_J}_{d,\alpha}$};
+        \draw[arrow1rev={0.5}{left}{$\dualsector{a_1}$}] (L6.north) -- ($(L6.north |- X.south)$);
+        \draw[arrow1] (C6.north) -- ($(C6.north |- X.south)$);
+        \draw[arrow1={0.5}{right}{$a_J$}] (R6.north) -- ($(R6.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$d$};
+    \end{tikzpicture}}}}
+    ~~ \overset{\eqref{eq:nonabelian:basics:sector_map_is_multiple_of_id}}{=:} \quad \delta_{c, d} \quad
+    \Big[ \big[ T_c \big]^{a_1\dots a_J,\alpha}_{b_1\dots b_K,\beta} \Big]^{m_1\dots m_J}_{n_1\dots n_k}
+    \quad 
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (c) {$c$};
+        \draw[arrow1] (c) -- ++(0,40pt) node[above, space] {$c$};
+    \end{tikzpicture}}}
+\end{equation}
+and thus are multiples of the identity $c \to c$ if $c = d$ and zero otherwise.
+%
+This defines the free parameters $[ [ T_c ]^{a_1\dots a_J,\alpha}_{b_1\dots b_K,\beta}]^{m_1\dots m_J}_{n_1\dots n_k}$ of a symmetric tensor as the respective prefactors.
+
+Note that for the explicitly dual spaces -- $\dualspace{(W_2)}$ and $\dualspace{(V_1)}$ in this example -- we label the components and fusion trees by the sectors $b_2$ and $a_1$ of the original spaces $W_2$ and $V_1$, even though $\dualsector{b_2}$ and $\dualsector{a_1}$ appear in the LHS diagram.
+
+The composite projections
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL2) {$W_1$};
+        \node[space, right=20pt of LL2] (L2) {$W_2$};
+        \node[space, right=20pt of L2] (R2) {$\dots$};
+        \node[space, right=20pt of R2] (RR2) {$W_K$};
+        \node[x tensor, above=20pt of -(LL2)(L2)(R2)(RR2)] (X) {$\mathcal{X}^{b_1\dots b_K}_{c,\beta,n_1\dots n_K}$};
+        \draw[arrow1] (LL2.north) -- ($(LL2.north |- X.south)$);
+        \draw[arrow1rev] (L2.north) -- ($(L2.north |- X.south)$);
+        \draw[arrow1] (R2.north) -- ($(R2.north |- X.south)$);
+        \draw[arrow1] (RR2.north) -- ($(RR2.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+    \quad := \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL1) {$W_1$};
+        \node[space, right=20pt of LL1] (L1) {$W_2$};
+        \node[space, right=20pt of L1] (R1) {$\dots$};
+        \node[space, right=20pt of R1] (RR1) {$W_K$};
+        \draw[arrow1] (LL1.north) -- ++(0,20pt) node[projection, above] (LL2) {$n_1$};
+        \draw[arrow1rev] (L1.north) -- ++(0,20pt) node[projection, above] (L2) {$n_2$};
+        \draw[arrow1] (R1.north) -- ++(0,20pt) node[projection, above] (R2) {$\dots$};
+        \draw[arrow1] (RR1.north) -- ++(0,20pt) node[projection, above] (RR2) {$n_K$};
+        \node[x tensor, above=20pt of -(LL2)(L2)(R2)(RR2)] (X) {$X^{b_1\dots b_K}_{c,\beta}$};
+        \draw[arrow1={0.5}{left}{$b_1$}] (LL2.north) -- ($(LL2.north |- X.south)$);
+        \draw[arrow1rev={0.5}{left}{$\dualsector{b_2}$}] (L2.north) -- ($(L2.north |- X.south)$);
+        \draw[arrow1={0.5}{left}{}] (R2.north) -- ($(R2.north |- X.south)$);
+        \draw[arrow1={0.5}{right}{$b_K$}] (RR2.north) -- ($(RR2.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+\end{equation}
+and the related inclusions $\mathcal{Y} = \mathcal{X}^\dagger$ inherit orthonormality
+\begin{equation}
+    \label{eq:nonabelian:tensors:composite_projection_orthonormal}
+    \mathcal{X}^{b_1\dots b_K}_{c,\beta,n_1\dots n_K}
+    \compose \mathcal{Y}^{a_1\dots a_K}_{d,\alpha,m_1\dots m_K}
+    = \delta_{a_1,b_1} \dots \delta_{a_K,b_K}
+    ~ \delta_{m_1,n_1} \dots \delta_{m_K,n_K}
+    ~ \delta_{c,d} ~ \delta_{\alpha,\beta} ~ \id{c}
+\end{equation}
+and completeness
+\begin{equation}
+    \label{eq:nonabelian:tensors:composite_projection_complete}
+    \sum_{b_1\dots b_K} \sum_{m_1 \dots m_K} \sum_{c,\beta}
+    \mathcal{Y}^{b_1\dots b_K}_{c,\beta,m_1 \dots m_K}
+    \compose \mathcal{X}^{b_1\dots b_K}_{c,\beta,m_1 \dots m_K}
+    = \id{W_1} \otimes \id{\dualspace{W_2}} \otimes\dots\otimes \id{W_K}
+\end{equation}
+relations.
+
+Thus, we can compute the components as
+\begin{equation}
+    \label{eq:nonabelian:tensors:compute_free_params}
+    \Big[ \big[ T_c \big]^{a_1\dots a_J,\alpha}_{b_1\dots b_K,\beta} \Big]^{m_1\dots m_J}_{n_1\dots n_k} ~ \id{c} 
+    =
+    \mathcal{X}^{a_1\dots a_J}_{c,\alpha,m_1\dots m_J} \compose T \compose \mathcal{Y}^{b_1\dots b_K}_{c,\beta,n_1\dots n_K}
+    ~.
+\end{equation}
+
+As a consequence of completeness, the free parameters are enough to describe any tensor since we can reconstruct the original tensor as
+
+\begin{equation}
+    \label{eq:nonabelian:tensors:decomposition_using_free_params}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=2pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=2pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=2pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (T) {$T$};
+        % below T
+        \draw[arrow1rev] ($(LL3 |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_1$};
+        \draw[arrow1] ($(L3 |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_2$};
+        \draw[arrow1rev] ($(R3 |- T.south)$) -- ++(0,-20pt) node[space, below] {$\dots$};
+        \draw[arrow1rev] ($(RR3 |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_K$};
+        % above T
+        \coordinate (L4) at ($(LL3.north)!0.5!(L3.north)$);
+        \coordinate (C4) at ($(L3.north)!0.5!(R3.north)$);
+        \coordinate (R4) at ($(R3.north)!0.5!(RR3.north)$);
+        \coordinate (L5) at ($(L4 |- T.north)$);
+        \coordinate (C5) at ($(C4 |- T.north)$);
+        \coordinate (R5) at ($(R4 |- T.north)$);
+        \draw[arrow1rev] (L5) -- ++(0,20pt) node[space, above] {$V_1$};
+        \draw[arrow1] (C5) -- ++(0,20pt) node[space, above] {$\dots$};
+        \draw[arrow1] (R5) -- ++(0,20pt) node[space, above] {$V_J$};
+    \end{tikzpicture}}}}
+    % \overset{\eqref{eq:nonabelian:tensors:composite_projection_complete}}{=}
+    ~ =
+    \sum_{\substack{b_1\dots b_K\\n_1\dots n_K}} \sum_{\substack{a_1\dots a_J\\m_1 \dots m_J}} \sum_{c,\alpha\beta}
+    ~
+    \Big[ \big[ T_c \big]^{a_1\dots a_J,\alpha}_{b_1\dots b_K,\beta} \Big]^{m_1\dots m_J}_{n_1\dots n_k}
+    \!\!\!\!
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LL0) {$W_1$};
+        \node[space, right=15pt of LL0] (L0) {$W_2$};
+        \node[space, right=15pt of L0] (R0) {$\dots$};
+        \node[space, right=15pt of R0] (RR0) {$W_K$};
+        % fusion tree
+        \node[x tensor, above=20pt of -(LL0)(L0)(R0)(RR0)] (X) {$\mathcal{X}^{b_1\dots b_K}_{c,\beta,n_1n_2\dots n_K}$};
+        \draw[arrow1] (LL0) -- ($(LL0 |- X.south)$);
+        \draw[arrow1rev] (L0) -- ($(L0 |- X.south)$);
+        \draw[arrow1] (R0) -- ($(R0 |- X.south)$);
+        \draw[arrow1] (RR0) -- ($(RR0 |- X.south)$);
+        % jump to top spaces (need them to place Y)
+        \coordinate (C2) at ($(L0.north -| X.north)$);
+        \node[space, above=120pt of C2] (C3) {$\dots$};
+        \node[space, left=15pt of C3] (L3) {$V_1$};
+        \node[space, right=15pt of C3] (R3) {$V_J$};
+        % splitting tree
+        \node[y tensor, below=20pt of (C3), minimum width=100pt] (Y) {$\mathcal{Y}^{a_1\dots a_J}_{c,\alpha,m_1\dots m_J}$};
+        \draw[arrow1={0.5}{right}{$c$}] (X.north) -- (Y.south);
+        \draw[arrow1rev] ($(Y.north -| L3.south)$) -- (L3.south);
+        \draw[arrow1] ($(Y.north -| C3.south)$) -- (C3.south);
+        \draw[arrow1] ($(Y.north -| R3.south)$) -- (R3.south);
+    \end{tikzpicture}}}}
+\end{equation}
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Blocks}
+\label{subsec:nonabelian:tensors:blocks}
+\newcommand{\blockSize}[2]{\mathcal{B}^{#1}_{#2}}
+\newcommand{\treeBlockSize}[2]{\mathcal{T}^{#1}_{#2}}
+\newcommand{\forestBlockSize}[3]{\mathcal{F}^{#1}_{#2,#3}}
+
+We can group those prefactors $[[T_c]^{a_1\dots a_J, \alpha}_{b_1\dots b_K,\beta}]^{m_1\dots m_J}_{n_1\dots n_K}$ that belong to a given pair of fusion and splitting tree into a \emph{tree block} $[T_c]^{a_1\dots a_J, \alpha}_{b_1\dots b_K,\beta}$.
+The tree block is a $\treeBlockSize{\mathcal{V}}{a_1\dots a_J} \times \treeBlockSize{\mathcal{W}}{b_1\dots b_K}$, matrix, where the \emph{tree block sizes} are given by
+\begin{equation}
+    \treeBlockSize{\mathcal{V}}{a_1\dots a_J} := \prod_{j=1}^J N^{V_j}_{a_j}
+    ~.
+    \qquad\text{(tree block size)}
+\end{equation}
+
+Note that the width (height) of a tree block $[T_c]^{a_1\dots a_J, \alpha}_{b_1\dots b_K,\beta}$ depends only on its upper (lower) indices.
+We can thus stack the tree blocks to form larger matrices.
+
+There is an intermediate level in the hierarchy that we call a \emph{forest block} $[T_c]^{a_1\dots a_J}_{b_1\dots b_K}$ which comprises all the tree blocks with the same coupled sector $c$ and uncoupled sectors $a_1\dots a_J$ and $b_1\dots b_K$.
+They are $\forestBlockSize{\mathcal{V}}{a_1\dots a_J}{c} \times \forestBlockSize{\mathcal{W}}{b_1\dots b_K}{c}$ matrices, where the size is given by
+\begin{equation}
+    \forestBlockSize{\mathcal{V}}{a_1\dots a_J}{c}
+    = \treeBlockSize{\mathcal{V}}{a_1\dots a_J} N^{a_1\dots a_J}_{c}
+    ~.
+    \qquad\text{(forest block size)}
+\end{equation}
+Here, $N^{a_1\dots a_J}_c$ is the number of valid fusion trees $a_1 \otimes \dots \otimes a_J \to c$, which we can recursively define as 
+\begin{equation}
+    N^{a_1\dots a_J}_c = \sum_{f\in\mathcal{S}} N^{f,a_J}_c N^{a_1\dots a_{J-1}}_f
+\end{equation}
+with the N symbol as the base case for $J=2$, $N^{a}_c = \delta_{a,c}$ for $J=1$ and $N^{I}_c = \delta_{c,I}$ for $J=0$.
+
+Finally, we can stack all those forest blocks with the same coupled sector $c$ (or directly all the tree blocks) to a \emph{block} $T_c$.
+It is a $\blockSize{\mathcal{V}}{c} \times \blockSize{\mathcal{W}}{c}$ matrix, where the \emph{block sizes} are given by
+
+\begin{equation}
+    \blockSize{\mathcal{V}}{c}
+    = \sum_{a_1\dots a_J} \forestBlockSize{\mathcal{V}}{a_1\dots a_J}{c}
+    = \sum_{a_1\dots a_J} \treeBlockSize{\mathcal{V}}{a_1\dots a_J} N^{a_1\dots a_J}_{c}
+    .
+    \qquad\text{(block size)}
+\end{equation}
+
+This turns out to be the multiplicity of the sector $c$ in the domain $\mathcal{V}$, i.e.
+\begin{equation}
+    \mathcal{V} = V_1 \otimes \dots \otimes V_J
+    \cong \bigoplus_c \bigoplus_{\mu=1}^{\blockSize{\mathcal{V}}{c}} c
+    ~.
+\end{equation}
+
+We visualize the structure of a block in figure~\ref{fig:nonabelian:tensors:block}.
+
+\begin{figure}[ht]
+    \centering
+    \scalebox{0.8}{\begin{tikzpicture}[scale=.6]
+        % color shadings in background
+        \path[fill=orange!50] (14,5) -- (20,5) -- (20,15) -- (14, 15) -- cycle;
+        \path[fill=blue!50] (3,1) -- (6,1) -- (6,2) -- (3, 2) -- cycle;
+        % frame of block. define corneers (NW), (NE), (SE) and (SW)
+        \draw[ultra thick]
+            (0,0) coordinate (SW)
+            -- ++(20,0) coordinate (SE)
+            -- ++(0,15) coordinate (NE)
+            -- ($(NE -| SW)$) coordinate (NW)
+            -- cycle;
+        % forest block boundaries
+        \draw[ultra thick] (9,0) coordinate (S1) -- ($(S1 |- NW)$) coordinate (N1);
+        \draw[ultra thick] (14,0) coordinate (S2) -- ($(S2 |- NW)$) coordinate (N2);
+        \draw[ultra thick] (0,5) coordinate (W1) -- ($(W1 -| NE)$) coordinate (E1);
+        % tree block boundaries
+        \draw (3,0) -- ++(0,15);
+        \draw (6,0) -- ++(0,15);
+        \draw (10,0) -- ++(0,15);
+        \draw (11,0) -- ++(0,15);
+        \draw (12,0) -- ++(0,15);
+        \draw (13,0) -- ++(0,15);
+        \draw (16,0) -- ++(0,15);
+        \draw (18,0) -- ++(0,15);
+        \draw (0,1) -- ++(20,0);
+        \draw (0,2) -- ++(20,0);
+        \draw (0,3) -- ++(20,0);
+        \draw (0,4) -- ++(20,0);
+        \draw (0,7) -- ++(20,0);
+        \draw (0,9) -- ++(20,0);
+        \draw (0,11) -- ++(20,0);
+        \draw (0,13) -- ++(20,0);
+        % partition a single tree block into scalars
+        \draw[thin, black!70] (16.2,2) -- (16.2,3);
+        \draw[thin, black!70] (16.4,2) -- (16.4,3);
+        \draw[thin, black!70] (16.6,2) -- (16.6,3);
+        \draw[thin, black!70] (16.8,2) -- (16.8,3);
+        \draw[thin, black!70] (17.0,2) -- (17.0,3);
+        \draw[thin, black!70] (17.2,2) -- (17.2,3);
+        \draw[thin, black!70] (17.4,2) -- (17.4,3);
+        \draw[thin, black!70] (17.6,2) -- (17.6,3);
+        \draw[thin, black!70] (17.8,2) -- (17.8,3);
+        \draw[thin, black!70] (16,2.2) -- (18,2.2);
+        \draw[thin, black!70] (16,2.4) -- (18,2.4);
+        \draw[thin, black!70] (16,2.6) -- (18,2.6);
+        \draw[thin, black!70] (16,2.8) -- (18,2.8);
+        % x arrows
+        \draw[ultra thick, -{Latex[length=5mm]}] (0,17) -- (21,17) node[right] {$(b_1,\dots, b_K)$};
+        \draw[ultra thick] (4,17.2) -- (4,16.8) (11.5,17.2) -- (11.5,16.8) (17,17.2) -- (17,16.8);
+        \draw[-{Latex[length=2mm]}] (0.5,16) -- (8.5,16) node[below] {$\beta$};
+        \draw (1.5,16.2)--(1.5,15.8) (4.5,16.2)--(4.5,15.8) (7.5,16.2)--(7.5,15.8);
+        \draw[-{Latex[length=2mm]}] (9.5,16) -- (13.5,16) node[below] {$\beta$};
+        \draw (9.5,16.2)--(9.5,15.8) (10.5,16.2)--(10.5,15.8) (11.5,16.2)--(11.5,15.8) (12.5,16.2)--(12.5,15.8) (13.5,16.2)--(13.5,15.8);
+        \draw[-{Latex[length=2mm]}] (14.5,16) -- (19.5,16) node[below] {$\beta$};
+        \draw (15,16.2)--(15,15.8) (17,16.2)--(17,15.8) (19,16.2)--(19,15.8);
+        % y arrows
+        \draw[ultra thick, -{Latex[length=5mm]}] (-2,15) -- (-2,-1) node[below] {$(a_1,\dots, a_J)$};
+        \draw[ultra thick] (-2.2,10) -- (-1.8,10) (-2.2,2.5) -- (-1.8,2.5);
+        \draw[-{Latex[length=2mm]}] (-1,14.5) -- (-1,5.5) node[right] {$\alpha$};
+        \draw (-1.2,14) -- (-0.8,14) (-1.2,12) -- (-0.8,12) (-1.2,10) -- (-0.8,10) (-1.2,8) -- (-0.8,8) (-1.2,6) -- (-0.8,6);
+        \draw[-{Latex[length=2mm]}] (-1,4.5) -- (-1,0.5) node[right] {$\alpha$};
+        \draw (-1.2,4.5) -- (-0.8,4.5) (-1.2,3.5) -- (-0.8,3.5) (-1.2,2.5) -- (-0.8,2.5) (-1.2,1.5) -- (-0.8,1.5) (-1.2,.5) -- (-0.8,.5);
+        % indicate example forest block
+        \draw[{Latex[length=2mm]}-, orange] (20.5,10) -- (22,11) node[right] {\color{orange} forest block};
+        % indicate example tree block
+        \draw[{Latex[length=2mm]}-, blue] (4.5,0.8) -- (4,-1) node[below] {\color{blue} tree block};
+        % indicate example scalar
+        \path[draw=Green,fill=Green!70] (17,2.2) -- (17,2.4) -- (17.2,2.4) -- (17.2, 2.2) -- cycle;
+        \draw[{Latex[length=2mm]}-, Green] (17.1,2.2) -- (16,-1) node[below] {\color{Green} single entry};
+    \end{tikzpicture}}
+    \caption[
+        Illustration of blocks $T_c$, the free parameters of symmetric tensors.
+    ]{
+        Illustration of a block $T_c$.
+        %
+        Blocks are matrices that contain all free parameters for a fixed coupled sector $c$.
+        %
+        It consists of forest blocks (one example in orange), which contain the entries for fixed uncoupled sectors $(a_1,\dots,a_J)$ and $(b_1,\dots,b_K)$.
+        %
+        Those are further partitioned into the tree blocks (one example in blue) $[T_c]^{a_1\dots a_J,\alpha}_{b_1\dots b_K,\beta}$, which additionally fixes a fusion tree $\alpha$ and a splitting tree $\beta$.
+        %
+        Those tree blocks contain the scalar entries $[[T_c]^{a_1\dots a_J, \alpha}_{b_1\dots b_K,\beta}]^{m_1\dots m_J}_{n_1\dots n_K}$ (one example in green).
+    }
+    \label{fig:nonabelian:tensors:block}
+\end{figure}
+
+The reason to organize the data in this particular way is that the blocks are the largest collection of free parameters that allows the most expensive tensor operations -- contraction and decomposition -- to directly go through to the block level, as we discuss in the following subsections.
+%
+However, permuting the legs (e.g.~braiding them or bending lines) requires breaking the blocks apart to either the forest or tree level and recombining them according to coefficients that arise from manipulating the trees.
+
+Since there might be an infinite number of sectors, we can not save the blocks $T_c$ ``for all" $c$.
+%
+Instead, we store only the nonzero blocks together with the coupled sectors $c$ to which they correspond.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Basic tensor operations}
+\label{subsec:nonabelian:tensors:basic_operations}
+
+Let us first discuss some basic operations on tensors.
+%
+As a pattern for this and the following subsections, we consider some operation (e.g.~addition) of symmetric tensors and ask how we can build the blocks of the output tensor from the blocks of the input tensor(s).
+%
+Generally, they are derived explicitly from equations~\eqref{eq:nonabelian:tensors:compute_free_params} and~\eqref{eq:nonabelian:tensors:decomposition_using_free_params}.
+
+Let us first consider linear combinations.
+%
+For tensors $F, G: \mathcal{V} \to \mathcal{W}$ and scalars $a, b \in\Cbb$, we find that linear combinations simply go through to the block level, that is
+\begin{equation}
+    (a F + b G)_c = a F_c + b G_c
+    .
+\end{equation}
+%
+This is because the expression for the free parameters~\eqref{eq:nonabelian:tensors:compute_free_params} is linear in the tensor.
+
+The identity map $\id{\mathcal{V}}$ as a tensor $\mathcal{V} \to \mathcal{V}$ can be built using identity blocks
+\begin{equation}
+    \label{nonabelian:tensors:identity_map_blockwise}
+    (\id{\mathcal{V}})_c = \eye_{\blockSize{\mathcal{V}}{c} \times \blockSize{\mathcal{V}}{c}}
+    ~.
+\end{equation}
+
+Taking the dagger of a tensor $T: \mathcal{V} \to \mathcal{W}$ yields a tensor $\hconj{T}: \mathcal{W} \to \mathcal{V}$ whose blocks
+\begin{equation}
+    \label{nonabelian:tensors:dagger_blockwise}
+    (\hconj{T})_c = \hconj{(T_c)}
+\end{equation}
+are given by the blockwise matrix dagger.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\clearpage
+\subsection{Combining and splitting legs}
+\label{subsec:nonabelian:tensors:combine_split}
+
+To combine legs, we want to derive the block structure of a tensor
+\begin{equation}
+    \tilde{T}: W_1 \otimes\dots\otimes W_K \to V_1 \otimes\dots\otimes V_{i-1} \otimes U \otimes V_{i+2}\otimes \dots \otimes V_J
+\end{equation}
+that arises from
+\begin{equation}
+    T: W_1 \otimes\dots\otimes W_K \to V_1 \otimes\dots\otimes V_{i} \otimes V_{i+1} \otimes\dots\otimes V_J
+\end{equation}
+by combing the legs $U := V_i \otimes V_{i+1}$.
+%
+That is graphically
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=10pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=10pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=10pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (C) {$\tilde{T}$};
+        % below T
+        \draw[arrow1rev] ($(LL3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_1$};
+        \draw[arrow1rev] ($(L3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(R3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(RR3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_K$};
+        % above T
+        \draw[arrow1] ($(LL3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_1$};
+        \coordinate (C3) at ($(L3.north)!0.5!(R3.north)$);
+        \draw[arrow1,double,double distance=2pt] ($(C3 |- T.north)$) -- ++(0,20pt) node[space, above] {$U$};
+        \draw[arrow1] ($(RR3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_J$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=10pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=10pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=10pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (C) {$T$};
+        % below T
+        \draw[arrow1rev] ($(LL3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_1$};
+        \draw[arrow1rev] ($(L3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(R3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(RR3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_K$};
+        % above T
+        \draw[arrow1={0.5}{left}{$V_i$}] ($(L3.north |- T.north)$) -- ++(0,20pt) coordinate (L5);
+        \draw[arrow1={0.5}{right}{$V_{i+1}$}] ($(R3.north |- T.north)$) -- ++(0,20pt) coordinate (R5);
+        \node[space, above=20pt of -(L5)(R5)] (C6) {$U$};
+        \draw (L5) to[out=90,in=270] ($(C6.south)+(-1pt,-10pt)$) -- ($(C6.south)+(-1pt,0)$);
+        \draw (R5) to[out=90,in=270] ($(C6.south)+(1pt,-10pt)$) -- ($(C6.south)+(1pt,0)$);
+        \coordinate (LL4) at ($(LL3.north |- T.north)$);
+        \coordinate (RR4) at ($(RR3.north |- T.north)$);
+        \draw[arrow1] (LL4) -- ($(LL4 |- C6.south)$) node[space, above] {$V_1$};
+        \draw[arrow1] (RR4) -- ($(RR4 |- C6.south)$) node[space, above] {$V_J$};
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+Note that even though the right-most upper leg has index $J$, the tensor $\tilde{T}$ only has $J-1$ upper legs.
+%
+In the following, we derive how the blocks (free parameters) of $\tilde{T}$ are related to those of $T$, which facilitates combining or splitting legs.
+
+%
+As a first step, we can build the sector projections of the product space $U = V_i \otimes V_{i+1}$ as
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (C1) {$U$};
+        \draw[arrow1,double,double distance=2pt] (C1.north) -- ++(0,20pt) node[projection, above] (C2) {$\ell_i$};
+        \draw[arrow1] (C2.north) -- ++(0,20pt) node[space, above] {$g_i$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L1) {$V_i$};
+        \node[space,right=20pt of L1] (R1) {$V_{i+1}$};
+        \draw[arrow1] (L1.north) -- ++(0,20pt) node[projection, above] (L2) {$m_i$};
+        \draw[arrow1] (R1.north) -- ++(0,20pt) node[projection, above] (R2) {$\mathsmaller{m_{i+1}}$};
+        \node[x tensor, above=20pt of -(L2)(R2)] (X) {$\kappa$};
+        \draw[arrow1={0.5}{left}{$a_i$}] (L2.north) -- ($(L2.north |- X.south)$);
+        \draw[arrow1={0.5}{right}{$a_{i+1}$}] (R2.north) -- ($(R2.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$g_i$};
+    \end{tikzpicture}}}
+\end{equation}
+with the multi-index $\ell_i := (a_i,m_i,a_{i+1},m_{i+1},\kappa)$.
+%
+We obtain for the free parameters of $\tilde{T}$
+\begin{equation}
+    \Big[ \big[ \tilde{T}_c \big]^{g_1\dots g_{J-1},\gamma}_{b_1\dots b_K,\beta} \Big]^{\ell_1\dots \ell_{J-1}}_{n_1\dots \dots n_K}
+    ~~\vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (C0) {$c$};
+        \draw[arrow1] (C0.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LLL3) {\hphantom{$W$}};
+        \node[space, right=20pt of LLL3] (LL3) {\hphantom{$W$}};
+        \node[space, right=20pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=20pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=20pt of R3] (RR3) {\hphantom{$W$}};
+        \node[space, right=20pt of RR3] (RRR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LLL3)(LL3)(L3)(R3)(RR3)(RRR3)] (T) {$T$};
+        % splitting tree below inclusions
+        \node[y tensor, below=20pt of -($(LL3.west |- T.south)$)($(RR3.east |- T.south)$)]
+            (Y) {$\mathcal{Y}^{b_1\dots b_K}_{c,\beta,n_1\dots n_K}$};
+        \draw[arrow1={0.5}{left}{$W_1$}] ($(Y.north -| LL3.south)$) -- ($(T.south -| LL3.south)$);
+        \draw[arrow1] ($(Y.north -| L3.south)$) -- ($(T.south -| L3.south)$);
+        \draw[arrow1] ($(Y.north -| R3.south)$) -- ($(T.south -| R3.south)$);
+        \draw[arrow1={0.5}{right}{$W_K$}] ($(Y.north -| RR3.south)$) -- ($(T.south -| RR3.south)$);
+        \draw[arrow1rev] (Y.south) -- ++(0,-20pt) node[space, below] {$c$};
+        % projections above T
+        \draw[arrow1={0.5}{left}{$V_1$}] ($(LLL3.north |- T.north)$) -- ++(0,20pt) node[projection, above] (LLL4) {$\ell_1$};
+        \draw[arrow1={0.5}{left}{$V_{i-1}$}] ($(LL3.north |- T.north)$) -- ++(0,20pt) node[projection, above] (LL4) {$\mathsmaller{\ell_{i-1}}$};
+        \draw[arrow1={0.5}{left}{$V_i$}] ($(L3.north |- T.north)$) -- ++(0,20pt) node[projection, above] (L4) {$m_i$};
+        \draw[arrow1={0.5}{right}{$V_{i+1}$}] ($(R3.north |- T.north)$) -- ++(0,20pt) node[projection, above] (R4) {$\mathsmaller{m_{i+1}}$};
+        \draw[arrow1={0.5}{right}{$V_{i+2}$}] ($(RR3.north |- T.north)$) -- ++(0,20pt) node[projection, above] (RR4) {$\mathsmaller{\ell_{i+1}}$};
+        \draw[arrow1={0.5}{right}{$V_J$}] ($(RRR3.north |- T.north)$) -- ++(0,20pt) node[projection, above] (RRR4) {$\mathsmaller{\ell_{J-1}}$};
+        % single fusion tensor for product space
+        \node[x tensor, above=20pt of -(L4)(R4)] (C5) {$\kappa$};
+        \draw[arrow1={0.5}{left}{$a_i$}] (L4.north) -- ($(L4.north |- C5.south)$);
+        \draw[arrow1={0.5}{right}{$a_{i+1}$}] (R4.north) -- ($(R4.north |- C5.south)$);
+        % fusion tree
+        \node[x tensor, above=20pt of -(LLL4)(C5)(RRR4)] (X) {$X^{g_1\dots g_{J-1}}_{c,\gamma}$};
+        \draw[arrow2={0.2}{left}{$a_1$}{0.8}{left}{$g_1$}] (LLL4.north) -- ($(LLL4.north |- X.south)$);
+        \draw[arrow2={0.2}{left}{$a_{i-1}$}{0.8}{left}{$g_{i-1}$}] (LL4.north) -- ($(LL4.north |- X.south)$);
+        \draw[arrow1={0.5}{left}{$g_i$}] (C5.north) -- ($(C5.north |- X.south)$);
+        \draw[arrow2={0.2}{right}{$a_{i+2}$}{0.8}{right}{$g_{i+1}$}] (RR4.north) -- ($(RR4.north |- X.south)$);
+        \draw[arrow2={0.2}{right}{$a_J$}{0.8}{right}{$g_{J-1}$}] (RRR4.north) -- ($(RRR4.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}}
+    .
+\end{equation}
+Now, we can use~\eqref{eq:nonabelian:basics:def_F_symbol} to recouple the single fusion tensor into the fusion tree and find
+\begin{align}
+    \label{eq:nonabelian:tensors:combine_legs_result}
+    \begin{split}
+        &\Big[ \big[ \tilde{T}_c \big]^{g_1\dots g_{J-1},(e_1\dots e_{J-3}, \mu_1\dots \mu_{J-2})}_{b_1\dots b_K,\beta} \Big]^{\ell_1\dots \ell_{J-1}}_{n_1\dots \dots n_K}
+        \\
+        &\qquad=
+        \sum_{f\lambda\pi}
+        \big[ F^{e_{i-2},a_i,a_{i+1}}_{e_{i-1}} \big]^{g_i,\kappa,\mu_{i-1}}_{f\lambda\pi}
+        \Big[ \big[ T_c \big]^{a_1\dots a_J,(e_1\dots f\dots,e_{J-3}, \mu_1\dots \lambda\pi \dots \mu_{J-2})}_{b_1\dots b_K,\beta} \Big]^{m_1\dots m_J}_{n_1\dots \dots n_K}
+    \end{split}
+\end{align}
+where on the RHS, $(a_1\dots a_{i-1}) := (g_1\dots g_{i-1})$, while $a_i, a_{i+1}$ are part of the multi-index $\ell_i = (a_i,m_i,a_{i+1},m_{i+1},\kappa)$ and $(a_{i+2}\dots a_J) := (g_{i+1}\dots g_{J-1})$ have an index shift.
+%
+The indices $\ell_j$ and $m_j$ behave analogously.
+%
+On the RHS, the fusion tree index is modified such that $f$ and $\lambda$ are inserted at position $i-1$ respectively and $\pi$ replaces $\mu_{i-1}$, i.e.~the fusion tree index in the RHS has inner sectors $(e_1\dots e_{i-2},f,e_{i-1},\dots e_{J-3})$ and multiplicity labels $(\mu_1\dots \mu_{i-2},\lambda,\pi,\mu_{i},\dots \mu_{J-2})$.
+
+Strictly, the expression above is only valid for $2 < i < J - 1$.
+%
+For $i = 2$, we need to swap $e_{i-2} \mapsto a_1$ in the upper indices of the F symbol, such that this sector always refers to the sector to the bottom left of the node $\mu_{i-1}$ in the fusion tree.
+%
+For $i = J - 1$, we need to substitute $e_{i-1} \mapsto c$ in the lower index, such that this sector always refers to the sector above the node $\mu_{i-1}$ in the fusion tree.
+
+In the special case $i=1$, that is, combing two legs at the very left, we do not need to do an F move since we can directly understand the additional fusion tensor as the bottom-most node of a larger fusion tree and find
+\begin{equation}
+    \Big[ \big[ \tilde{T}_c \big]^{g_1\dots g_{J-1},(e_1\dots e_{J-3}, \mu_1\dots \mu_{J-2})}_{b_1\dots b_K,\beta} \Big]^{\ell_1\dots \ell_{J-1}}_{n_1\dots \dots n_K}
+    =
+    \Big[ \big[ T_c \big]^{a_1\dots a_J,(g_1,e_1\dots e_{J-3}, \kappa\mu_1\dots \mu_{J-2})}_{b_1\dots b_K,\beta} \Big]^{m_1\dots m_J}_{n_1\dots \dots n_K}
+    \vphantom{\Bigg]}
+    ~.
+\end{equation}
+
+Combining legs in the domain is analogous, except that the index modifications happen in the subscripts instead of the superscripts and that the F symbol is complex conjugated, as in equation~\eqref{eq:nonabelian:basics:F_symbol_dagger}.
+
+In order to do the reverse operation and split a leg, invert equation~\eqref{eq:nonabelian:tensors:combine_legs_result}, using unitarity of the F symbol.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Braiding Legs}
+\label{subsec:nonabelian:tensors:braiding}
+
+We discuss general rearrangement of legs in section~\ref{subsec:nonabelian:tensors:rearranging_legs}.
+%
+In preparation, let us first consider a single braid between neighboring legs in the codomain, that is a tensor $\tilde{T}$ that results from braiding the $i$-th leg over the $(i+1)$-th leg of a tensor $T$.
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=10pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=10pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=10pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (C) {$\tilde{T}$};
+        % below T
+        \draw[arrow1rev] ($(LL3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_1$};
+        \draw[arrow1rev] ($(L3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(R3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(RR3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_K$};
+        % above T
+        \draw[arrow1] ($(LL3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_1$};
+        \draw[arrow1] ($(L3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_i$};
+        \draw[arrow1] ($(R3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_{i+1}$};
+        \draw[arrow1] ($(RR3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_J$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=10pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=10pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=10pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (C) {$T$};
+        \draw[arrow1rev] ($(LL3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_1$};
+        \draw[arrow1rev] ($(L3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(R3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(RR3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_K$};
+        % above T
+        \draw[arrow1={0.5}{left}{$V_{i+1}$}] ($(L3.north |- T.north)$) -- ++(0,20pt) coordinate (L4);
+        \draw[arrow1={0.5}{right}{$V_{i+1}$}] ($(R3.north |- T.north)$) -- ++(0,20pt) coordinate (R4);
+        \coordinate[above=30pt of L4] (L5);
+        \coordinate[above=30pt of R4] (R5);
+        \overbraid(L4)(R4)(L5)(R5);
+        \draw[arrow1] (L5) -- ++(0,20pt) node[space, above] (L6) {$V_{i}$};
+        \draw[arrow1] (R5) -- ++(0,20pt) node[space, above] (R6) {$V_{i+1}$};
+        \draw[arrow1] ($(LL3.north |- T.north)$) -- ($(LL3.north |- R6.south)$) node[space, above] {$V_1$};
+        \draw[arrow1] ($(RR3.north |- T.north)$) -- ($(RR3.north |- R6.south)$) node[space, above] {$V_J$};
+    \end{tikzpicture}}}
+\end{equation}
+
+We employ a notation that, if parsed strictly, suggests $1 < i < J - 1$, i.e.~excludes braids at the very left or very right, and we depict graphically the specific case of $i = 2$ and $J=4$.
+%
+This allows us to simplify the notation.
+%
+We understand this as a sketch of a general derivation, which proves the same results for $1 \leq i \leq J - 1$ and any $J \geq 2$.
+
+Let us write $\pi(V_1\dots V_J) = (V_1\dots V_{i+1} V_i\dots V_J)$ for the permutation on the upper legs.
+%
+We can now plug the RHS into the definition~\eqref{eq:nonabelian:tensors:def_free_params} and use the sliding property~\eqref{eq:nonabelian:basics:sliding_braid} to slide the projections below the braid.
+
+\begin{equation}
+    \Big[ \big[ \tilde{T}_c \big]^{a_1\dots a_J,\alpha}_{b_1\dots b_K,\beta} \Big]^{m_1\dots m_J}_{n_1\dots n_K}
+    \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (C) {$c$};
+        \draw[arrow1] (C.north) -- ++(0,40pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL1) {\hphantom{$a_1$}};
+        \node[space,right=20pt of LL1] (L1) {\hphantom{$a_1$}};
+        \node[space,right=20pt of L1] (R1) {\hphantom{$a_1$}};
+        \node[space,right=20pt of R1] (RR1) {\hphantom{$a_1$}};
+        \node[morphism,above=of -(LL1)(RR1)] (T) {$T$};
+        \node[y tensor, below=20pt of -(T)] (Y) {$\mathcal{Y}^{b_1\dots b_K}_{c,\beta,n_1\dots n_K}$};
+        \draw[arrow1={0.5}{left}{$W_1$}] ($(Y.north -| LL1.south)$) -- ($(T.south -| LL1.south)$);
+        \draw[arrow1] ($(Y.north -| L1.south)$) -- ($(T.south -| L1.south)$);
+        \draw[arrow1] ($(Y.north -| R1.south)$) -- ($(T.south -| R1.south)$);
+        \draw[arrow1={0.5}{right}{$W_K$}] ($(Y.north -| RR1.south)$) -- ($(T.south -| RR1.south)$);
+        \draw[arrow1rev] (Y.south) -- ++(0,-15pt) node[space, below] {$c$};
+        %
+        \draw[arrow1={0.5}{left}{$V_1$}] ($(T.north -| LL1)$) -- ++(0,20pt) node[projection, above] (LL2) {$m_1$};
+        \draw[arrow1={0.5}{left}{$V_{i+1}$}] ($(T.north -| L1)$) -- ++(0,20pt) node[projection, above] (L2) {$\mathsmaller{m_{i+1}}$};
+        \draw[arrow1={0.5}{right}{$V_i$}] ($(T.north -| R1)$) -- ++(0,20pt) node[projection, above] (R2) {$m_i$};
+        \draw[arrow1={0.5}{right}{$V_J$}] ($(T.north -| RR1)$) -- ++(0,20pt) node[projection, above] (RR2) {$m_J$};
+        \draw[arrow1={0.5}{left}{$a_{i+1}$}] (L2.north) -- ++(0,20pt) coordinate (L3);
+        \draw[arrow1={0.5}{right}{$a_i$}] (R2.north) -- ++(0,20pt) coordinate (R3);
+        \coordinate[above=30pt of L3] (L4);
+        \coordinate[above=30pt of R3] (R4);
+        \overbraid(L3)(R3)(L4)(R4);
+        \node[x tensor, above=20pt of -(LL3)(L4)(RR2)] (X) {$X^{a_1\dots a_J}_{c,\alpha}$};
+        \draw[arrow1={0.5}{left}{$a_1$}] (LL2.north) -- ($(LL2.north |- X.south)$);
+        \draw[arrow1={0.5}{left}{$a_i$}] (L4) -- ($(L4 |- X.south)$);
+        \draw[arrow1={0.5}{right}{$a_{i+1}$}] (R4) -- ($(R4 |- X.south)$);
+        \draw[arrow1={0.5}{right}{$a_J$}] (RR2.north) -- ($(RR2.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,15pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+\end{equation}
+
+This sliding step induces the same permutation $\pi$ to also act on the indices $m_j$ of the projections.
+%
+It remains to deal with the braid acting below a fusion tree.
+%
+To relate to the blocks of $T$, we need to write it as a linear combination of regular fusion trees
+\begin{equation}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LL1) {$a_1$};
+        \node[space,right=20pt of LL1] (L1) {$a_{i+1}$};
+        \node[space,right=20pt of L1] (R1) {$a_i$};
+        \node[space,right=20pt of R1] (RR1) {$a_J$};
+        \draw[arrow1] (L1.north) -- ++(0,15pt) coordinate (L2);
+        \draw[arrow1] (R1.north) -- ++(0,15pt) coordinate (R2);
+        \coordinate (L3) at ($(L2)+(0,30pt)$);
+        \coordinate (R3) at ($(R2)+(0,30pt)$);
+        \overbraid(L2)(R2)(L3)(R3);
+        \node[x tensor, above=20pt of -(LL1)(L3)(RR1)] (X) {$X^{a_1\dots a_j}_{c,\gamma}$};
+        \draw[arrow1={0.5}{left}{$a_i$}] (L3) -- ($(L3 |- X.south)$);
+        \draw[arrow1={0.5}{right}{$a_{i+1}$}] (R3) -- ($(R3 |- X.south)$);
+        \draw[arrow1] (LL1.north) -- ($(LL1 |- X.south)$);
+        \draw[arrow1] (RR1.north) -- ($(RR1 |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,15pt) node[space, above] {$c$};
+    \end{tikzpicture}}}}
+    \quad = ~~ \sum_\alpha ~ D^\gamma_\alpha(\set{a_j},c) \quad
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LL3) {$a_1$};
+        \node[space,right=20pt of LL3] (L3) {$a_{i+1}$};
+        \node[space,right=20pt of L3] (R3) {$a_i$};
+        \node[space,right=20pt of R3] (RR3) {$a_J$};
+        \node[x tensor, above=20pt of -(LL1)(L3)(RR1)] (X) {$X^{\pi(a_1\dots a_J)}_{c,\alpha}$};
+        \draw[arrow1] (L3) -- ($(L3 |- X.south)$);
+        \draw[arrow1] (R3) -- ($(R3 |- X.south)$);
+        \draw[arrow1] (LL3.north) -- ($(LL3 |- X.south)$);
+        \draw[arrow1] (RR3.north) -- ($(RR3 |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,15pt) node[space, above] {$c$};
+    \end{tikzpicture}}}}
+    ~~,
+\end{equation}
+such that
+\begin{equation}
+    \label{eq:nonabelian:tensors:result_braiding}
+    \Big[\big[ \tilde{T}_c \big]^{a_1\dots a_J,\gamma}_{b_1\dots b_K,\beta}
+    \Big]^{m_1\dots m_J}_{n_1\dots n_K}
+    = \sum_\alpha D^\gamma_\alpha(\set{a_j},c) 
+    ~
+    \Big[\big[ T_c \big]^{\pi(a_1\dots a_J),\alpha}_{b_1\dots b_K,\beta}
+    \Big]^{\pi(m_1\dots m_J)}_{n_1\dots n_K}
+    .
+\end{equation}
+
+We can derive the coefficients $D$ from an R move~\eqref{eq:nonabelian:basics:def_R_symbol} if $i=1$ or a C move~\eqref{eq:nonabelian:topo_data:def_C_symbol} otherwise.
+%
+These coefficients are highly sparse, i.e.~they vanish for most $\alpha$.
+%
+Instead of polluting notation with many Kronecker deltas, let us list only those contributions that are (in general) nonzero.
+%
+To that end, let $\gamma = (e_1\dots e_{J-2},\mu_1\dots \mu_{J-1})$ be a general but fixed tree index.
+
+For $i=1$, assuming the gauge of fusion tensors is chosen such that the R symbols are diagonal, we only get a nonzero contribution if $\alpha = \gamma$.
+%
+In that case, we have 
+\begin{equation}
+    \label{eq:nonabelian:tensors:D_coefficients_for_R_move_braiding}
+    D^\gamma_\gamma(\set{a_j},c)
+    = \big[ R^{a_1,a_2}_{e_1} \big]^{\mu_1}_{\mu_1}
+    ~.
+    \qquad \text{(all other $D^\gamma_\alpha = 0$)}
+\end{equation}
+
+For braids at $2 < i < J - 1$, we find non-zero contribution only for those $\alpha$ that arise from $\gamma$ by modifying the inner sector $e_{i-1} \mapsto f$ and multiplicity labels $(\mu_{i-1}, \mu_i) \mapsto (\kappa, \lambda)$.
+%
+In that case, we have
+\begin{gather}
+    \label{eq:nonabelian:tensors:D_coefficients_for_C_move_braiding}
+    \begin{gathered}
+        D^\gamma_{(e_1\dots f \dots e_{J-2}, \mu_1\dots \kappa\lambda \dots \mu_{J-1})}(\set{a_j},c)
+        = \big[ C^{e_{i-2},a_i,a_{i+1}}_{e_i}
+        \big]^{e_i\mu_{i-1}\mu_i}_{f\kappa\lambda}
+        \\[1ex]
+        \text{(all other $D^\gamma_\alpha = 0$)}
+        ~.
+    \end{gathered}
+\end{gather}
+%
+The expression above generalizes to $i=2$ if we understand $e_0 := a_1$, such that $e_{i-1}$ always refers to the sector to the bottom left of the vertex $\mu_i$.
+%
+Similarly it generalizes to $i = J-1$ if we understand $e_{J-1} := c$, such that $e_i$ is the sector above $\mu_i$.
+
+To perform an underbraid in the domain instead, we simply need to take the complex conjugate of the coefficients and exchange the roles of upper and lower indices in~\eqref{eq:nonabelian:tensors:result_braiding}, that is let the permutation act on the $\set{b_k}$ and $\set{n_k}$ instead, and form the linear combination on the index $\beta$ of splitting trees instead of $\alpha$, with coefficients $\conj{D}^\delta_\beta(\set{b_k}, c)$.
+
+To swap the chirality of the braid, that is perform an underbraid in the codomain or an overbraid in the domain, we need the following modifications in addition to the above.
+%
+Take the complex conjugate of the coefficients and swap $a_i \leftrightarrow a_{i+1}$ in the superscript of the R or C symbol, as discussed in section~\ref{subsec:nonabelian:topo_data:C_symbol}.
+
+Braids can be composed such that an expression of the form of~\eqref{eq:nonabelian:tensors:result_braiding} can be derived for composites of many braids, as long as they act on only the codomain.
+%
+Figuring out the coefficients $D$ for the composite braid and evaluating~\eqref{eq:nonabelian:tensors:result_braiding} only once is more practical than evaluating the free parameters for all intermediate objects.
+%
+The composition is easily done by composing the permutations $\pi$ and forming the matrix product of the coefficient matrices $D$.
+%
+Note that since the $D$ coefficients typically show a high level of sparsity, it is advantageous to collect only those fusion trees for which there is a nonzero coefficient, i.e.~to build a mapping (e.g.~a python dictionary, or hashtable), assigning to each contributing fusion tree $\alpha$ its coefficient $D^\gamma_\alpha$ in~\eqref{eq:nonabelian:tensors:result_braiding}, similar to algorithm~\ref{algo:nonabelian:leg_rearrange_coefficients}.
+
+In practice, we can implement braiding in the codomain by acting row-wise on the blocks -- recall the structure summarized in figure~\ref{fig:nonabelian:tensors:block}.
+%
+That is, for every block we can perform the following steps to realize equation~\eqref{eq:nonabelian:tensors:result_braiding}.
+%
+First, within each ``tree row", that is for fixed $(c,a_1\dots a_J,\alpha)$, permute the rows of single entries according to $\pi$.
+%
+Second, within each ``forest row", that is for fixed $(c,a_1\dots a_J)$, form linear combination of the tree rows according to the coefficients $D^\gamma_\alpha(\set{a_j},c)$.
+%
+Lastly, for the whole block, permute the resulting forest rows according to $\pi$.
+%
+Braiding in the domain can be done similarly by acting on entire columns.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Bending Lines}
+\label{subsec:nonabelian:tensors:bending}
+
+Next, let us consider bending a single line at the very right of the domain
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=20pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=20pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=20pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (T) {$\tilde{T}$};
+        % below T
+        \draw[arrow1rev] (T.south) -- ++(0,-20pt) node[space, below] (W2) {$W_2$};
+        \node[space, left=20pt of W2] (W1) {$W_1$};
+        \node[space, right=20pt of W2] (W3) {$W_{K-1}$};
+        \draw[arrow1] (W1.north) -- ($(W1.north |- T.south)$);
+        \draw[arrow1] (W3.north) -- ($(W3.north |- T.south)$);
+        % above T
+        \draw[arrow1] ($(LL3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_1$};
+        \draw[arrow1] ($(L3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_2$};
+        \draw[arrow1] ($(R3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$V_J$};
+        \draw[arrow1rev] ($(RR3.north |- T.north)$) -- ++(0,20pt) node[space, above] {$W_K$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=20pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=20pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=20pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (T) {$T$};
+        % below T
+        \draw[arrow1rev] ($(LL3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_1$};
+        \draw[arrow1rev] ($(L3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_2$};
+        \draw[arrow1rev] ($(R3.north |- T.south)$) -- ++(0,-20pt) node[space, below] {$W_{K-1}$};
+        \draw[arrow1rev] ($(RR3.north |- T.south)$) -- ++(0,-20pt) coordinate (RR2);
+        % above T
+        \draw[arrow1] (T.north) -- ++(0,20pt) node[space, above] (V2) {$V_2$};
+        \node[space, left=20pt of V2] (V1) {$V_1$};
+        \node[space, right=20pt of V2] (V3) {$V_J$};
+        \draw[arrow1] ($(T.north -| V1.south)$) -- (V1.south);
+        \draw[arrow1] ($(T.north -| V3.south)$) -- (V3.south);
+        %
+        \draw (RR2) arc(180:360:15pt) coordinate (RRR2);
+        \draw[arrow2rev={0.15}{}{}{0.8}{}{}] (RRR2) -- ($(RRR2 |- V1.south)$) node[space, above] {$W_K$};
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+
+To derive an expression for the blocks of $\tilde{T}$ in terms of the blocks of $T$, we
+plug in the parametrization~\eqref{eq:nonabelian:tensors:decomposition_using_free_params} of $T$, then use the sliding property~\eqref{eq:nonabelian:basics:sliding_cup_cap} to slide the projection across the bend.
+%
+This cooperates with the structure~\eqref{eq:nonabelian:tensors:decomposition_using_free_params} of free parameters, since the transpose of the projection $\transp{(p_{n_k}: W_k \to b_k)} : \dualspace{b_k} \to \dualspace{W_k}$ is the inclusion $i_{n_k}$ of the dual space.
+%
+We then need to consider how the bend acts on the pair of fusion and splitting tree.
+%
+Let $\alpha = (\alpha_{[1]} \dots \alpha_{[J-2]}, \alpha^{(1)} \dots \alpha^{(J-1)})$ and similarly $\beta = (\beta_{[1]} \dots \beta_{[K-2]}, \beta^{(1)} \dots \beta^{(K-1)})$ denote tree indices.
+%
+Then, we find from a B move~\eqref{eq:nonabelian:topo_data:def_B_symbol} that
+
+\begin{equation}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LL1) {$b_1$};
+        \node[space,right=15pt of LL1] (L1) {$b_2$};
+        \node[space,right=15pt of L1] (R1) {$b_{K-1}$};
+        \node[space,right=15pt of R1] (RR1) {\hphantom{$b_K$}};
+        \node[x tensor,above=20pt of -(LL1)(RR1)] (X) {$X^{b_1\dots b_K}_{c,\beta}$};
+        \draw[arrow1] (LL1.north) -- ($(LL1.north |- X.south)$);
+        \draw[arrow1] (L1.north) -- ($(L1.north |- X.south)$);
+        \draw[arrow1] (R1.north) -- ($(R1.north |- X.south)$);
+        
+        % \draw[arrow1={0.5}{left}{$c$}] (X.north) -- ++(0,20pt) node[y tensor, above, minimum width=90pt] (Y) {$Y^{a_1\dots a_J}_{c,\alpha}$};
+        \node[y tensor, above=20pt of X, minimum width=90pt] (Y) {$Y^{a_1\dots a_J}_{c,\alpha}$};
+        \draw[arrow1={0.5}{left}{$c$}] (X.north) -- (Y.south);
+        
+        \node[space,above=120pt of ($(LL1.north)!0.5!(L1.north)$)] (L3) {$a_1$};
+        \node[space,above=120pt of ($(L1.north)!0.5!(R1.north)$)] (C3) {$a_2$};
+        \node[space,above=120pt of ($(R1.north)!0.5!(RR1.north)$)] (R3) {$a_3$};
+        \draw[arrow1] ($(Y.north -| L3.south)$) -- (L3.south);
+        \draw[arrow1] ($(Y.north -| C3.south)$) -- (C3.south);
+        \draw[arrow1] ($(Y.north -| R3.south)$) -- (R3.south);
+        \draw[arrow1rev={0.5}{left}{$b_K$}] ($(RR1.north |- X.south)$) -- ++(0,-20pt) coordinate (RR0);
+        \draw (RR0) arc(180:360:15pt) coordinate (RRR0);
+        \draw[arrow2rev={0.1}{}{}{0.9}{}{}] (RRR0) -- ($(RRR0 |- L3.south)$) node[space, above] {$b_K$};
+    \end{tikzpicture}}}}
+    ~~ = ~ \sum_{\nu} ~ \big[ B^{\beta_{[K-2]} b_K}_{c} \big]^{\beta^{(K-1)}}_{\nu} \quad
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$a_4$}};
+        \node[space,right=15pt of LL3] (L3) {\hphantom{$a_4$}};
+        \node[space,right=15pt of L3] (R3) {\hphantom{$a_4$}};
+        \node[space,right=15pt of R3] (RR3) {\hphantom{$a_4$}};
+        \node[y tensor,below=20pt of -(LL3)(RR3)] (Y) {$Y^{a_1\dots a_J,\dualsector{b_K}}_{\beta_{[K-2]},\alpha + (c,\nu)}$};
+        \node[space,below=120pt of ($(LL3.south)!0.5!(L3.south)$)] (L0) {$b_1$};
+        \node[space,below=120pt of ($(L3.south)!0.5!(R3.south)$)] (C0) {$b_2$};
+        \node[space,below=120pt of ($(R3.south)!0.5!(RR3.south)$)] (R0) {$b_{K-1}$};
+        \node[x tensor,below=20pt of Y,minimum width=90pt] (X) {$X^{b_1\dots b_{K-1}}_{\beta_{[K-2]},\beta - 1}$};
+        \draw[arrow1] (L0.north) -- ($(L0.north |- X.south)$);
+        \draw[arrow1] (C0.north) -- ($(C0.north |- X.south)$);
+        \draw[arrow1] (R0.north) -- ($(R0.north |- X.south)$);
+        \draw[arrow1={0.5}{left}{$\beta_{[K-2]}$}] (X.north) -- (Y.south);
+        \draw[arrow1] ($(Y.north -| LL3)$) -- ++(0,20pt) node[space, above] {$a_1$};
+        \draw[arrow1] ($(Y.north -| L3)$) -- ++(0,20pt) node[space, above] {$a_2$};
+        \draw[arrow1] ($(Y.north -| R3)$) -- ++(0,20pt) node[space, above] {$a_J$};
+        \draw[arrow1rev] ($(Y.north -| RR3)$) -- ++(0,20pt) node[space, above] {$b_K$};
+    \end{tikzpicture}}}}
+    .
+\end{equation}
+%
+Here we write $\alpha + (c,\nu) = (\alpha_{[1]} \dots \alpha_{[J-2]}, c, \alpha^{(1)} \dots \alpha^{(J-1)}, \nu)$ for an extended fusion tree index and $\beta - 1 = (\beta_{[1]}\dots \beta_{[K-3]}, \beta^{(1)} \dots \beta^{(K-2)})$ for a shortened index, with the last sector and last multiplicity label removed.
+%
+Shifting around the sums in~\eqref{eq:nonabelian:tensors:decomposition_using_free_params}, we can identify the free parameters of the transformed tensor as 
+\begin{equation}
+    \label{eq:nonabelian:tensors:result_bending}
+    \Big[ \big[ \tilde{T}_d \big]^{a_1\dots a_{J+1}, \alpha + (c,\nu)}_{b_1\dots b_{K-1},\beta'} \Big]^{m_1\dots m_{J+1}}_{n_1\dots n_{K-1}}
+    = \sum_\mu \big[ B^{d, \dualsector{a}_{J+1}}_c \big]^{\mu}_{\nu}
+    ~
+    \Big[ \big[ T_c \big]^{a_1\dots a_J, \alpha}_{b_1\dots b_{K-1} a_{J+1},\beta' + (d,\mu)} \Big]^{m_1\dots m_J}_{n_1\dots n_{K-1} m_{J+1}}
+    ,
+\end{equation}
+where we relabelled the new coupled sector $\beta_{[K-2]} \mapsto d$ and a multiplicity index $\beta^{(K-1)} \mapsto \mu$, as well as $\dualsector{b}_K \mapsto a_{J+1}$ and $n_K \mapsto m_{J+1}$, since those indices now belong to the codomain of $\tilde{T}$.
+
+Bending a leg from the codomain can be derived analogously, with the result
+\begin{equation}
+    \Big[ \big[ \tilde{T}_d \big]^{a_1\dots a_{J-1}, \alpha'}_{b_1\dots b_{K+1},\beta +
+    (c,\nu)} \Big]^{m_1\dots m_{J-1}}_{n_1\dots n_{K+1}}
+    = \sum_\mu \big[ \conj{B}^{d, \dualsector{b}_{K+1}}_c \big]^{\mu}_{\nu}
+    ~
+    \Big[ \big[ T_c \big]^{a_1\dots a_{J-1}b_{K+1}, \alpha'+(d,\mu)}_{b_1\dots b_{K},\beta} \Big]^{m_1\dots m_{J-1}n_{K+1}}_{n_1\dots n_{K}}
+    .
+\end{equation}
+
+If the bent line was an explicitly dual space before bending it, the above expression obtains an additional factor $\chi_{b_K} = \chi_{{a}_{J+1}}$, since we need to use~\eqref{eq:nonabelian:topo_data:B_symbol_alternative_when_Z_already_present} instead, but is otherwise analogous.
+
+Bending lines involves communication between blocks; the new blocks $\tilde{T}_d$ have contributions from (potentially) many blocks $T_c$ of the old tensor, namely from all those blocks whose coupled sector $c$ is valid as the topmost inner sector of a fusion tree $a_1 \otimes \dots \otimes a_{J+1} \to d$, i.e.~such that $N^{c,a_{J+1}}_d > 0$ and $N^{a_1\dots a_J}_c > 0$.
+%
+Unlike for the braiding which preserves entire rows, no units larger than tree blocks are preserved by this rearrangement.
+%
+Therefore, the implementation for the general case that we propose in the following section may be used to realize the above results in practice.
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Rearranging legs}
+\label{subsec:nonabelian:tensors:rearranging_legs}
+
+We propose to support a broad but not fully general class of leg rearrangement that is specified by the following data.
+%
+We specify a permutation of the legs, indicating for every leg in the domain and codomain of the original tensor, if it ends up in the domain or codomain of the result, and at which position.
+%
+Additionally, we assign a unique height value to every leg, which specifies the chirality of the braid at every crossing; the leg with the higher height values goes over the other one.
+%
+By coherence, every composite of braids, cups and caps that fulfills these constraints is equal, and we may choose any particular realization that is practical, in the implementation. 
+%
+
+As an example, consider rearranging the legs of $T: W_1 \otimes W_2 \otimes W_3 \to V_1 \otimes V_2 \otimes V_3 \otimes V_4$ as follows.
+\begin{equation}
+    \tilde{T} ~~ := \qquad
+    \vcenter{\hbox{\begin{tikzpicture}[scale=.8]
+        \node[space] (AG) {\hphantom{$W$}};
+        \node[space,right=20pt of AG] (CG) {\hphantom{$W$}};
+        \node[space,right=20pt of CG] (EG) {\hphantom{$W$}};
+        \node[space,right=20pt of EG] (GG) {\hphantom{$W$}};
+        \node[space,right=10pt of GG] (HG) {\hphantom{$W$}};
+        \node[space,right=20pt of HG] (IG) {\hphantom{$W$}};
+        \node[space,right=20pt of IG] (JG) {\hphantom{$W$}};
+        \coordinate (BG) at ($(AG.north)!0.5!(CG.north)$);
+        \coordinate (DG) at ($(CG.north)!0.5!(EG.north)$);
+        \coordinate (FG) at ($(EG.north)!0.5!(GG.north)$);
+        \node[morphism,above=of -(AG)(GG)] (T) {$T$};
+        % one step up
+        \draw[arrow1] ($(AG.north |- T.north)$) -- ++(0,15pt) coordinate (A4);
+        \draw[arrow1] ($(CG.north |- T.north)$) -- ($(A4 -| CG.north)$) coordinate (C4);
+        \draw[arrow1] ($(EG.north |- T.north)$) -- ($(A4 -| EG.north)$) coordinate (E4);
+        \draw[arrow1] ($(GG.north |- T.north)$) -- ($(A4 -| GG.north)$) coordinate (G4);
+        \coordinate (H4) at ($(A4 -| HG.north)$);
+        \coordinate (I4) at ($(A4 -| IG.north)$);
+        \coordinate (J4) at ($(A4 -| JG.north)$);
+        % braids on the left
+        \draw (A4) -- ++(0,30pt) coordinate (A5);
+        \coordinate (C5) at ($(A5 -| C4)$);
+        \coordinate (E5) at ($(A5 -| E4)$);
+        \coordinate (G5) at ($(A5 -| G4)$);
+        \overbraid(C4)(E4)(C5)(E5);
+        \coordinate (A6) at ($(A5)+(0,30pt)$);
+        \coordinate (C6) at ($(A6 -| C5)$);
+        \underbraid(A5)(C5)(A6)(C6);
+        \draw[arrow1] (A6) -- ++(0,10pt) node[space, above] (A7) {$V_3$};
+        \draw[arrow1] (C6) -- ++(0,10pt) node[space, above] {$V_1$};
+        % bends top right
+        \draw let \p{radius}=($0.5*(H4)-0.5*(G4)$) in (G4) 
+            arc[start angle=180,end angle=0,radius=\x{radius}];
+        \draw let \p{radius}=($0.5*(I4)-0.5*(E4)$) in 
+            (E5) arc[start angle=180,end angle=0,x radius=\x{radius},y radius=30pt]
+            coordinate (I5);
+        % below
+        \draw[arrow1rev] ($(BG |- T.south)$) -- ++(0,-15pt) coordinate (B3);
+        \draw[arrow1rev] ($(DG |- T.south)$) -- ($(B3 -| DG)$) coordinate (D3);
+        \draw[arrow1rev] ($(FG |- T.south)$) -- ($(B3 -| FG)$) coordinate (F3);
+        \draw (B3) -- ++(0,-30pt) coordinate (B2);
+        \coordinate (D2) at ($(B2 -| D3)$);
+        \coordinate (F2) at ($(B2 -| F3)$);
+        \coordinate (H2) at ($(B2 -| H4)$);
+        \underbraid(D2)(F2)(D3)(F3);
+        \draw[arrow1] (H4) -- (H2);
+        %
+        \coordinate (B1) at ($(B2)+(0,-30pt)$);
+        \coordinate (D1) at ($(B1 -| D2)$);
+        \coordinate (F1) at ($(B1 -| F2)$);
+        \coordinate (H1) at ($(B1 -| H2)$);
+        \coordinate (I1) at ($(B1 -| I5)$);
+        \overbraid(B1)(D1)(B2)(D2);
+        \overbraid(F1)(H1)(F2)(H2);
+        \draw[arrow1] (I5) -- (I1);
+        %
+        \coordinate (H0) at ($(H1)+(0,-30pt)$);
+        \coordinate (I0) at ($(H0 -| I1)$);
+        \coordinate (D0) at ($(H0 -| D1)$);
+        \coordinate (F0) at ($(H0 -| F1)$);
+        \underbraid(H0)(I0)(H1)(I1);
+        \overbraid(D0)(F0)(D1)(F1);
+        %
+        \draw[arrow1] (H0) -- ++(0,-15pt) coordinate (Hbot) node[space, below] {$V_2$};
+        \draw[arrow1rev={0.2}{}{}] (B1) -- ($(B1 |- Hbot)$) node[space, below] {$W_3$};
+        \draw[arrow1] (D0) -- ($(D1 |- Hbot)$) node[space, below] {$V_4$};
+        \draw[arrow1rev] (F0) -- ($(F1 |- Hbot)$) node[space, below] {$W_1$};
+        %
+        \draw (I0) arc(180:360:20pt) coordinate (J0);
+        \draw[arrow2rev={0.1}{}{}{0.97}{}{}] (J0) -- ($(J0 |- A7.south)$) node[space, above] {$W_2$};
+    \end{tikzpicture}}}
+\end{equation}
+%
+We specify the target order of legs as a permutation $\pi$, which is split in two components $\pi_{i}$ for the codomain ($i=1$) and domain ($i=2$) respectively.
+%
+The above example is described by the permutation
+\begin{align}
+    \pi_1(V_1\dots V_4,\dualspace{W}_1\dots\dualspace{W}_3) = (V_3, V_1, \dualspace{W_2})
+    \\
+    \pi_2(\dualspace{V_1}\dots\dualspace{V_4},W_1\dots W_3) = (W_3, \dualspace{V_4}, W_1, \dualspace{V_2})
+\end{align}
+and height levels $(1, 4, 3, 7; 5, 6, 2)$, given in the leg order (figure~\ref{fig:nonabelian:tensors:leg_order}), such that e.g.~the $W_3$ leg has height value five.
+%
+Thus, whenever they cross, it braids below $W_2$ which has the higher height value of six.
+
+We \emph{conceptually} decompose this rearrangement as a sequence of single braids and line bends, which are discussed in sections~\ref{subsec:nonabelian:tensors:braiding} and ~\ref{subsec:nonabelian:tensors:bending} respectively.
+%
+We arbitrarily choose to start in the codomain, the other way around would be just as good.
+\begin{enumerate}
+    \item\label{item:rearranging_legs_step1}
+    Determine a permutation for the codomain, such that those legs that need to be bent to the domain are on the very right and those that should stay in the codomain are sorted according to their target positions. Apply a sequence of braids that achieves this permutation and has braid chiralities that are consistent with the height values.
+    %
+    \item
+    Bend those legs from the codomain to the domain
+    %
+    \item
+    Similar to step~\ref{item:rearranging_legs_step1}, apply braids to the domain such that those legs that should remain there appear in the target order and those that should be bent to the codomain are on the very right.
+    %
+    \item
+    Bend those legs to the codomain
+    %
+    \item
+    Perform a final permutation on the codomain, again similar to step~\ref{item:rearranging_legs_step1}, to bring those legs to their target positions.
+\end{enumerate}
+
+We propose to programmatically derive an expression for the blocks of the resulting tensor, following the steps listed above and then acting on the blocks only once, instead of forming the blocks of the intermediate tensors after each step.
+%
+The following framework allows us to treat both braids and bends on an equal footing and to compose them programmatically.
+%
+Let us write multi-indices, such as e.g.~$\varphi = (a_1 \dots a_J, \alpha, c, \beta, b_1 \dots b_K)$ that fully specify a pair of fusion and splitting tree $\alpha, \beta$ with matching coupled sector $c$, including their uncoupled sectors $a_j$ and $b_k$.
+%
+This multi-index uniquely identifies a tree block $\big[ T_c \big]^{a_1 \dots a_J,\alpha}_{b_1 \dots b_K,\beta} =: T^{(\varphi)}$ of a tensor $T$.
+%
+Now for both braiding and bending, the new tree blocks are linear combinations of the old tree blocks, with their $m_j$ and $n_k$ indices permuted according to the overall leg permutation $\pi$, that is
+\begin{equation}
+    \label{eq:nonabelian:tensors:leg_rearrangement_general_linear_comb}
+    \big[ \tilde{T}^{(\varphi)} \big]^{m_1\dots m_J}_{n_1\dots n_K}
+    = \sum_\psi E_\psi^\varphi \cdot
+    \big[ T^{(\psi)} \big]^{\pi_1(m_1\dots m_J)}_{\pi_2(n_1\dots n_K)}
+\end{equation}
+for some coefficients $E_\psi^\varphi$.
+
+Similar to the braiding, expressions of this form can easily be composed, by composing the permutations $\pi$ and matrix multiplication of the coefficients $E$, e.g.~for two operations we have
+\begin{equation}
+    \big[ \doubletilde{T}^{(\varphi)} \big]^{m_1\dots m_J}_{n_1\dots n_K}
+    = \sum_{\zeta,\psi} \tilde{E}_\zeta^\varphi \cdot \hat{E}_\psi^\zeta \cdot
+    \big[ T^{(\psi)} \big]^{(\tilde{\pi} \compose \hat{\pi})_1(m_1\dots m_J)}_{(\tilde{\pi} \compose \hat{\pi})_2(n_1\dots n_K)}
+    ~,
+\end{equation}
+where the operation to be applied first has coefficients $\hat{E}$ and permutation $\hat\pi$.
+%
+In practice, to exploit the sparsity, we propose the strategy transcribed in pseudocode in algorithm~\ref{algo:nonabelian:leg_rearrange_coefficients}.
+
+
+\begin{Algorithm}{Building coefficients for leg rearrangement}{
+    \label{algo:nonabelian:leg_rearrange_coefficients}
+    Given a sequence of leg rearrangements with coefficients $(E_1), (E_2), \dots, (E_N)$, and a tree block index $\varphi$ for the resulting tensor, compute the nonzero coefficients of the composite rearrangement.
+    That is a mapping $\{ \psi : E^\varphi_\psi \}$ from the tree block indices $\psi$ of the original tensor that have a non-zero contribution in~\eqref{eq:nonabelian:tensors:leg_rearrangement_general_linear_comb} to the respective non-zero coefficients $E^\varphi_\psi = \sum_{\zeta\chi\dots\xi} (E_N)^\varphi_{\zeta} (E_{N-1})^{\zeta}_\chi \dots (E_1)^\xi_\psi$. The order of this matrix product is such that we may think of the rearrangement with coefficients $E_1$ to be applied ``first".
+}
+    \step Initialize the mapping as $\mathcal{C} \gets \{ \varphi : 1\}$.
+    \step For every rearrangement step $n = N, \dots, 1$ in reverse order:
+    \step\quad Initialize an empty mapping $\mathcal{D} \gets \{\}$.
+    \step\quad For every key $\phi$ in $\mathcal{C}$ and value $c = \mathcal{C}[\phi]$:
+    \step\quad\quad For every $\zeta$ such that $(E_n)^\phi_\zeta \neq 0$ (see recipies below):
+    \step\quad\quad\quad If $\zeta$ is in $\mathcal{D}$, increment $\mathcal{D}[\zeta] \gets \mathcal{D}[\zeta] + c \cdot (E_n)^\phi_\zeta$, else set $\mathcal{D}[\zeta] \gets c \cdot (E_n)^\phi_\zeta$.
+    \step\quad Set $\mathcal{C}\gets\mathcal{D}$.
+    \step Return $\mathcal{C}$
+\end{Algorithm}
+
+Let us summarize the results from the previous sections on braids and line bends in this language of $E$ coefficients.
+
+For braiding, e.g.~in the codomain, we get nonzero contributions to a target tree pair $\varphi = (a_1\dots a_J, \gamma, c, \beta, b_1\dots b_K)$ of the form 
+\begin{equation}
+    E^\varphi_\psi = D^\gamma_\alpha(a_1\dots a_J, c)
+    \quad \text{for} \quad 
+    \psi = \big(\pi(a_1\dots a_J), \alpha, c, \beta, b_1 \dots b_K\big)
+\end{equation}
+and vanishing $E^\varphi_\psi = 0$ for all other $\psi$.
+%
+Note that the $D$ coefficients, as discussed in section~\ref{subsec:nonabelian:tensors:braiding}, have further sparsity and further constrain the trees $\alpha$ that give nonzero contributions.
+
+For bending a single line from the domain to the codomain, we get nonzero contributions
+to a target tree pair 
+$$\varphi = \big( a_1\dots a_J, (e_1\dots e_{J-2}, \mu_1\dots\mu_{J-1}), c, (f_1\dots f_{K-2}, \nu_1\dots \nu_{K-1}), b_1\dots b_K \big)$$
+of the following form;
+\begin{equation}
+    E^\varphi_\psi = \big[B^{c,\dualsector{a}_J}_{e_{J-2}} \big]^\kappa_{\mu_{J-1}}
+    \quad\text{, where}
+\end{equation}
+$$
+    \psi \!=\!
+    (
+    a_1\dots a_{J-1},
+    (e_1\dots e_{J-3}, \mu_1\dots\mu_{J-2}),
+    e_{J-2},
+    (f_1\dots f_{K-2} c, \nu_1\dots \nu_{K-1} \kappa),
+    b_1\dots b_K a_{J}
+    )
+$$
+contains only $\kappa = 1, \dots, N^{c,a_J}_{e_{J-2}}$ as a free parameter.
+%
+The coefficients $E^\varphi_\psi = 0$ vanish for all other $\psi$ not of this form.
+
+Let us reiterate at this point that leg rearrangements which involve only braids and no bends can be done by acting on entire rows / columns, which may be more efficient in practice.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Tensor contractions, inner product and norm}
+\label{subsec:nonabelian:tensors:contraction}
+
+The most ubiquitous operation on tensors used in \acro{tns} methods is pairwise contraction of tensors.
+%
+In our graphical notation, this means connecting any number of legs between the two tensors and leaving the rest open.
+%
+This may require line bends (cups and caps) or braids to be introduced in the most general case.
+
+Let us start with a simple case, the composition $T = A \compose B$ of two tensors $A: \mathcal{U} \to \mathcal{W}$ and $B: \mathcal{V} \to \mathcal{U}$.
+%
+This is the special case of contractions where the tensors are already given with a convenient leg arrangement.
+%
+That is graphically
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (A1) {$V_1$};
+        \node[space, right=20pt of A1] (C1) {$V_2$};
+        \node[space, right=20pt of C1] (E1) {$V_3$};
+        \node[space, right=20pt of E1] (G1) {$V_J$};
+        \node[morphism, above=20pt of -(A1)(G1)] (B) {$T$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- B.south)$);
+        \draw[arrow1] (C1.north) -- ($(C1.north |- B.south)$);
+        \draw[arrow1] (E1.north) -- ($(E1.north |- B.south)$);
+        \draw[arrow1] (G1.north) -- ($(G1.north |- B.south)$);
+        \draw[arrow1] ($(A1 |- B.north)$) -- ++(0,20pt) node[space, above] {$W_1$};
+        \draw[arrow1] ($(C1 |- B.north)$) -- ++(0,20pt) node[space, above] {$W_2$};
+        \draw[arrow1] ($(E1 |- B.north)$) -- ++(0,20pt) node[space, above] {$W_3$};
+        \draw[arrow1] ($(G1 |- B.north)$) -- ++(0,20pt) node[space, above] {$W_K$};
+    \end{tikzpicture}}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (A1) {$V_1$};
+        \node[space, right=20pt of A1] (C1) {$V_2$};
+        \node[space, right=20pt of C1] (E1) {$V_3$};
+        \node[space, right=20pt of E1] (G1) {$V_J$};
+        \coordinate (B1) at ($(A1.north)!0.5!(C1.north)$);
+        \coordinate (D1) at ($(C1.north)!0.5!(E1.north)$);
+        \coordinate (F1) at ($(E1.north)!0.5!(G1.north)$);
+        \node[morphism, above=20pt of -(A1)(G1)] (B) {$B$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- B.south)$);
+        \draw[arrow1] (C1.north) -- ($(C1.north |- B.south)$);
+        \draw[arrow1] (E1.north) -- ($(E1.north |- B.south)$);
+        \draw[arrow1] (G1.north) -- ($(G1.north |- B.south)$);
+        \node[morphism, above=70pt of -(A1)(G1)] (A) {$A$};
+        \draw[arrow1={0.5}{left}{$U_1$}] ($(B1 |- B.north)$) -- ($(B1 |- A.south)$);
+        \draw[arrow1] ($(D1 |- B.north)$) -- ($(D1 |- A.south)$);
+        \draw[arrow1={0.5}{right}{$U_I$}] ($(F1 |- B.north)$) -- ($(F1 |- A.south)$);
+        \draw[arrow1] ($(A1 |- A.north)$) -- ++(0,20pt) node[space, above] {$W_1$};
+        \draw[arrow1] ($(C1 |- A.north)$) -- ++(0,20pt) node[space, above] {$W_2$};
+        \draw[arrow1] ($(E1 |- A.north)$) -- ++(0,20pt) node[space, above] {$W_3$};
+        \draw[arrow1] ($(G1 |- A.north)$) -- ++(0,20pt) node[space, above] {$W_K$};
+    \end{tikzpicture}}}
+    .
+\end{equation}
+%
+We find that the blocks of the result
+\begin{align}
+    \label{eq:nonabelian:tensors:tensordot_composition}
+    \begin{split}
+        [T_c]^\kappa_\iota ~ \id{c}
+        &\overset{\eqref{eq:nonabelian:tensors:compute_free_params}}{=}
+        \mathcal{X}^\mathcal{W}_{c,\kappa}
+        \compose A \compose B
+        \compose \mathcal{Y}^\mathcal{V}_{c,\iota}
+        \overset{\eqref{eq:nonabelian:tensors:composite_projection_complete}}{=} \sum_{d,\lambda}
+        \mathcal{X}^\mathcal{W}_{c,\kappa}
+        \compose A \compose \mathcal{Y}^\mathcal{U}_{d,\lambda}
+        \compose \mathcal{X}^\mathcal{U}_{d,\lambda} \compose B
+        \compose \mathcal{Y}^\mathcal{V}_{c,\iota}
+        \\
+        &\overset{\eqref{eq:nonabelian:tensors:def_free_params}}{=}
+        \sum_\lambda [A_c]^\kappa_\lambda [B_c]^\lambda_\iota ~ \id{c}
+        = [A_c \cdot B_c]^\kappa_\iota ~ \id{c}
+    \end{split}
+\end{align}
+are given by the blockwise matrix-matrix products.
+
+Another special case for pairwise contraction is the ``inner product", where we contract all legs and the input tensors $A, B: \mathcal{V} \to \mathcal{W}$ are given with the same leg arrangement.
+%
+Then, consider the Frobenius inner product
+\begin{equation}
+    \tr{\hconj{A} \compose B} ~~ = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (A1) {\hphantom{$V_1$}};
+        \node[space, right=20pt of A1] (C1) {\hphantom{$V_1$}};
+        \node[space, right=20pt of C1] (E1) {\hphantom{$V_1$}};
+        \node[space, right=20pt of E1] (G1) {\hphantom{$V_1$}};
+        \coordinate (B1) at ($(A1.center)!0.5!(C1.center)$);
+        \coordinate (D1) at ($(C1.center)!0.5!(E1.center)$);
+        \coordinate (F1) at ($(E1.center)!0.5!(G1.center)$);
+        %
+        \node[morphism, above=10pt of -(A1)(G1)] (A) {$B$};
+        \node[morphism, above=70pt of -(A1)(G1)] (B) {$A^\dagger$};
+        \draw[arrow1={0.5}{left}{$W_1$}] ($(A1 |- A.north)$) -- ($(A1 |- B.south)$);
+        \draw[arrow1] ($(C1 |- A.north)$) -- ($(C1 |- B.south)$);
+        \draw[arrow1] ($(E1 |- A.north)$) -- ($(E1 |- B.south)$);
+        \draw[arrow1={0.5}{left}{$W_K$}] ($(G1 |- A.north)$) -- ($(G1 |- B.south)$);
+        \draw[arrow1={0.5}{left}{$V_1$}] ($(B1 |- B.north)$) -- ++(0,20pt) coordinate (B4);
+        \draw[arrow1] ($(D1 |- B.north)$) -- ++(0,20pt) coordinate (D4);
+        \draw[arrow1={0.5}{right}{$V_J$}] ($(F1 |- B.north)$) -- ++(0,20pt) coordinate (F4);
+        \draw (F4) arc[start angle=180, end angle=0, x radius=30pt, y radius=10pt] coordinate (H4);
+        \draw (D4) arc[start angle=180, end angle=0, x radius=60pt, y radius=20pt] coordinate (I4);
+        \draw (B4) arc[start angle=180, end angle=0, x radius=90pt, y radius=30pt] coordinate (J4);
+        %
+        \draw (F1) arc[start angle=180, end angle=360, x radius=30pt, y radius=10pt] coordinate (H1);
+        \draw (D1) arc[start angle=180, end angle=360, x radius=60pt, y radius=20pt] coordinate (I1);
+        \draw (B1) arc[start angle=180, end angle=360, x radius=90pt, y radius=30pt] coordinate (J1);
+        %
+        \draw[arrow1] (H4) -- (H1);
+        \draw[arrow1] (I4) -- (I1);
+        \draw[arrow1] (J4) -- (J1);
+        %
+        \draw[arrow1={0.5}{left}{$V_1$}] (B1) -- ($(B1 |- A.south)$);
+        \draw[arrow1] (D1) -- ($(D1 |- A.south)$);
+        \draw[arrow1={0.5}{right}{$V_J$}] (F1) -- ($(F1 |- A.south)$);
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+%
+The result is the scalar
+\begin{align}
+    \label{eq:nonabelian:tensors:inner_product}
+    \begin{split}
+    \tr{\hconj{A} \compose B}
+    &\overset{\eqref{eq:nonabelian:tensors:composite_projection_complete}}{=}
+    \sum_{c,\lambda} \sum_{d,\kappa} \tr{
+        \mathcal{Y}^\mathcal{V}_{c,\lambda} \compose \mathcal{X}^\mathcal{V}_{c,\lambda}
+        \compose \hconj{A} \compose \mathcal{Y}^\mathcal{W}_{d,\kappa}
+        \compose \mathcal{X}^\mathcal{W}_{d,\kappa} \compose B
+    }
+    \\
+    &\overset{
+        \eqref{eq:nonabelian:basics:trace_cyclic}, \eqref{eq:nonabelian:tensors:def_free_params}
+    }{=}
+    \sum_{c,\lambda\kappa} [(\hconj{A})_c]^\kappa_\lambda [B_c]^\lambda_\kappa ~ \tr{\id{c}}
+    \overset{\eqref{nonabelian:tensors:dagger_blockwise}}{=}
+    \sum_c d_c \tr{\hconj{(A_c)} \cdot B_c}
+    .
+    \end{split}
+\end{align}
+In words, the inner product of tensors is given by the weighted sum of blockwise matrix inner products, with the quantum dimensions of the coupled sectors as weights.
+%
+As a corollary, we find that the Frobenius norm
+\begin{equation}
+    \label{eq:nonabelian:tensors:norm}
+    \Fnorm{A} = \sqrt{\sum_c d_c \Fnorm{A_c}^2}
+\end{equation}
+is given by the weighted 2-norm of the blockwise Frobenius matrix norms.
+
+Another special case that allows for an efficient implementation is when only one leg is contracted, which is the \emph{only} leg in the codomain (domain) of the lower (upper) tensor.
+%
+Considering the first of these cases where we contract the $\ell$-th leg in the domain of $A: \bigotimes_j V_j \to \bigotimes_k W_k$ with the single leg in the codomain of $B: \bigotimes_i U_i \to V_\ell$, that is graphically
+\begin{equation}
+    T ~~ = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (A1) {$V_1$};
+        \node[space, right=10pt of A1] (C1) {$V_{\ell-1}$};
+        \node[space, right=10pt of C1] (D1) {$U_1$};
+        \node[space, right=10pt of D1] (E1) {$U_2$};
+        \node[space, right=10pt of E1] (F1) {$U_I$};
+        \node[space, right=10pt of F1] (G1) {$V_{\ell+1}$};
+        \node[space, right=10pt of G1] (H1) {$V_J$};
+        \node[morphism, above=20pt of -(D1)(F1)] (B) {$B$};
+        \node[morphism, above=70pt of -(A1)(H1)] (A) {$A$};
+        \draw[arrow1] (A1) --($(A1 |- A.south)$);
+        \draw[arrow1] (C1) --($(C1 |- A.south)$);
+        \draw[arrow1] (D1) --($(D1 |- B.south)$);
+        \draw[arrow1] (E1) --($(E1 |- B.south)$);
+        \draw[arrow1] (F1) --($(F1 |- B.south)$);
+        \draw[arrow1] (G1) --($(G1 |- A.south)$);
+        \draw[arrow1] (H1) --($(H1 |- A.south)$);
+        \draw[arrow1={0.5}{left}{$V_\ell$}] (B.north) -- ($(B.north |- A.south)$);
+        \draw[arrow1] ($(C1.north |- A.north)$) -- ++(0,20pt) node[space, above] {$W_1$};
+        \draw[arrow1] ($(D1.north |- A.north)$) -- ++(0,20pt) node[space, above] {$W_2$};
+        \draw[arrow1] ($(E1.north |- A.north)$) -- ++(0,20pt) node[space, above] {$W_3$};
+        \draw[arrow1] ($(F1.north |- A.north)$) -- ++(0,20pt) node[space, above] {$\dots$};
+        \draw[arrow1] ($(G1.north |- A.north)$) -- ++(0,20pt) node[space, above] {$W_K$};
+    \end{tikzpicture}}}
+    ~~.
+\end{equation}
+
+This case allows for a special implementation, since $B$ has a trivial splitting tree in its decomposition~\eqref{eq:nonabelian:tensors:decomposition_using_free_params}, such that the fusion tree of $B$ acts directly below the fusion tree of $A$ and may be absorbed into a larger fusion tree via F moves.
+
+First, for $I = 1$, that is if $B$ only has a single leg in its domain, we find
+\begin{equation}
+    \Big[ \big[ T_c \big]^{a_1\dots a_J,\alpha}_{b_1\dots b_K, \beta} \Big]^{m_1\dots m_J}_{n_1\dots n_K}
+    = \sum_p 
+    \Big[ \big[ A_c \big]^{a_1\dots a_J,\alpha}_{b_1\dots b_K, \beta} \Big]^{m_1\dots p \dots m_J}_{n_1\dots n_K}
+    \Big[ \big[ B_{a_\ell} \big]^{a_\ell, 1}_{a_\ell, 1} \Big]^{m_\ell}_{p}
+    ~.
+\end{equation}
+%
+Let us now assume $I \geq 2$.
+%
+If $\ell = 1$, i.e.~if we apply $B$ to the very left domain leg of $A$, we do not even need to do F moves and directly find
+\begin{equation}
+    \Big[ \big[ T_c \big]^{a_1\dots a_L,[\gamma-d-\alpha]}_{b_1\dots b_K, \beta} \Big]^{m_1\dots m_L}_{n_1\dots n_K}
+    =
+    \sum_p
+    \Big[ \big[ A_c \big]^{d a_{I+1}\dots a_L,\alpha}_{b_1\dots b_K, \beta} \Big]^{p m_{I+1}\dots m_L}_{n_1\dots n_K}
+    \Big[ \big[ B_d \big]^{a_1\dots a_I,\gamma}_{d,1} \Big]^{m_{1}\dots m_I}_{p}
+    ~,
+\end{equation}
+where $L = J + I - 1$ is the new number of legs in the domain and $[\gamma-d-\alpha]$ denotes a fusion tree index where $d$ is inserted as an inner sector, that is with inner sectors $(f_1\dots f_{I-2},d,e_1\dots e_{J-2})$ and multiplicity labels $(\nu_1 \dots \nu_{I-1},\mu_1\dots\mu_{J-1})$ where $\gamma = (f_1\dots f_{I-2}, \nu_1\dots\nu_{I-1})$ and $\alpha = (e_1\dots e_{J-2}, \mu_1\dots\mu_{J-1})$.
+
+Finally, in the general case $\ell > 1$ we find
+\begin{align}
+    \begin{split}
+        &\Big[ \big[ T_c \big]^{a_1\dots a_L,\delta}_{b_1\dots b_K, \beta} \Big]^{m_1\dots m_L}_{n_1\dots n_K}
+        = \sum_{\gamma d \alpha p} F^{\gamma d \alpha}_\delta (a_1\dots a_L, c)
+         \times
+        \\
+        & ~~ \times
+        \Big[ \big[ A_c \big]^{a_1\dots a_{\ell-1}, d, a_{\ell+I}\dots a_L,\alpha}_{b_1\dots b_K, \beta} \Big]^{m_1\dots m_{\ell-1},p,m_{\ell+I} \dots m_L}_{n_1\dots n_K}
+        \Big[ \big[ B_d \big]^{a_\ell \dots a_{\ell+I-1},\gamma}_{d, 1} \Big]^{m_\ell\dots m_{\ell+I-1}}_{p}
+        ~,
+    \end{split}
+\end{align}
+
+where the coefficients are generalized F symbols which arise as
+\begin{equation}
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+        \node[space] (A1) {$a_1$};
+        \node[space, right=2pt of A1] (A2) {$a_{\ell - 1}$};
+        \node[space, right=2pt of A2] (A3) {\hphantom{$a_\ell$}};
+        \node[space, right=2pt of A3] (A4) {\hphantom{$a_4$}};
+        \node[space, right=2pt of A4] (A5) {\hphantom{$a_{\ell+I-1}$}};
+        \node[space, right=2pt of A5] (A6) {$a_{\ell+I}$};
+        \node[space, right=2pt of A6] (A7) {$a_L$};
+        \node[x tensor, above=20pt of -(A1)(A7)] (X) {$\alpha$};
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X.south)$);
+        \draw[arrow1] (A2.north) -- ($(A2.north |- X.south)$);
+        \draw[arrow1] (A6.north) -- ($(A6.north |- X.south)$);
+        \draw[arrow1] (A7.north) -- ($(A7.north |- X.south)$);
+        \node[space, above=20pt of A3] (A3mock) {\hphantom{$a_3$}};
+        \node[space, above=20pt of A5] (A5mock) {\hphantom{$a_5$}};
+        \node[x tensor, below=20pt of -(A3mock)(A5mock)] (X2) {$\gamma$};
+        \draw[arrow1={0.5}{left}{$d$}] (X2.north) -- ($(X2.north |- X.south)$);
+        \draw[arrow1rev] ($(X2.south -| A3.south)$) -- ++(0,-20pt) node[space, below] {$a_\ell$};
+        \draw[arrow1rev] (X2.south) -- ++(0,-20pt) node[space, below] {};
+        \draw[arrow1rev] ($(X2.south -| A5.south)$) -- ++(0,-20pt) node[space, below] {$a_{\ell+I-1}$};
+    \end{tikzpicture}}}}
+    \quad = \quad
+    \sum_{\delta} F^{\gamma d \alpha}_\delta (a_1 \dots a_L, c) ~~
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+        \node[space] (A1) {$a_1$};
+        \node[space, right=2pt of A1] (A2) {};
+        \node[space, right=2pt of A2] (A3) {$\dots$};
+        \node[space, right=2pt of A3] (A4) {};
+        \node[space, right=2pt of A4] (A5) {$\dots$};
+        \node[space, right=2pt of A5] (A6) {};
+        \node[space, right=2pt of A6] (A7) {$a_L$};
+        \node[x tensor, above=20pt of -(A1)(A7)] (X) {$\delta$};
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X.south)$);
+        \draw[arrow1] (A2.north) -- ($(A2.north |- X.south)$);
+        \draw[arrow1] (A3.north) -- ($(A3.north |- X.south)$);
+        \draw[arrow1] (A4.north) -- ($(A4.north |- X.south)$);
+        \draw[arrow1] (A5.north) -- ($(A5.north |- X.south)$);
+        \draw[arrow1] (A6.north) -- ($(A6.north |- X.south)$);
+        \draw[arrow1] (A7.north) -- ($(A7.north |- X.south)$);
+    \end{tikzpicture}}}}
+\end{equation}
+and can be written as a contraction of a sequence of $I - 1$ single F symbols~\eqref{eq:nonabelian:basics:def_F_symbol}.
+
+More general tensor contractions can be performed by first permuting legs, according to section~\ref{subsec:nonabelian:tensors:rearranging_legs}, and subsequently contracting as one of the special cases listed here.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Tensor decompositions}
+\label{subsec:nonabelian:tensors:decomposition}
+
+For a tensor $T: \mathcal{V} \to \mathcal{W}$, we can obtain an \acro{svd} as follows.
+%
+Define a new space
+\begin{equation}
+    V_S := \bigoplus_{c\in\mathcal{S}} \bigoplus_{m=1}^{\min(N^\mathcal{V}_c, N^\mathcal{W}_c)} c
+\end{equation}
+and define tensors $U: V_S \to \mathcal{W}$, $S: V_S \to V_S$ and $\hconj{V}: \mathcal{V} \to V_S$
+via blockwise \acro{svd}, that is such that $T_c =: U_c \cdot S_c \cdot \hconj{(V_c)}$.
+%
+The defining properties of an \acro{svd} follow directly from~\eqref{eq:nonabelian:tensors:tensordot_composition},~\eqref{nonabelian:tensors:dagger_blockwise} and~\eqref{nonabelian:tensors:identity_map_blockwise}.
+%
+Namely, we have $T = U \compose S \compose \hconj{V}$, as well as $\hconj{U} \compose U = \id{V_S} = \hconj{V} \compose V$ and $S$ is diagonal with real positive entries.
+
+Similarly, any other decomposition of symmetric tensors whose defining properties -- such as here composition, identities and the dagger -- go through to the block level, can be carried out simply by applying the respective matrix decomposition to each block.
+%
+In particular, this includes the (hermitian) eigendecomposition and the polar decomposition.
+%
+The \acroshort{qr} and \acroshort{lq} decompositions work except for the caveat that the upper (lower) triangular property of the R (L) factors only holds on the block level, it is not a meaningful property of the resulting symmetric tensor.
+
+Note that there are additional considerations for optimal truncation of an \acro{svd}, that are not relevant in the abelian case of algorithm~\ref{algo:tensornets:symmetries:truncated_svd}.
+%
+Since the square norm of the tensors is a \emph{weighted} sum of blockwise square norms -- see \eqref{eq:nonabelian:tensors:norm} -- we need to consider the weights when truncating.
+%
+In particular, discarding a singular value $\lambda = (S_c)_{ii}$ and corresponding columns of the isometries $U_c, V_c$ in the matrix \acro{svd} of a block $T_c$, results in a truncation error $\Fnorm{T - \tilde{U} \compose \tilde{S} \compose \tilde{V}^\dagger} = \sqrt{d_c} \lambda$.
+%
+Thus, when selecting which singular values in the entire $S$ tensor to discard, they should be prioritized such that those with the smallest value of $\sqrt{d_c} (S_c)_{ii}$ are discarded first.
+%
+For an intuition, consider a $\SU{2}$ symmetry, where discarding a single singular value from a block with coupled sector given by the spin $S$ irrep is equivalent to discarding a multiplet of $d_S = 2 S + 1$ degenerate singular values in a non-symmetry conserving representation of the tensor.

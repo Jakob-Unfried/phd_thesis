@@ -1,0 +1,1014 @@
+In this chapter we provide extra material for the discussions regarding symmetries, in section~\ref{sec:tensornets:symmetries} and chapter~\ref{ch:nonabelian}.
+%
+In section~\ref{sec:topo_data:review_rep_thry}, we review the basics of group representations, as well as prominent results such as Schur's lemma.
+%
+In the subsequent sections, we discuss common symmetry groups, and give the topological data needed to enforce these symmetries in the framework of chapter~\ref{ch:nonabelian}, using fusion trees and their manipulations.
+%
+We cover the abelian groups $\Zbb_N$ and $\U{1}$ in section~\ref{sec:topo_data:ZN} and \ref{sec:topo_data:U1}, the nonabelian group $\SU{2}$ in section~\ref{sec:topo_data:SU2}, fermionic grading in~\ref{sec:topo_data:ferm} and Fibonnaci anyons in section~\ref{sec:topo_data:fib}.
+%
+We discuss combining symmetries in section~\ref{sec:topo_data:product}.
+
+
+\section{Review: Representation theory}
+\label{sec:topo_data:review_rep_thry}
+
+Let us review some basics from the representation theory of groups.
+
+A (faithful) \emph{representation} $U$ of a group $G$ on a vector space $V$ is a group homomorphism $U: G \to \Homset{V}{V}$.
+%
+This means a group representation assigns to every group element $g\in G$ a linear map $U(g): V \to V$, such that the group structure is preserved, i.e.~for $g, h \in G$ we have $U(g h) = U(g) U(h)$.
+%
+We suggestively use the symbol $U$ for the representation, since we want to think of it as unitary.
+
+A linear map $f: V \to W$ is \emph{equivariant} between representations $U$ on $V$ and $U'$ on $W$ if $f \compose U(g) = U'(g) \compose f$ for all $g\in G$.
+%
+Two representations $U$ and $\tilde{U}$ of the same group $G$ on vector spaces $V$ and $\tilde{V}$ respectively, are \emph{equivalent} if there is an equivariant vector space isomorphism $S: V \to \tilde{V}$, i.e.~an invertible linear map such that $\tilde{U}(g) = S \compose U(g) \compose S^{-1}$ for all $g\in G$.
+%
+In that case, we write $U \cong \tilde{U}$.
+%
+We can think of equivalence as the criterion for a basis change between vector spaces $V \to \tilde{V}$ with associated representations, such that equivariance is preserved, meaning if $f: V \to W$ is equivariant, so is $f \compose S^{-1}$.
+
+A representation $U$ on a vectorspace $V$ is \emph{reducible}, if there is a non-trivial proper subspace $0 \neq W \subset V$ which is invariant under $U$, that is if $U(g)(w) \in W$ for all $w\in W$ and $g \in G$.
+%
+The trivial subspace $W = 0$ and the full space itself $W = V$ are always invariant and are therefore excluded.
+%
+A representation is \emph{irreducible} if there is no such $W$.
+%
+We refer to irreducible representations as \emph{irreps} for short.
+%
+While reducibility is suggestively named, we are not in general guaranteed that they can actually be reduced.
+%
+Let us first characterize what it means to be ``reduced", namely as a \emph{direct sum}.
+
+The direct sum $V \oplus W$ of vector spaces $V, W$ is given by $\setdef{(v, w)}{v\in V, w \in W}$ with componentwise addition and scalar multiplication.
+%
+If $V, W$ are inner product spaces, we can equip $V \oplus W$ with the inner product $\braket{(v_1, w_1)}{(v_2, w_2)} = \braket{v_1}{v_2}_V + \braket{w_1}{w_2}_W$.
+%
+The direct sum $f \oplus g$ of linear maps $f_1 : V_1 \to V_2$ and $g : W_1 \to W_2$ is given by componentwise application $f \oplus g : V_1 \oplus W_1 \to W_1 \oplus W_2 , (v, w) \mapsto (f(v), g(w))$ and in an appropriate basis, its matrix representation is the block-diagonal matrix formed from the matrix representations of $f, g$.
+%
+Finally, the direct sum $U \oplus \tilde{U}$ of representations $U$ and $\tilde U$ of a group $G$ on vector spaces $V$ and $\tilde V$ respectively is a representation on $V \oplus \tilde{V}$ given by $(U \oplus \tilde{U})(g) = U(g) \oplus \tilde{U}(g)$, i.e.~by the componentwise direct sum of linear maps.
+%
+Generalizations of these definitions to direct sums of multiple spaces / maps / representations are straight-forward.
+    
+\textbf{Irrep decomposition:}~~
+We can now reduce general representations, if we include the additional assumption that they are unitary;
+%
+Any unitary representation $U$ of a group $G$ on a finite-dimensional vector space $V$ is equivalent to a finite direct sum $U \cong \bigoplus_{n=1}^N U_n$ of irreps $U_n$ of $G$.
+
+\begin{proof}
+    If $U$ is irreducible, the claim is trivially fulfilled.
+    %
+    Let us now assume $U$ is reducible and let $0 \neq W \subset V$ be an invariant subspace.
+    
+    Consider the orthogonal complement $W^\perp = \setdef{v \in V}{\braket{v}{w} = 0 ~\forall w \in W}$.
+    %
+    For any $g\in G$, $U(g)$ is unitary and in particular injective.
+    %
+    Thus the restriction $U_1(g): W \to W, w \mapsto U(g)(w)$ is (a) well-defined since $W$ is invariant and (b) also injective.
+    %
+    Since it is a linear map between vector spaces of equal finite dimension, it is also surjective.
+    %
+    Now let $x \in W^\perp$ and $w \in W$.
+    %
+    Because of surjectivity, there is a $w' \in W$ s.t. $U(g)(w') = w$, which means that $U(g)(x)$ is in $W^\perp$ since $\braket{U(g)(x)}{w} = \braket{U(g)(x)}{U(g)(w')} = \braket{x}{w'} = 0$.
+    %
+    This shows invariance of $W^\perp$ and allows us to define the restriction $U_2(g): W^\perp \to W^\perp , x \mapsto U(g)(x)$.
+    %
+    Both restrictions $U_{1/2}$ are unitary by construction.
+
+    Now consider the vector space isomorphism $S: V \to W \oplus W^\perp, v \mapsto (P_W(v), v - P_W(v))$, where $P_W$ is the projector on the subspace $W$.
+    %
+    The inverse is simply $S^{-1} : W \oplus W^\perp \to V , (w, w') \mapsto w + w'$.
+    %
+    We can conclude equivariance for all $g\in G$
+    \begin{align}
+        \begin{split}
+            (S \compose U(g) \compose S^{-1})(w, w')
+            &= S \compose (U(g)(w) + U(g)(w'))
+            = S \compose (U_1(g)(w) + U_2(g)(w'))
+            \\
+            &= (U_1(g)(w), U_2(g)(w')
+            = (U_1 \oplus U_2)(g)(w, w')
+            ~,
+        \end{split}
+    \end{align}
+    where we used that $U(g)(w) = U_1(g)(w)$ for $w \in W$ and similarly for $U(g)(w) = U_2(g)(w')$ for $w \in W^\perp$. This establishes $U \cong U_1 \oplus U_2$.
+
+    This procedure can now be iterated for $U_1$ and/or $U_2$, until all components are irreducible.
+    %
+    This terminates after a finite number of steps, as the dimension of the representation spaces starts at the finite $\dim V$ and strictly decreases at each step.
+\end{proof}
+
+The irrep decomposition is in general not unique, as any irrep $U_n$ may be replaced by an equivalent irrep $\tilde{U}_n \cong U_n$.
+%
+It is therefore convenient to choose one representative for each equivalence class of irreps.
+%
+We write $U_\mathbf{a}$ for such a representative and call it a \emph{sector}.
+%
+For any group, the \emph{trivial representation} $U_\mathbf{0} : g \mapsto 1$ on the one-dimensional space $\Cbb$ is irreducible, and can be chosen as the representative of the \emph{trivial sector}, also called the symmetric sector.
+%
+Let us write $\mathcal{S}_G$ for the set of sector labels such that every irrep $U$ of a group $G$ has exactly one $\mathbf{a} \in \mathcal{S}_G$ such that $U \cong U_\mathbf{a}$.
+%
+Let us consider a few examples, which we derive and discuss in more detail in the following sections.
+%
+We find integer labels $\mathcal{S}_{\U{1}} = \Zbb$ for $\U{1}$, and $\mathcal{S}_{\Zbb_N} = \Zbb_N$ for $\Zbb_N$.
+%
+For multiple symmetries, i.e.~for the product group $G \times H$ we find $\mathcal{S}_{G \times H} = \mathcal{S}_{G} \times \mathcal{S}_{H} = \setdef{(\mathbf{a}, \mathbf{b})}{\mathbf{a} \in \mathcal{S}_{G}, \mathbf{b}\in \mathcal{S}_{H}}$, i.e.~tuples of the respective individual sector labels.
+
+Now, unitarity is not a strong requirement.
+%
+If $G$ is a finite group, a compact Lie group, or any other group that admits a right-invariant Haar measure, any of its representations $D$ on a space $V$ is equivalent to a unitary representation $U$ on the same representation space $V$.
+
+\begin{proof}
+    Let $D$ be a representation of $G$ on $V$ and $\braket{\blank}{\blank}$ the inner product on $V$.
+    %
+    First, we construct a different inner product $\braket{\blank}{\blank}_D$ on $V$ w.r.t.~which $D$ is unitary.
+    %
+    Under the assumptions above, we have some integral measure $\int_G \d{x}$ on the group $G$, which is e.g.~given by $\int_G \d{x} f(x) =\tfrac{1}{\abs{G}} \sum_{x\in G} f(x)$ for finite groups $G$ and group functions $f: G \to \Cbb$.
+    %
+    It is a (right-) invariant measure, meaning $\int_G \d{x} f(xy) = \int_G \d{x} f(x)$ for any $y \in G$.
+    %
+    Using this measure we define a different inner product for $v, w \in V$ as
+    \begin{equation}
+        \braket{v}{w}_D := \int \d{x} \braket{D(x)(v)}{D(x)(w)}
+        .
+    \end{equation}
+    It is easy to check that it is indeed an inner product (i.e.~hermitian, linear and positive).
+    %
+    Now for any $g \in G$ and $v, w \in V$ we have
+    \begin{equation}
+        \braket{D(g)(v)}{D(g)(w)}_D = \int \d{x} \braket{D(xg)(v)}{D(xg)(w)} = \braket{v}{w}_D
+    \end{equation}
+    because of the invariance of the measure, meaning $D$ is indeed unitary w.r.t.~$\braket{\blank}{\blank}_D$.
+    
+    Now, there is an isomorphism $S: V \to V$ of inner product spaces $(V, \braket{\blank}{\blank}_D)$ and $(V, \braket{\blank}{\blank})$, meaning $\braket{S(v)}{S(w)} = \braket{v}{w}_D$.
+    %
+    It can e.g.~be constructed by mapping an orthonormal basis in $(V, \braket{\blank}{\blank})$ to an orthonormal basis in $(V, \braket{\blank}{\blank}_D)$ and linearly extending.
+    %
+    Define the representation $U$ of $G$ on $V$ via $U(g) := S \compose D(g) \compose S^{-1}$, which is equivalent to $D$ by construction.
+    %
+    Now for $g\in G$ and $v, w \in V$ we have
+    \begin{align}
+    \begin{split}
+        \braket{U(g)(v)}{U(g)(w)}
+        &= \braket{(D(g) \compose S^{-1})(v)}{(D(g) \compose S^{-1})(w)}_D
+        = \braket{S^{-1}(v)}{S^{-1}(w)}_D
+        \\
+        &= \braket{v}{w},
+    \end{split}
+    \end{align}
+    where we used the defining property of $S$, that $D$ is unitary w.r.t.~$\braket{\blank}{\blank}_D$ and again the defining property of $S$.
+    %
+    Thus we find that $U$ is unitary w.r.t.~the inner product $\braket{\blank}{\blank}$ on $V$ and equivalent to $D$.
+\end{proof}
+
+Thus for finite groups or compact Lie groups, which covers virtually all cases for symmetry groups in condensed matter physics, we may simply assume a representation is unitary, up to equivalence.
+%
+As a corollary, \emph{any} representation -- unitary or not -- of a finite group or a compact Lie group is equivalent to a direct sum of irreps.
+
+The main result from representation theory that allows an efficient representation of symmetric tensors is \emph{Schur's Lemma}, which comes in two parts.
+
+\textbf{Schur's lemma part 1:}~~
+Let $U$ and $\tilde{U}$ \underline{in}equivalent irreps of a group $G$ on finite dimensional vector spaces $V$ and $\tilde{V}$ respectively.
+%
+Now if $M : V \to \tilde{V}$ is equivariant, meaning linear and $\tilde{U}(g) \compose M = M \compose U(g)$ for all $g\in G$, then $M=0$.
+
+\begin{proof}
+    Distinguish three cases regarding dimensionality.
+
+    In case 1, assume $\dim V < \dim \tilde{V}$. Consider the subspace $M(V) := \setdef{M(v)}{v\in V} \subseteq \tilde{V}$ and let $x = M(v) \in M(V)$.
+    %
+    Then $\tilde{U}(g)(x) = (M \compose U(g))(v) \in M(V)$ for all $g\in G$.
+    %
+    Thus $M(V)$ is an invariant subspace of $\tilde{U}$.
+    %
+    Since $\tilde{U}$ is an irrep, we have either $M(V) = \tilde{V}$ or $M(V) = 0$.
+    %
+    The former is impossible for dimensional reasons and thus $M(v) = 0$ for all $v\in V$, meaning $M=0$.
+
+    In case 2, assume $\dim V > \dim \tilde{V}$.
+    %
+    Here we can reason similarly that $W := \mathrm{kernel}(M) = \setdef{v \in V}{M(v) = 0}$ is an invariant subspace of $U$, and because it is an irrep conclude that $W=V$ and thus $M=0$.
+
+    In case 3, if $\dim V = \dim \tilde{V}$, if either $M(V) = \tilde{V}$ or $W = V$, we find $M=0$ by the same logic as in the previous cases.
+    %
+    Thus, the remaining case for which we have not yet concluded $M=0$ is $M(V) = \tilde{V}$ and $\mathrm{kernel}(M) = 0$. This would however imply that $M$ is both surjective and injective and thus a vector space isomorphism. Since it is also equivariant, it would witness an equivalence $U \cong \tilde{U}$, which contradicts the assumption.
+\end{proof}
+
+In other words, there are no intertwiners (linear $M$ with the above property) between inequivalent irreps.
+%
+Even between equivalent irreps, the intertwiners are constrained as follows.
+
+\textbf{Schur's lemma part 2:}~~
+Let $U$ an irrep of $G$ on a vector space $V$ over an algebraically closed field (e.g.~over $\Cbb$), and $M : V \to V$ equivariant.
+%
+Then $M = \lambda ~ \id{V}$ for some scalar $\lambda \in\Cbb$.
+
+\begin{proof}
+    Since the field is algebraically closed, $M$ has at least one eigenvalue $\lambda$.
+    Let $0 \neq v \in V$ be a corresponding eigenvector. Now consider the eigenspace $E_\lambda = \setdef{v\in V}{M(v) = \lambda v}$. 
+    It is an invariant subspace since for any $v\in E_\lambda$ and $g\in G$ we have
+    $M( U(g)(v) ) = U(g)( M(v) ) = U(g)(\lambda v) = \lambda U(g)(v)$ and thus $U(g)(v) \in E_\lambda$.
+    Since $U$ is an irrep, we have either $E_\lambda = 0$ or $E_\lambda = V$.
+    Since there is an eigenvector $v \neq 0$, the former is ruled out and we find $M(v) = \lambda v$ for all $v\in V$, or equivalently $M = \lambda \id{V}$.
+\end{proof}
+
+We find as a corollary that irreps of an abelian group $G$ are one dimensional, if the underlying field is algebraically closed.
+
+\begin{proof}
+    Let $U$ be an irrep on a vector space $V$.
+    Since $G$ is abelian, we have $U(g) U(h) = U(gh) = U(hg) = U(h) U(g)$ for all $g, h \in G$.
+    Thus Schurs Lemma part 2 applies with $M = U(h)$ and we find $U(g) = \lambda \id{V}$ for some scalar $\lambda$, which may depend on $g$.
+    This means that any subspace of $V$ is invariant under $U$, which contradicts irreducibility of $U$ unless there are no non-trivial proper subspaces, i.e.~unless $\dim V = 1$.
+\end{proof}
+
+To exploit Schur's Lemma, it is convenient to use a basis $\set{e_i}$ for every vector space such that the group representation is not only equivalent but actually equal to a direct sum of irreps.
+%
+This is done by employing the equivariant isomorphism -- a basis change -- guaranteed by the equivalence to a direct sum of irreps.
+%
+For abelian groups, where all irreps are one-dimensional, this effectively assigns an irrep label $\mathbf{a}_i$ to every basis element $e_i$.
+
+This imposes a sparsity structure on the matrix representations of equivariant maps, as follows.
+%
+Let $f: V \to \tilde{V}$ be equivariant between representations $U = \bigoplus_{i=1}^{M} U_i$ on $V$ and $\tilde{U} = \bigoplus_{j=1}^{N} \tilde{U}_j$ on $\tilde{V}$ of an \emph{abelian} symmetry group $G$, where $U_i, \tilde{U}_j$ are irreps and $M = \dim V$, as well as $N = \dim \tilde{V}$.
+%
+For the matrix elements $f_{ij} = \braket{\tilde{e}_i}{f(e_j)}$ in the computational bases $\set{e_j}$ of $V$ and $\set{\tilde{e}_i}$ of $\tilde{V}$, equivariance $f = \tilde{U}^\dagger(g) \compose f \compose U(g)$ translates to
+\begin{equation}
+    f_{ij}
+    = \braket{\tilde{U}(g)(\tilde{e}_i)}{f(U(g)(e_j))}
+    = \braket{\tilde{U}_i(g) \tilde{e}_i}{f(U_j(g) e_j )}
+    = \tilde{U}^\dagger_i(g) f_{ij} U_j(g)
+    ,
+\end{equation}
+where we used that $\tilde{U}_i(g)$ and $U_j(g)$ are just numbers and that $f$ is linear.
+%
+Thus for fixed indices $i = 1,\dots N$ and $j = 1,\dots, M$ the entry $f_{ij}$ of the matrix representation is an equivariant map $\Cbb \to \Cbb$ between $U_i$ and $\tilde{U}_j$ and by Schurs lemma part 1, we have $f_{ij} = 0$ if $U_i \ncong \tilde{U}_j$ are inequivalent.
+%
+Thus, if we sort the basis elements by sector, that is by equivalence class of the irreps, we find a block diagonal structure for the matrix representation of $f$, and the allowed blocks are between basis elements $e_i \in V$ and $e_j \in W$ such that the irreps $U_i \cong \tilde{U}_j$ are in the same sector.
+
+To apply the same idea to tensors, we need to define the product representation on the tensor product of vector spaces.
+%
+The tensor product $U_1 \otimes U_2$ of representations $U_i$ on vector spaces $V_i$ is a representation on the tensor product $V_1 \otimes V_2$ which is given by $(U_1 \otimes U_2)(g) = U_1(g) \otimes U_2(g)$.
+%
+Note that for abelian groups, the product of irreps, which are one-dimensional, is also one-dimensional and thus equivalent to a single irrep.
+%
+This defines fusion rules of sectors, which we write as $\mathbf{a} + \mathbf{b} = \mathbf{c}$ if $U_\mathbf{a} \otimes U_\mathbf{b} \cong U_\mathbf{c}$.
+%
+For the group $G = \U{1}$, for example, the sector labels are integers $\mathbf{a} \in \Zbb$ and the fusion rules are regular addition of labels.
+%
+For a $G = \Zbb_N$ group, the sector labels are from $\mathbf{a} \in \Zbb_N$ and the fusion rules are addition modulo $N$, as the notation suggests.
+%
+For products of groups, the fusion rules are componentwise.
+
+
+The final ingredient is the natural representation on the dual space $\dualspace{V}$ -- the space of bra vectors -- given a representation on a ``ket space" $V$.
+%
+Given a representation $U$ of a group $G$ on a space $V$ with components $\ket{\psi} \mapsto U(g) \ket{\psi}$, the contragradient representation $\bar{U}$ is a representation on the dual space $\dualspace{V}$ given by $\bar{U}(g) = U(g^{-1})^\transpT$, which is the map $\bra{\phi} \mapsto \bra{\phi} U^\dagger(g)$.
+%
+As a result, acting on both a bra and a ket vector with the respective representation leaves the inner products $\rBr{\bra{\phi} U^\dagger(g) }\rBr{U(g) \ket{\psi}} = \braket{\phi}{\psi}$ invariant.
+
+For abelian groups, the contragradient representation of an irrep, and in particular of a sector $\mathbf{a}$ is again one-dimensional, thus irreducible and equivalent to a single sector.
+%
+This gives rise to the notion of the ``opposite" sector and we write $-\mathbf{a}$ for that sector label such that $\bar{U}_\mathbf{a} \cong U_{-\mathbf{a}}$.
+%
+We have an equivalence $\bar{U}_\mathbf{a} \otimes U_\mathbf{a} \cong U_\mathbf{0}$ to the trivial sector, where the isomorphism is given by linear extension of $S: \bra{\phi} \otimes \ket{\psi} \mapsto \braket{\phi}{\psi}$.
+%
+In particular, this establishes $\mathbf{a} + (-\mathbf{a}) = \mathbf{0}$, justifying the notation for the opposite sector.
+%
+For our examples $\U{1}$ ($\Zbb_N$), $-\mathbf{a}$ is actually the negative integer of $\mathbf{a}$ (modulo $N$), and for product groups it is componentwise.
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\section[Cyclic Groups ZN]{Cyclic Groups $\mathbb{Z}_N$}
+\label{sec:topo_data:ZN}
+
+In the following section, here for $G = \Zbb_N$, we give relevant properties, and in particular the topological data for a number of symmetries relevant in condensed matter physics.
+
+The group $\Zbb_N$ for an integer $N > 1$ is given by the numbers $\Zbb_N = \set{0, 1, \dots, N - 1}$ with addition modulo $N$.
+%
+Since it is an abelian group, all of its irreps are one-dimensional and there are $N$ equivalence classes of irreps.
+%
+For each $a = 0, \dots, N - 1$, we choose the following representative irrep for the sector $a$;
+$U_a(g) : \Cbb \to \Cbb , z \mapsto \eto{2\pi\im \frac{a}{N} g} z$, where $g \in \Zbb_N$.
+%
+Thus, sectors are labeled by non-negative integers $a \in \mathcal{S} = \set{0,1,\dots, N-1}$. The dual sector is $\dualsector{a} = (-a \mod N)$.
+%
+The fusion rules are 
+\begin{equation}
+    a \otimes b \cong (a + b \mod N)
+    ,
+\end{equation}
+where in the following we will drop explicitly writing $\mod N$ and all arithmetic is implicitly $\mod N$.
+
+The N symbol is given by $N^{ab}_c = \delta_{a + b, c}$.
+%
+For abelian groups, a fusion tree is fully determined by the uncoupled sectors and in the following we only give the values of the symbols for valid fusion channels.
+
+The F symbol is trivial
+\begin{equation}
+    \big[ F^{abc}_{a + b + c} \big]^{b + c,1,1}_{a + b,1,1} = 1
+\end{equation}
+where we directly plugged in the only valid sectors, e.g.~$d=a+b+c$ and multiplicity labels $\mu = \nu = \kappa = \lambda = 1$.
+%
+The R symbol is similarly trivial
+\begin{equation}
+    \big[ R^{ab}_{a+b} \big]^1_1 = 1
+    .
+\end{equation}
+The set of valid fusion outcomes consists of only a single sector $\mathcal{F}_{a,b} = \set{(a + b \mod N)}$.
+%
+The C symbol, like the F symbol, is one for the only valid fusion channel
+\begin{equation}
+    \big[ C^{abc}_{a+b+c} \big]^{a+b,1,1}_{a+c,1,1} = 1
+    ~.
+\end{equation}
+%
+The B symbol is similarly
+\begin{equation}
+    \big[ B^{ab}_{a+b} \big]^1_1 = 1
+    ~.
+\end{equation}
+%
+As for any abelian symmetry, all sectors are one-dimensional $d_a = 1$.
+%
+As for any group symmetry, the twists $\Theta_a = 1$ are trivial.
+%
+The Frobenius Schur indicators $\chi_a = +1$ are all positive.
+
+The fusion tensors are trivial, given by linear extension of
+\begin{equation}
+    X^{ab}_{c,1} : 1 \otimes 1 \mapsto 1
+\end{equation}
+and the Z isomorphisms are also just one, meaning $Z_a: \dualspace{\Cbb} \ni z \mapsto z \in \Cbb$.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\section{The abelian group U(1)}
+\label{sec:topo_data:U1}
+
+The abelian group $\U{1}$ is the unit circle $\setdef{z \in \Cbb}{\abs{z} = 1}$ in the complex plane with multiplication as group operation.
+%
+It has a countably infinite number of sectors, indexed by $a \in \Zbb$, where the representative irrep is given by
+\begin{equation}
+    U_a(\eto{\im\phi}) : \Cbb \to \Cbb , z \mapsto \eto{\im a \phi} z,
+\end{equation}
+where $\eto{\im\phi}\in\U{1}$ is a general group element.
+%
+All results for $\Zbb_N$ groups listed above also hold for $\U{1}$, if we replace the addition modulo $N$ with regular addition.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\section{The non-abelian group SU(2)}
+\label{sec:topo_data:SU2}
+
+The compact Lie group $\SU{2}$ is given by complex $2 \times 2$ matrices which are unitary and are special (have determinant one).
+%
+It has a countably infinite number of sectors, labeled by a half-integer ``total spin" $j \in \tfrac{1}{2}\Zbb$.
+
+For derivations and for concrete expressions of the representation, it is useful to go to the associated Lie algebra $\su{2}$, and later to its complexification.
+%
+A general element $g \in\SU{2}$ can always be written as $\eto{\ell}$ for some $\ell\in\su{2}$.
+%
+For the spin $j$ irrep $U_j: \SU{2} \mapsto \Homset{R_j}{R_j}$ of $\SU{2}$, there is a compatible representation $\pi_j : \su{2} \to \Homset{R_j}{R_j}$ on the same representation space $R_j = \Cbb^{2j + 1}$, such that $U_j(g) = \exp (\pi_j(\ell))$.
+%
+This allows us to build the group irreps from the Lie algebra representations, which are easier to deal with due to the vector space structure.
+%
+The standard $\Cbb$-basis for the complexified Lie algebra $\mathfrak{su}(2)_\Cbb$ consists of three elements $j_3, j_+, j_-$. Their representations $J_k = \pi_j(j_k)$ are the following operators, given as $(2j + 1) \times (2j + 1)$ matrices
+
+\begin{gather}
+    \begin{gathered}
+    J_3 = \begin{pmatrix}
+        j & & & & \\
+        & j - 1 & & & \\
+        & & \ddots & & \\
+        & & & 1 - j & \\
+        & & & & -j
+    \end{pmatrix}
+    \\
+    J_+ = \begin{pmatrix}
+        0 & & & & \\
+        1 & 0 & & & \\
+        & 1 & \ddots & & \\
+        & & \ddots & 0 & \\
+        & & & 1 & 0
+    \end{pmatrix}
+    \quad
+    J_+ = \begin{pmatrix}
+        0 & 1 & & & \\
+        & 0 & 1 & & \\
+        & & \ddots & \ddots & \\
+        & & & 0 & 1 \\
+        & & & & 0
+    \end{pmatrix}
+    ~.
+    \end{gathered}
+\end{gather}
+%
+They are related to the standard $\Rbb$-basis of the real Lie algebra $\mathfrak{su}(2)$ as $J_3 = \im L_3$ and $J_\pm = \im L_1 \mp L_2$.
+%
+Or conversely $L_1 = -\tfrac{\im}{2} (J_+ + J_-)$, $L_2 = -\tfrac{1}{2} (J_+ - J_-)$ and $L_3 = -\im J_3$.
+%
+Note that the ``real" qualifier of the real Lie algebra refers to the fact that $\mathfrak{su}(2)$ is a real vectorspace, and that linear combinations of its basis elements need to have real coefficients. The representation matrices $L_i$, however, have complex entries and the representation space $R_j$ is a complex vector space.
+
+The $j=0$ case gives us the trivial representation $U_{j=0}(g) : z \mapsto z$.
+%
+The $j=1/2$ case gives us the faithful representation $U(g) = g$.
+
+The fusion rules are $j_1 \otimes j_2 = \bigoplus_{J=\abs{j_1 - j_2}}^{j_1 + j_2} J$, such that 
+\begin{equation}
+    N^{ab}_c = \begin{cases}
+        1 & c \in\set{\abs{a - b}, \dots, a + b} \\
+        0 & \text{else}
+    \end{cases}
+    ~.
+\end{equation}
+%
+We can directly read off the set of fusion outcomes $\mathcal{F}_{a,b} = \set{\abs{a - b}, \dots, a + b}$.
+%
+Note that if $a, b$ are either both integer or both fractional, the fusion outcomes are all integer.
+%
+Conversely if either $a$ or $b$, but not both, are fractional, all fusion outcomes are fractional.
+%
+Since the N symbol can not take values greater than one, the only possible multiplicity label on a valid fusion tensor is $\mu=1$.
+
+For the fusion tensors, we choose the usual Clebsch-Gordan coefficients, commonly denoted as $\braket{j_1 m_1 j_2 m_2}{J M}$.
+%
+In the standard z-basis $\setdef{\ket{m}}{m = -j, \dots, j}$ for the representation space $R_j$ of the spin-$j$ irrep, that means
+\begin{equation}
+    X^{j_1,j_2}_{J,1} = \ket{m_1} \otimes \ket{m_2} \mapsto \sum_{M=-J}^J \braket{J M}{j_1 m_1 j_2 m_2} \ket{M}
+    ~.
+\end{equation}
+
+The F symbol, as we define it in~\eqref{eq:nonabelian:basics:def_F_symbol}, is related to the Wigner 6j symbol or the Racah W symbol $W(j_1 j_2 J j_3; J_{12} J_{23})$ as follows
+\begin{align}
+    \begin{split}  
+        \big[ F^{abc}_d \big]^{e,1,1}_{f,1,1} 
+        &= \sqrt{2 e + 1} \sqrt{2 f + 1} W(a b d c; f e)
+        \\
+        &= \sqrt{2 e + 1} \sqrt{2 f + 1} (-1)^{a+b+c+d}
+            \begin{Bmatrix} a & b & f \\ c & d & e \end{Bmatrix}
+        .
+    \end{split}
+\end{align}
+%
+For computation and storage schemes for the 6j symbols which give the F symbols and the Wigner 3j symbols, which give the fusion tensors refer e.g.~to reference~\cite{rasch2004}.
+
+%
+The R symbol is given by
+\begin{equation}
+    \big[ R^{ab}_c \big]^1_1 = (-1)^{a + b - c}
+    ~.
+\end{equation}
+Note that the exponent is integer for valid fusion channels $N^{ab}_c > 0$.
+
+The quantum dimensions are $d_a = 2a + 1$.
+The Frobenius Schur indicator is given by$\chi_a = (-1)^{(2a)}$.
+It is positive for integer spins and negative for half integers, while the twist, like for all group symmetries, is $\Theta_a = +1$.
+
+The Z isomorphism takes the following explicit form in the standard z-basis $\set{\ket{m}}$.
+\begin{equation}
+    Z_j : \dualspace{R_j} \to R_j , \bra{m} \mapsto \sum_n A^j_{m, n} \ket{n}
+    ,
+\end{equation}
+where
+\begin{equation}
+    A^j = \begin{pmatrix}
+        & & & & & -\chi_j \\
+        & & & & \chi_j & \\
+        & & & \iddots & & \\
+        & & -1 & & & \\
+        & 1 & & & & \\
+        -1 & & & & &
+    \end{pmatrix}
+\end{equation}
+is a $(2j + 1) \times (2j + 1)$ anti-diagonal matrix with alternating signs, such that its top right entry is $-\chi_j = (-1)^{2j+1}$.
+%
+We have chosen the phase of the Z ismorphism, such that~\eqref{eq:nonabelian:cup_from_splitting_tensor} holds with the usual phase choice of the Clebsch Gordan coefficients.
+
+\subsection{Derivation of the Z isomorphism}
+\label{subsec:topo_data:su2:z_iso_derivation}
+
+For completeness, and to facilitate similar treatment of other Lie groups, we give the full derivation of the above result for the Z isomorphism in the following.
+%
+First, as a small warning, note that $Z_j$ is a \emph{linear} map from bra vectors to ket vectors.
+%
+This is rather unusual in physics, where we may have a strong expectation that such maps, such as e.g.~the dagger, are anti-linear.
+
+We show that the map defined above has the necessary properties to be a Z isomorphism.
+%
+First, it is by definition linear and inherits unitarity from the matrix $A$.
+%
+It remains to check that $Z_j$ is equivariant.
+
+It is straight-forward to check that $(A^j)^\dagger J_i A^j = -J_i$ for the basis $J_3, J_\pm$ of the complexified Lie algebra.
+%
+This implies $(A^j)^\dagger L_i A^j = \bar{L}_i$ for the basis of the real Lie algebra, where $\bar{L}$ denotes the elementwise complex conjugate matrix of $L$.
+
+The representation $\sum_i \alpha_i L_i = L = \pi_j(l)$ of a general element $\mathfrak{su}(2) \owns l = \sum_i \alpha_i l_i$ is a real ($\alpha_i \in \Rbb$) linear combination of the $L_i$ and thus also fulfills $(A^j)^\dagger L A^j = \bar{L}$.
+%
+Therefore the respective representation $U(g)$ of a general element $SU(2) \owns g = \ee^l$ fulfills
+\begin{equation}
+    (A^j)^\dagger U(g) A^j
+    = (A^j)^\dagger \ee^L A^j
+    = \ee^{(A^j)^\dagger L A^j}
+    = \ee^{\bar{L}}
+    = \bar{U}(g)
+    ~.
+\end{equation}
+
+This is sufficient to show that $Z_j$ is symmetry-preserving, meaning $Z_j \compose U_{\dualspace{(R_j)}}(g) = U_{R_j}(g) \compose Z_j$ for all $g \in SU(2)$.
+It is enough to compare the action on a generic basis element;
+%
+\begin{align}
+    \begin{split}
+        \text{LHS: }
+        \bra{m}
+        &\mapsto \bra{m} U^\dagger(g)
+        = \sum_{m'} \overline{U}_{m'm} \bra{m'}
+        \mapsto \sum_{m'n} \overline{U}_{m'm} A^j_{nm'} \ket{n}
+        \\
+        &= \sum_{n} \left[A^j \cdot \overline{U}(g)\right]_{nm} \ket{n}
+    \end{split}
+    \\
+    \begin{split}
+        \text{RHS: }
+        \bra{m}
+        &\mapsto \sum_{m'} A^j_{m'm} \ket{m'}
+        \mapsto \sum_{m'} A^j_{m'm} U(g) \ket{m'}
+        = \sum_{m'n} A^j_{m'm} U_{nm'}(g) \ket{n}
+        \\
+        &= \sum_{n} \left[U(g) A^j\right]_{nm} \ket{n}
+        = \sum_{n} \left[A^j (A^j)^\dagger U(g) A^j\right]_{nm} \ket{n}
+        \\
+        &= \sum_{n} \left[A^j \overline{U}(g)\right]_{nm} \ket{n}
+        % = \text{LHS}(\bra{m})
+        ~,
+    \end{split}
+\end{align}
+where we write $U(g) := U_{R_j}(g)$ for the representation on the ket space $R_j$ for readability and $U_{nm} := \braopket{n}{U(g)}{m}$.
+
+To derive the concrete form of the matrix in general, note that we used above that the irreps of $\SU{2}$ are self-dual, meaning $\dualsector{j} = j$.
+%
+In general, we need to solve the set of matrix equations $(A^j)^\dagger \pi_j(\ell_i) A^j = \bar{\pi}_{\dualsector{j}}(\ell_i)$ for all generators $\ell_i$ of the real Lie algebra, as the remaining derivations generalizes to any Lie group.
+%
+Note that depending in the chosen bases, this may or may not translate to an equation like $(A^j)^\dagger \pi_j(j_i) A^j = -\pi_{\dualsector{j}}(j_i)$ with the generators $j_i$ of the complexified algebra.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\section{Fermions}
+\label{sec:topo_data:ferm}
+
+\newcommand{\tfermpair}[2]{(#1, #2)}
+\newcommand{\fermpair}[2]{\rBr{#1, #2}}
+
+Next, we consider the tensor category $\mathbf{Ferm}$.
+%
+We can understand it as a description of fermions since the fusion rules and the exchange statistics encoded in the braid give the correct behavior.
+
+We start from the category $\mathbf{FdSHilb}_\Cbb$ of finite dimensional complex super Hilbert spaces.
+%
+Its objects are pairs $\tfermpair{H}{H'}$ of finite dimensional complex Hilbert spaces, where we can think of $H$ as the ``bosonic" part with even fermionic parity and $H'$ as the ``fermionic" part with odd parity.
+%
+Its morphisms are pairs $\fermpair{f}{f'}: \fermpair{H}{H'} \to \fermpair{K}{K'}$ of linear maps $f: H \to K$ and $f':H' \to K'$ and composition is componentwise, as is addition of morphisms and multiplication with scalars.
+%
+The identity morphism is $\id{\fermpair{H}{H'}} = \fermpair{\id{H}}{\id{H'}}$.
+%
+Direct sums are componentwise direct sums of vector spaces.
+%
+We obtain the tensor category $\mathbf{Ferm}$ by equipping the super Hilbert spaces with the following monoidal and braiding structures.
+
+For explicit constructions in the following, it is convenient to use the matrix notation in a category with linear structure and direct sums.
+%
+Let $A = \oplus_{m=1}^M A_m$ be witnessed by inclusions $i_m: A_m \to A$ and projections $p_m: A \to A_m$ and similarly $B = \oplus_{n=1}^N B_n$ by inclusions $\tilde{i}_n: B_n \to B$ and projections $\tilde{p}_n: B \to B_m$.
+%
+Now for morphisms $f_{m,n} : A_m \to B_n$ we define their matrix as
+\begin{equation}
+    \begin{pmatrix}
+        f_{1,1} & f_{2,1} & \dots & f_{M,1} \\
+        f_{1,2} & f_{2,2} & \dots & f_{M,2} \\
+        \vdots & \vdots & \ddots & \vdots \\
+        f_{1,N} & f_{2,N} & \dots & f_{M,N}
+    \end{pmatrix}
+    := \sum_{m,n} \tilde{i}_n \compose f_{m,n} \compose p_m
+\end{equation}
+and conversely, every morphism $g : A \to B$ is equal to the matrix of $g_{m,n} := \tilde{p}_n \compose g \compose i_m$.
+%
+If the morphisms are linear maps between vector spaces, we can think of this matrix notation as forming the block matrix of the respective matrix representations of the $f_{m,n}$.
+%
+Composition of matrix morphisms can be carried out similar to matrix-matrix multiplication, i.e.~in short $(f \compose g)_{m,n} = \sum_k f_{m,k} \compose g_{k,n}$.
+
+
+The tensor product is defined on objects as
+\begin{equation}
+    \label{eq:topo_data:ferm:def_otimes_objects}
+    \fermpair{H}{H'} \otimes \fermpair{K}{K'}
+    := \fermpair{(H \otimes K) \oplus (H' \otimes K')}{(H \otimes K') \oplus (H' \otimes K)}
+\end{equation}
+and encodes the fermionic statistics; a composite system of two fermionic degrees of freedom $\fermpair{0}{H'}$ and $\fermpair{0}{K'}$ behaves as a boson $\fermpair{H' \otimes K'}{0}$.
+%
+The tensor product of morphisms $\fermpair{f}{f'} : \fermpair{H}{H'} \to \fermpair{K}{K'}$ and $\fermpair{g}{g'} : \fermpair{L}{L'} \to \fermpair{M}{M'}$ is defined as
+\begin{equation}
+    \fermpair{f}{f'} \otimes \fermpair{g}{g'}
+    := \fermpair{ 
+        \begin{pmatrix} f \otimes g & 0 \\ 0 & f' \otimes g' \end{pmatrix}
+    }{
+        \begin{pmatrix} f \otimes g' & 0 \\ 0 & f' \otimes g \end{pmatrix}
+    }
+    ,
+\end{equation}
+structurally very similar to the tensor product of objects, except diagonal matrices of morphisms take the place of direct sums of spaces.
+%
+To read explicit forms of morphisms like above, first expand the domain and codomain
+of $\fermpair{f}{f'} \otimes \fermpair{g}{g'} : \fermpair{H}{H'} \otimes \fermpair{L}{L'} \to \fermpair{K}{K'} \otimes \fermpair{M}{M'}$ using~\eqref{eq:topo_data:ferm:def_otimes_objects}.
+%
+Now, each component of such a morphism is a map between the direct sums, resulting from expanding the tensor product, and can be given as a matrix.
+
+The monoidal unit is $I = \fermpair{\Cbb}{ 0}$.
+%
+The associator is given by
+\begin{equation}
+    \label{eq:topo_data:ferm:associatior}
+    \setlength{\arraycolsep}{0mm}
+    \alpha_{\fermpair{A}{A'}\fermpair{B}{B'}\fermpair{C}{C'}}
+    = \fermpair{
+        \begin{pmatrix}
+            \alpha_{ABC} & 0 & 0 & 0 \\
+            0 & 0 & \alpha_{AB'C'} & 0 \\
+            0 & 0 & 0 & \alpha_{A'BC'} \\
+            0 & \alpha_{A'B'C} & 0 & 0
+        \end{pmatrix}
+    }{
+        \begin{pmatrix}
+            \alpha_{ABC'} & 0 & 0 & 0 \\
+            0 & 0 & \alpha_{AB'C} & 0 \\
+            0 & 0 & 0 & \alpha_{A'BC} \\
+            0 & \alpha_{A'B'C'} & 0 & 0
+        \end{pmatrix}
+    }
+    ,
+\end{equation}
+where $\alpha_{ABC} : (A \otimes B) \otimes C \isoTo A \otimes (B \otimes C)$ are the associators of $\mathbf{FdHilb}_\Cbb$.
+%
+The definition in terms of matrices suppresses some isomorphisms of the form $(H \oplus K) \otimes L \isoTo (H \otimes L) \oplus (K \otimes L)$ to map the domain $(\fermpair{A}{A'} \otimes \fermpair{B}{B'}) \otimes \fermpair{C}{C'}$ such that each component is a flat direct sum and we can apply the matrix notation.
+
+The unitors are
+\begin{equation}
+    \lambda_{\fermpair{A}{A'}}
+    = \fermpair{
+        \begin{pmatrix} \lambda_A & 0 \end{pmatrix}
+    }{
+        \begin{pmatrix} \lambda_{A'} & 0 \end{pmatrix}
+    }
+    \qquad
+    \rho_{\fermpair{A}{A'}}
+    = \fermpair{
+        \begin{pmatrix} \rho_A & 0 \end{pmatrix}
+    }{
+        \begin{pmatrix} 0 & \rho_{A'} \end{pmatrix}
+    }
+    .
+\end{equation}
+
+The dagger of morphisms is componentwise $\fermpair{f}{g}^\dagger = \fermpair{f^\dagger}{g^\dagger}$.
+
+The dual is also componentwise, $\dualspace{\fermpair{H}{K}} = \fermpair{\dualspace{H}}{\dualspace{K}}$, where the cup and cap are given by
+\begin{equation}
+    \eta_{\fermpair{H}{H'}}
+    = \fermpair{\begin{pmatrix}\eta_H \\ \eta_{H'}\end{pmatrix}}{0}
+    \qquad
+    \epsilon_{\fermpair{H}{H'}}
+    = \fermpair{\begin{pmatrix} \epsilon_H & \epsilon_{H'}\end{pmatrix}}{0}
+    ~.
+\end{equation}
+
+The braid is given by
+\begin{equation}
+    \tau_{\fermpair{A}{A'}, \fermpair{B}{B'}}
+    = \fermpair{
+        \begin{pmatrix} \tau_{A,B} & 0 \\ 0 & -\tau_{A',B'} \end{pmatrix}
+    }{
+        \begin{pmatrix} \tau_{A,B'} & 0 \\ 0 & \tau_{A',B} \end{pmatrix}
+    }
+    ,
+\end{equation}
+where $\tau_{A,B} : A \otimes B \to B \otimes A, \ket{a} \otimes \ket{b} \mapsto \ket{b} \otimes \ket{a}$ is the braid of $\mathbf{FdHilb}_\Cbb$.
+%
+We see the fermionic exchange statistics; braiding a fermionic state around a fermionic state gives a minus sign, while all other braidings have a plus sign.
+%
+The braid is symmetric.
+%
+
+This fully defines the category and we now turn to the topological data.
+%
+Checking the compatibility axioms to verify that the definitions above do indeed yield a tensor category is cumbersome, but straight-forward, as is deriving the topological data below.
+
+
+There are two sectors, the trivial sector, or boson $I = \fermpair{\Cbb}{0}$ and the fermion $\psi = \fermpair{0}{\Cbb}$, such that $\mathcal{S} = \set{I, \psi} = \Zbb_2$, where we identify $I = 0 \in \Zbb_2$ and $\psi = 1 \in \Zbb_2$ for explicit numerical values below.
+%
+Both sectors are self-dual; $\dualsector{\mathbf{a}} = \mathbf{a}$.
+%
+The fusion rules resulting from the tensor product defined above are $I \otimes I \cong I \cong \psi \otimes \psi$ and $I \otimes \psi \cong \psi \cong \psi \otimes I$.
+%
+This category shares a property with representations of abelian groups, which we call \emph{unique fusion}, namely that the tensor product of two sectors $a, b$ decomposes as only a single sector, such that $N^{ab}_c$ is non-zero for only a single sector $c$, where it is one.
+%
+We write $a + b$ for that single sector such that $a \otimes b \cong a + b$.
+%
+We find
+\begin{equation}
+    N^{ab}_{c} = \delta_{c, a + b}
+    .
+\end{equation}
+%
+Since we have unique fusion, the entire fusion channel is determined by the input sectors, i.e.~the upper indices of the F, R, C, B symbols.
+%
+We therefore only give the values of the symbols with the unique indices that give a consistent fusion channel.
+
+The fusion tensors are
+\begin{gather}
+    \begin{gathered}
+        X^{II}_I = \fermpair{\begin{pmatrix} X \\ 0\end{pmatrix}}{0}
+        \qquad X^{I\psi}_\psi = \fermpair{0}{\begin{pmatrix} X \\ 0\end{pmatrix}}
+        \\
+        X^{\psi I}_\psi = \fermpair{0}{\begin{pmatrix} 0 \\ X\end{pmatrix}}
+        \qquad X^{\psi\psi}_I = \fermpair{\begin{pmatrix} 0 \\ X\end{pmatrix}}{0}
+        ,
+    \end{gathered}
+\end{gather}
+where $X : \Cbb \otimes \Cbb \to \Cbb , x \otimes y \to xy$ is the fusion tensor of $\mathbf{FdHilb}_\Cbb$.
+
+The Z isomorphism are simply $Z_I = \fermpair{Z}{0}$ and $Z_\psi = \fermpair{0}{Z}$, where $Z : \dualspace{\Cbb} \to \Cbb , z \mapsto z$ is the Z isomorphism of $\mathbf{FdHilb}_\Cbb$.
+
+As for all categories with unique fusion, we find that the F symbol for valid fusion channels is
+\begin{equation}
+    \big[ F^{abc}_{a + b + c} \big]^{b + c,1,1}_{a + b,1,1} = 1
+    .
+\end{equation}
+
+The R symbol is given by
+\begin{equation}
+    \big[R^{ab}_{a + b}\big]^1_1
+    = 1 - 2ab
+    = \begin{cases} -1 & a = b = \psi \\ 1 & \text{else}\end{cases}
+\end{equation}
+as expected; if we braid two fermions, we get a minus sign, and a plus sign otherwise.
+
+The resulting expression for the C symbol is 
+\begin{equation}
+    \big[ C^{abc}_{a + b + c} \big]^{a + b,1,1}_{a + c,1,1} = 1 - 2 bc
+    = \begin{cases} -1 & b = c = \psi \\ 1 & \text{else}\end{cases}
+\end{equation}
+
+and the B symbol is again trivial
+\begin{equation}
+    \big[B^{ab}_{a + b}\big]^1_1 = 1
+    .
+\end{equation}
+
+Both sectors are one-dimensional $d_a = 1$ and have a positive Frobenius indicators $\chi_a = +1$.
+%
+The twist is $\Theta_a = (-1)^a = 1 - 2a$.
+%
+In that sense, we have equipped $\mathbf{FdSHilb}_\Cbb$ with a non-trivial twist.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\section{Fibonacci Anyons}
+\label{sec:topo_data:fib}
+
+Next, we consider the tensor category $\mathbf{Fib}$.
+%
+We can understand it as a description of Fibonacci anyon excitations since the fusion rules and the exchange statistics encoded in the braid give the correct behavior.
+
+The construction is similar to the category $\mathbf{Ferm}$ of fermions and comments there apply.
+%
+We start from the same underlying objects, tuples $(H,H')$ of finite dimensional Hilbert spaces, and morphisms, tuples $(f,f'): (H,H') \to (K,K')$ of linear maps $f: H \to K$ and $f': H' \to K'$.
+%
+Again, composition, addition, scalar multiplication, identities, direct sums and the dagger are all componentwise.
+
+We choose a different tensor product for $\mathbf{Fib}$, however, namely
+\begin{equation}
+    \label{eq:topo_data:fib:def_otimes_objects}
+    \fermpair{H}{H'} \otimes \fermpair{K}{K'}
+    := \fermpair{(H \otimes K) \oplus (H' \otimes K')}{(H \otimes K') \oplus (H' \otimes K) \oplus (H' \otimes K')}
+    .
+\end{equation}
+%
+Note the additional term in the second component compared to ~\eqref{eq:topo_data:ferm:def_otimes_objects}.
+%
+The monoidal unit is $I=\fermpair{\Cbb}{0}$.
+%
+The associator $$\alpha_{\fermpair{A}{A'}\fermpair{B}{B'}\fermpair{C}{C'}} = \fermpair{\alpha^I_{\fermpair{A}{A'}\fermpair{B}{B'}\fermpair{C}{C'}}}{\alpha^\tau_{\fermpair{A}{A'}\fermpair{B}{B'}\fermpair{C}{C'}}}$$ is a tuple of the following two components
+
+\begin{gather}
+\begin{gathered}
+    \alpha^I_{\fermpair{A}{A'}\fermpair{B}{B'}\fermpair{C}{C'}}
+    =
+    \begin{pmatrix}
+        \alpha_{ABC} & 0 & 0 & 0 & 0 \\
+        0 & 0 & \alpha_{AB'C'} & 0 & 0 \\
+        0 & 0 & 0 & \alpha_{A'BC'} & 0 \\
+        0 & \alpha_{A'B'C} & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 & \alpha_{A'B'C'}
+    \end{pmatrix}
+    \\
+    \setlength{\arraycolsep}{0pt}
+    \alpha^\tau_{\fermpair{A}{A'}\fermpair{B}{B'}\fermpair{C}{C'}}
+    =
+    \begin{pmatrix}
+        \alpha_{ABC'} & 0 & 0 & 0 & 0 & 0 & 0 & 0 \\
+        0 & 0 & \alpha_{AB'C} & 0 & 0 & 0 & 0 & 0 \\
+        0 & 0 & 0 & 0 & 0 & \alpha_{AB'C'} & 0 & 0 \\
+        0 & 0 & 0 & \alpha_{A'BC} & 0 & 0 & 0 & 0 \\
+        0 & \tfrac{1}{\phi} \alpha_{A'B'C'} & 0 & 0 & 0 & 0 & 0 & \tfrac{1}{\sqrt{\phi}} \alpha_{A'B'C'} \\
+        0 & 0 & 0 & 0 & 0 & 0 & \alpha_{A'BC'} & 0 \\
+        0 & 0 & 0 & 0 & \alpha_{A'B'C} & 0 & 0 & 0 \\
+        0 & \tfrac{1}{\sqrt{\phi}} \alpha_{A'B'C'} & 0 & 0 & 0 & 0 & 0 & -\tfrac{1}{\phi} \alpha_{A'B'C'} \\
+    \end{pmatrix}
+    ~,
+\end{gathered}
+\end{gather}
+where $\phi = (1 + \sqrt{5}) / 2$ is the golden ratio and we suppress isomorphisms similar to~\eqref{eq:topo_data:ferm:associatior}.
+
+The unitors are
+\begin{equation}
+    \lambda_{\fermpair{A}{A'}}
+    = \fermpair{
+        \begin{pmatrix} \lambda_A & 0 \end{pmatrix}
+    }{
+        \begin{pmatrix} \lambda_{A'} & 0 & 0 \end{pmatrix}
+    }
+    \qquad
+    \rho_{\fermpair{A}{A'}}
+    = \fermpair{
+        \begin{pmatrix} \rho_A & 0 \end{pmatrix}
+    }{
+        \begin{pmatrix} 0 & \rho_{A'} & 0\end{pmatrix}
+    }
+    .
+\end{equation}
+
+The dual object is componentwise $\dualspace{\fermpair{H}{K}} = \fermpair{\dualspace{H}}{\dualspace{K}}$, where the cup and cap are given by
+\begin{equation}
+    \eta_{\fermpair{H}{H'}}
+    = \fermpair{\begin{pmatrix}\eta_H \\ \eta_{H'}\end{pmatrix}}{0}
+    \qquad
+    \epsilon_{\fermpair{H}{H'}}
+    = \fermpair{\begin{pmatrix} \epsilon_H & \epsilon_{H'}\end{pmatrix}}{0}
+\end{equation}
+which is structurally very similar to fermions, but note that the zero maps in the second components have a different type.
+
+The braid is given by
+\begin{equation}
+    \tau_{\fermpair{A}{A'}, \fermpair{B}{B'}}
+    = \fermpair{
+        \begin{pmatrix} \tau_{A,B} & 0 \\ 0 & \eto{-\tfrac{4}{5}\pi\im} \tau_{A',B'} \end{pmatrix}
+    }{
+        \begin{pmatrix} \tau_{A,B'} & 0 & 0\\ 0 & \tau_{A',B} & 0 \\ 0 & 0 & \eto{\tfrac{3}{5}\pi\im} \tau_{A',B'} \end{pmatrix}
+    }
+\end{equation}
+Here, we can already heuristically interpret the exchange statistics.
+%
+Braiding two $\tau$'s results in a phase that depends on the joint state or ``fusion channel", it is $\eto{-\tfrac{4}{5}\pi\im} \tau_{A',B'}$ if they fuse to $I$ and $\eto{\tfrac{3}{5}\pi\im}$ if they fuse to $\tau$.
+%
+In particular, the braid is \emph{not} symmetric.
+
+Now for the topological data;
+%
+The sectors are the trivial sector or vacuum $I = \fermpair{\Cbb}{0}$ and the tau anyon $\tau = \fermpair{0}{\Cbb}$, such that $\mathcal{S} = \set{I, \tau}$.
+%
+They are both self-dual $\dualsector{a} = a$ and the fusion rules
+\begin{equation}
+    I \otimes I \cong I
+    \quad 
+    I \otimes \tau \cong \tau
+    \quad 
+    \tau \otimes I \cong \tau
+    \quad 
+    \tau \otimes \tau \cong I \oplus \tau
+\end{equation}
+are indeed the correct fusion rules for Fibonacci anyons and give rise to the N symbol
+\begin{equation}
+    N^{Ib}_c = \delta_{b,c} \qquad N^{aI}_c = \delta_{a,c} \qquad N^{\tau\tau}_c = 1
+    .
+\end{equation}
+Note that the N symbol only takes on values $N^{ab}_c \in \set{0, 1}$, such that all multiplicity labels for valid fusion channels are $\mu=1$.
+
+The fusion tensors are
+\begin{gather}
+\begin{gathered}
+    X^{II}_I = \fermpair{\begin{pmatrix} X \\ 0\end{pmatrix}}{0}
+    \qquad X^{I\tau}_\tau = \fermpair{0}{\begin{pmatrix} X \\ 0 \\ 0\end{pmatrix}}
+    \qquad X^{\tau I}_\tau = \fermpair{0}{\begin{pmatrix} 0 \\ X \\ 0\end{pmatrix}}
+    \\
+    \qquad X^{\tau\tau}_I = \fermpair{\begin{pmatrix} 0 \\ X\end{pmatrix}}{0}
+    \qquad X^{\tau\tau}_\tau = \fermpair{0}{\begin{pmatrix} 0 \\ 0 \\ X\end{pmatrix}}
+    .
+\end{gathered}
+\end{gather}
+The Z isomorphism are simply $Z_I = \fermpair{Z}{0}$ and $Z_\tau = \fermpair{0}{Z}$.
+
+The only non-trivial F symbol is
+\begin{equation}
+    \big[ F^{\tau\tau\tau}_{\tau} \big]^{e,1,1}_{f,1,1}
+    = \begin{cases}
+        \phi^{-1} & e = f = I \\
+        -\phi^{-1} & e = f = \tau \\
+        \phi^{-1/2} & (e, f) \in \set{(I, \tau), (\tau, I)}
+    \end{cases}
+\end{equation}
+and for all other $(a,b,c,d) \neq (\tau,\tau,\tau,\tau)$ we have $[F^{abc}_{d}]^{e,1,1}_{f,1,1} = 1$ where there is only one valid choice for $e,f$ in each case.
+
+The only non-trivial R symbol is
+\begin{equation}
+    \big[R^{\tau\tau}_{c}\big]^1_1
+    = \begin{cases}
+        \eto{-\tfrac{4}{5}\pi\im } & c = I \\
+        \eto{\tfrac{3}{5}\pi\im } & c = \tau
+    \end{cases}
+\end{equation}
+and for all other $(a,b) \neq (\tau,\tau)$ we have $[R^{ab}_c]^1_1 = 1$ and there is only one valid choice for $c$ in each case.
+
+The non-trivial B symbols are $[B^{\tau\tau}_I]^1_1 = \phi^{-1/2}$ and $[B^{I\tau}_\tau]^1_1 = \phi^{1/2}$ and all others are $[B^{\tau\tau}_\tau]^1_1 = [B^{\tau I}_\tau]^1_1 = [B^{II}_I]^1_1 = 1$.
+
+The quantum dimensions are $d_I = 1$ and $d_\tau = \phi$, the Frobenius Schur indicators are all positive $\chi_a = +1$ and the twists are $\theta_I = 1$ and $\theta_\tau = \phi^{-1} \eto{-\tfrac{4}{5}\pi\im } + \eto{\tfrac{3}{5}\pi\im }$.
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\section{Combining symmetries}
+\label{sec:topo_data:product}
+
+Combining multiple symmetries is formalized by Deligne's tensor product.
+%
+For tensor categories $\mathbf{A}$ and $\mathbf{B}$, a Deligne tensor product is a category $\mathbf{A} \boxtimes \mathbf{B}$ with a functor $\boxtimes: \mathbf{A} \times \mathbf{B} \to \mathbf{A} \boxtimes \mathbf{B}$ that has the following defining property.
+%
+Firstly, $\boxtimes$ is right-exact in both arguments and, secondly, for any other tensor category $\mathbf{C}$ and functor $F: \mathbf{A} \times \mathbf{B} \to \mathbf{C}$ that is right exact in both arguments there is a unique right exact functor $\tilde{F}: \mathbf{A} \boxtimes \mathbf{B} \to \mathbf{C}$ such that $F = \tilde{F} \compose \boxtimes$.
+%
+Under our assumptions for a tensor category, such a product is guaranteed to exist and is unique up to a unique equivalence~\cite[Prop 1.11.2]{etingof2015} and can be equipped with all the structures of a tensor category in a canonical way~\cite[Prop 4.6.1]{etingof2015}.
+%
+Dealing with it explicitly and deriving the following statements rigorously is beyond the scope of this thesis.
+%
+We expect that the explicit construction in~\cite[Def. 8.45]{heunen2019} may prove useful.
+%
+The following statements in this section are thus to be taken as conjecture.
+
+
+
+We expect that the Deligne tensor product of tensor categories that describe individual symmetries describes the composite symmetry in the following senses;
+%
+For symmetry groups $G$ and $H$ the Deligne product can be chosen as $\mathbf{FdRep}_{G} \boxtimes \mathbf{FdRep}_{H} = \mathbf{FdRep}_{G\times H}$ and thus describes the symmetry group $G \times H$.
+%
+For a symmetry group $G$, we conjecture that the Deligne product $\mathbf{Ferm}_G := \mathbf{Ferm} \boxtimes \mathbf{FdRep}_{G}$ is a category that can be explicitly defined by generalizing the definition of $\mathbf{Ferm}$ from tuples of Hilbert spaces (objects in $\mathbf{FdHilb}_\Cbb$) to tuples of representations of $G$, that is objects of $\mathbf{FdRep}_{G}$.
+%
+It thus represents fermionic degrees of freedom with a symmetry group.
+%
+Similarly for $\mathbf{Fib}$, we expect $\mathbf{Fib}_G := \mathbf{Fib} \boxtimes \mathbf{FdRep}_{G}$ to describe Fibonacci anyon excitations with a symmetry group, with an analogous generalization of the definition of $\mathbf{Fib}$.
+%
+We expect that similar constructions apply to other modular anyon categories, other than $\mathbf{Fib}$.
+
+Let us now conjecture the topological data.
+%
+The sectors are given by Deligne tensor products of sectors, that is 
+\begin{equation}
+    \mathcal{S}_{A \boxtimes B} = \setdef{a \boxtimes b}{a\in\mathcal{S}_A, b\in\mathcal{S}_B}
+\end{equation}
+which we can just understand as tuples $(a,b)$ of respective sectors in the practical implementation.
+%
+The topological data mostly just factorizes;
+%
+The N symbol is given by 
+\begin{equation}
+    N^{a_1 \boxtimes a_2, b_1 \boxtimes b_2}_{c_1\boxtimes c_2} = N^{a_1,b_1}_{c_1} N^{a_2,b_2}_{c_2}
+\end{equation}
+such that multiplicity labels $\mu = 1, \dots, N^{a_1 \boxtimes a_2, b_1 \boxtimes b_2}_{c_1\boxtimes c_2}$ can be recast as tuples $(\mu_1, \mu_2)$ of separate multiplicity labels $\mu_i = 1,\dots N^{a_i,b_i}_{c_i}$, i.e.~by using strides.
+%
+The fusion tensors are
+\begin{equation}
+    X^{a_1 \boxtimes a_2, b_1 \boxtimes b_2}_{c_1\boxtimes c_2,(\mu_1,\mu_2)}
+    = X^{a_1,b_1}_{c_1,\mu_1} \boxtimes X^{a_2,b_2}_{c_2,\mu_2}
+\end{equation}
+and the Z isomorphisms are
+\begin{equation}
+    Z_{a_1 \boxtimes a_2} = Z_{a_1} \boxtimes Z_{a_2}
+    ~.
+\end{equation}
+%
+The remaining topological data all factorizes, such as e.g. for the R symbol
+\begin{equation}
+    \big[ R^{a_1 \boxtimes a_2, b_1 \boxtimes b_2}_{c_1\boxtimes c_2} \big]^{(\mu_1, \mu_2)}_{(\nu_1, \nu_2)}
+    = \big[ R^{a_1,b_1}_{c_1} \big]^{\mu_1}_{\nu_1} \big[ R^{a_2,b_2}_{c_2} \big]^{\mu_2}_{\nu_2} 
+\end{equation}
+i.e.~as a matrix of multiplicity indices, it is the Kronecker matrix product of the respective symbols from the separate categories.
+%
+Similar expressions hold for the F, C and B symbols.
+%
+The quantum dimensions, Frobenius Schur indicator and twist all factorize too, e.g.~$d_{a_1\boxtimes a_2} = d_{a_1} d_{a_2}$.
+
+Generalizations to combinations of more than two symmetries is straight-forward.

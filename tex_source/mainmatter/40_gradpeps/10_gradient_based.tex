@@ -1,0 +1,83 @@
+A gradient-based optimization method is a global method, where \emph{simultaneous} updates of all tensors are derived based on values and gradients of some target loss function.
+%
+For ground state search, this means finding the \acro{peps} tensors $\set{A^{[x,y]}}$ parametrizing a trial state $\ket{\phi}$ such that the variational energy 
+\begin{equation}
+    \label{eq:gradpeps:gradient_based:variational_energy}
+    E\big(\ket{\phi}\big)
+    := \frac{\braopket{\phi}{H}{\phi}}{\braket{\phi}{\phi}}
+\end{equation}
+as a function of the \acro{peps} tensors $\set{A^{[x,y]}}$ is minimized.
+%
+This gives us a ground state approximation
+\begin{equation}
+    \label{eq:gradpeps:gradient_based:find_gs}
+    \ket{\text{GS}}
+    \approx \argmin_{\ket{\phi}\in\text{PEPS}(D)} E\big(\ket{\phi} \big)
+    .
+\end{equation}
+%
+Equation~\eqref{eq:gradpeps:gradient_based:find_gs} becomes exact as $D \to \infty$, and at a given finite $D$, we obtain a \acro{peps} approximation using a numerical optimization algorithm, such as conjugate gradient or quasi-Newton methods.
+%
+This requires us to evaluate the loss function and its gradient at any point in the variational manifold.
+%
+The ``point" is given by a set $\set{A^{[x,y]}}$ of tensors that parametrize a \acro{peps} $\ket{\phi}$ and the gradient is similarly a set of components
+\begin{equation}
+    \label{eq:gradpeps:gradient_of_energy}
+    G^{[x,y]} := \frac{\partial E(\ket{\phi})}{\partial \conj{A}^{[x,y]}}
+    .
+\end{equation}
+%
+As a result, we get a gradient-based ground state search, as e.g.~employed in Refs.~\cite{hasik2021, scheb2023}.
+
+
+
+We propose a time evolution method using a similar gradient-based minimization of the square distance between the exactly evolved state and a trial state of bounded bond dimension.
+%
+This has the same goal as the \acro{mpoEvolution} algorithm for \acro{mps} time evolution but is approached with global gradient-based updates instead of local variational updates.
+%
+Assume we have an approximation of the unitary time evolution operator $U(\delta t)$ for a small time step in the form of a \acro{pepo}.
+%
+Now, by minimizing the square distance
+\begin{align}
+    \label{eq:gradpeps:gradient_based:cost_function_time_evolution}
+    \begin{split}
+        \Delta^2 \big(\ket{\phi}, U(\delta t) \ket{\psi(t)} \big)
+        &:= \norm{
+            \frac{\ket{\phi}}{\norm{\ket{\phi}}}
+            - \frac{ U (\delta t) \ket{\psi(t)} }{\norm{U (\delta t) \ket{\psi(t)}}}
+        }
+        \\[1ex]
+        &=
+        2 - 2 \frac{\mathrm{Re} \braopket{\phi}{U (\delta t)}{\psi(t)}}{\sqrt{\braket{\phi}{\phi}\braket{\psi(t)}{\psi(t)}}}
+    \end{split}
+\end{align}
+we obtain an approximation of the evolved state up to normalization.
+%
+Concretely, this means
+\begin{equation}
+    \frac{1}{\mathcal{N}} \ket{\psi(t + \delta t)}
+    = \frac{1}{\mathcal{N}} U(\delta t)\ket{\psi(t)}
+    \approx \argmin_{\ket{\phi}\in\text{PEPS}(D)} \Delta^2 \big(\ket{\phi}, U(\delta t) \ket{\psi(t)} \big)
+\end{equation}
+with some normalization factor $\mathcal{N} > 0$.
+%
+Again, the approximation becomes exact if the bond dimension $D \to \infty$ is unbounded, such that the minimization explores the entire many-body Hilbert space.
+
+
+
+The time evolution method can be generalized to approximately apply arbitrary operators, that is, optimize $\ket{\phi^\star} \approx \tfrac{1}{\mathcal{N}} O \psiket$ for a \acro{pepo} $O$ and a \acro{peps} $\psiket$.
+%
+Note, however, that we used the unitarity of the time evolution operator in equation~\eqref{eq:gradpeps:gradient_based:cost_function_time_evolution}, and in the general case with non-unitary $O$, we have
+\begin{equation}
+    \Delta^2 \big(\ket{\phi}, O \ket{\psi} \big)
+    = 2 - \frac{2}{\norm{O\psiket}}  \frac{\mathrm{Re} \braopket{\phi}{O}{\psi}}{\sqrt{\braket{\phi}{\phi}}}
+    =: 2 - \frac{2}{\norm{O\psiket}} \Omega(\ket{\phi}, O \ket{\psi})
+    .
+\end{equation}
+Evaluating the norm $\sqrt{\braopket{\psi}{O^\dagger O}{\psi}}$ in the denominator may be prohibitively expensive, and since it is constant as a function of the trial state $\ket{\phi}$, we may instead maximize the overlap $\Omega$.
+%
+Since $\Delta^2$ is a strictly decreasing function of $\Omega$, this is equivalent and the only downside is that unlike $\Delta^2 = 0$, we do not know the theoretical optimum value for $\Omega$ at which the approximation $\ket{\phi^\star} \approx \tfrac{1}{\mathcal{N}} O \psiket$ becomes exact.
+
+
+
+The remaining challenge is evaluating the gradients, e.g.~\eqref{eq:gradpeps:gradient_of_energy} of the variational energy, and similarly the gradients of~\eqref{eq:gradpeps:gradient_based:cost_function_time_evolution}.

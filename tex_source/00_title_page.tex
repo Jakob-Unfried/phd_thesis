@@ -1,0 +1,82 @@
+% TITLE PAGE
+\thispagestyle{empty}
+\newgeometry{left=2cm, right=2cm, top=3.00cm, bottom=3.00cm}
+\pagenumbering{gobble}
+\vspace{15mm}
+
+\begin{center}
+    \LARGE
+    \textsc{
+        Advancing Tensor Network Simulations
+        \\ \textemdash \\
+        Hardware Acceleration, Stable\\
+        Optimization, and Symmetries
+    }
+\end{center}
+\vspace{4ex}
+\begin{center}
+    \Large
+    Dissertation
+\end{center}
+\vspace{2ex}
+\begin{center} 
+    Jakob Unfried
+\end{center}
+
+
+\vfill
+
+
+\begin{center}
+    \scalebox{0.8}{\begin{tikzpicture}
+        \node[space] (LL3) {\hphantom{$W$}};
+        \node[space, right=20pt of LL3] (L3) {\hphantom{$W$}};
+        \node[space, right=20pt of L3] (R3) {\hphantom{$W$}};
+        \node[space, right=20pt of R3] (RR3) {\hphantom{$W$}};
+        \node[morphism, above=of -(LL3)(L3)(R3)(RR3)] (T) {$T$};
+        % inclusions below T
+        \draw[arrow1rev={0.5}{left}{$W_1$}] ($(LL3 |- T.south)$) -- ++(0,-20pt)
+            node[inclusion, below] (LL2) {$n_1$};
+        \draw[arrow1={0.5}{left}{$W_2$}] ($(L3 |- T.south)$) -- ++(0,-20pt)  node[inclusion, below] (L2) {$n_2$};
+        \draw[arrow1rev] ($(R3 |- T.south)$) -- ++(0,-20pt)  node[inclusion, below] (R2) {\dots};
+        \draw[arrow1rev={0.5}{right}{$W_K$}] ($(RR3 |- T.south)$) -- ++(0,-20pt)
+            node[inclusion, below] (RR2) {$n_K$};
+        % splitting tree below inclusions
+        \node[y tensor, below=20pt of -(LL2)(L2)(R2)(RR2)] (Y) {$Y^{b_1\dots b_K}_{c,\beta}$};
+        \draw[arrow1={0.5}{left}{$b_1$}] ($(Y.north -| LL2.south)$) -- (LL2.south);
+        \draw[arrow1rev={0.5}{left}{$\dualsector{b_2}$}] ($(Y.north -| L2.south)$) -- (L2.south);
+        \draw[arrow1] ($(Y.north -| R2.south)$) -- (R2.south);
+        \draw[arrow1={0.5}{right}{$b_K$}] ($(Y.north -| RR2.south)$) -- (RR2.south);
+        \draw[arrow1rev] (Y.south) -- ++(0,-20pt) node[space, below] {$c$};
+        % projections above T
+        \coordinate (L4) at ($(LL3.north)!0.5!(L3.north)$);
+        \coordinate (C4) at ($(L3.north)!0.5!(R3.north)$);
+        \coordinate (R4) at ($(R3.north)!0.5!(RR3.north)$);
+        \coordinate (L5) at ($(L4 |- T.north)$);
+        \coordinate (C5) at ($(C4 |- T.north)$);
+        \coordinate (R5) at ($(R4 |- T.north)$);
+        \draw[arrow1rev={0.5}{left}{$V_1$}] (L5) -- ++(0,20pt) node[projection, above] (L6) {$m_1$};
+        \draw[arrow1] (C5) -- ++(0,20pt) node[projection, above] (C6) {$\dots$};
+        \draw[arrow1={0.5}{right}{$V_J$}] (R5) -- ++(0,20pt) node[projection, above] (R6) {$m_J$};
+        % fusion tree above projections
+        \node[x tensor, above=20pt of -(L6)(C6)(R6)] (X) {$X^{a_1\dots a_J}_{d,\alpha}$};
+        \draw[arrow1rev={0.5}{left}{$\dualsector{a_1}$}] (L6.north) -- ($(L6.north |- X.south)$);
+        \draw[arrow1] (C6.north) -- ($(C6.north |- X.south)$);
+        \draw[arrow1={0.5}{right}{$a_J$}] (R6.north) -- ($(R6.north |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$d$};
+    \end{tikzpicture}}
+\end{center}
+\vfill
+\begin{center}
+    \includegraphics[height=1cm]{graphics/title_page/TUM_Logo_blau.png}
+    \\[2ex]
+    Chair of Theoretical Solid-State Physics
+    \\
+    TUM School of Natural Sciences, Physics Department
+    \\
+    Technical University of Munich
+\end{center}
+
+
+
+\restoregeometry

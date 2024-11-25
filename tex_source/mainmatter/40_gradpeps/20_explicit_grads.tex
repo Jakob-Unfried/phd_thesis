@@ -1,0 +1,309 @@
+Note that the typical cost functions, such as the variational energy~\eqref{eq:gradpeps:gradient_based:variational_energy}, require approximations to be evaluated, e.g.~using the \acro{bmps} method discussed in section~\ref{subsec:tensornets:peps:contraction}.
+%
+Therefore, using \acrofull{autodiff} will yield the gradient \emph{of the approximation}, which is not necessarily a good approximation of the true gradient.
+
+
+
+This does not seem to be a problem when optimizing infinite \acro{peps} with the variational energy evaluated using the \acro{ctmrg} approximate contraction method.
+%
+The resulting optimization scheme seems to give good results, e.g.~in Refs.~\cite{hasik2021}.
+%
+For finite \acro{peps}, however, the resulting optimization trajectories when using \acro{autodiff} to evaluate the gradients seem unstable.
+
+
+
+We propose the following explanation for the instabilities.
+%
+There is -- empirically verified -- a substantial region of parameter space, where approximate contraction methods, such as e.g.~\acro{bmps} contraction, give a good approximation of the true energy of the \acro{peps} at those parameters.
+%
+However, parameters can be fine-tuned to make the approximations unsound.
+%
+Now, using \acro{autodiff} for the gradients results in a minimization of the quantity that is computed by \acro{bmps} contraction and may converge to one of these points outside the region of sound approximation.
+%
+We have observed this behavior in numerical experiments.
+%
+For a finite system, using \acro{bmps} contraction for the energy and unmodified \acro{autodiff} for the gradients, a \acro{lbfgs} optimizer converges to a \acro{peps} whose energy, as computed by the same \acro{bmps} scheme, is well below the spectrum of the Hamiltonian, i.e.~unphysical.
+%
+Increasing the \acro{bmps} bond dimension beyond its value during optimization reveals this and gives a physical energy, much larger than \acro{dmrg} reference values for the ground state energy.
+%
+Thus, we have optimized not for a good ground state but only for parameters that ``cheat" the approximate contraction.
+
+
+
+Approaches to remedy this behavior have been employed in Ref.~\cite{orourke2023} but are only heuristically motivated, and it is unclear if they are sufficient in general.
+%
+Let us emphasize that in light of the approximations in the cost function, the quality of the result as a variational trial state must be judged at a higher accuracy in the approximation, e.g.~a higher \acro{bmps} bond dimension, than what was used during the optimization.
+%
+It seems that \acro{peps} optimization obeys Goodhart's law: ``When a measure becomes a target, it ceases to be a good measure"\cite{strathern1997improving}.
+
+
+
+We propose an alternative approach to stabilize the optimization.
+%
+Instead of differentiating the approximate cost function, we develop approximate contraction methods for evaluating the derivative.
+%
+To illustrate the difference, let $\mathcal{A}[\blank]$ denote the approximate contraction of a quantity that involves a tensor network contraction.
+%
+For example, $\mathcal{A}[E]$ is the result of evaluating the variational energy using approximate contraction.
+%
+From the \acro{autodiff} approach, we would then obtain $\nabla \mathcal{A}[E]$ as the gradient and thus effectively optimize $\mathcal{A}[E]$, which may have its minimum outside the region where $\mathcal{A}[E] \approx E$ is a good approximation.
+%
+We instead propose to use $\mathcal{A}[\nabla E]$, i.e.~writing down an expression for the components of the exact gradient $\nabla E$ as a tensor network and then introducing approximations to evaluate them.
+
+
+
+The gradient of the variational energy~\eqref{eq:gradpeps:gradient_based:variational_energy} is given by
+\begin{equation}
+    \frac{\partial E(\ket{\phi})}{\partial \conj{A}^{[x,y]}}
+    = \frac{1}{\braket{\phi}{\phi}} \frac{\partial}{\partial \conj{A}^{[x,y]}} \braopket{\phi}{H}{\phi} - E(\ket{\phi}) \frac{1}{\braket{\phi}{\phi}} \frac{\partial}{\partial \conj{A}^{[x,y]}} \braket{\phi}{\phi}
+\end{equation}
+and similarly for the square distance~\eqref{eq:gradpeps:gradient_based:cost_function_time_evolution} we get
+\begin{equation}
+    \frac{\partial \Delta^2}{\partial \conj{A}^{[x,y]}}
+    =
+    - \frac{1}{\sqrt{\braket{\phi}{\phi} \braket{\psi(t)}{\psi(t)}}} \frac{\partial}{\partial \conj{A}^{[x,y]}} \braopket{\phi}{U(dt)}{\psi(t)}
+    + \frac{2 - \Delta^2}{2} \frac{1}{\braket{\phi}{\phi}} \frac{\partial}{\partial \conj{A}^{[x,y]}} \braket{\phi}{\phi}
+    .
+\end{equation}
+%
+In particular, in both cases, we need to evaluate derivatives of the norm, expectation value or of matrix elements.
+%
+All of those objects depend only linearly on the conjugate tensor $\conj{A}^{[x,y]}$ and thus their derivatives are obtained simply by leaving that tensor out in the bra layer, e.g.
+\begin{align}
+\begin{split}
+    \label{eq:gradpeps:approx_contraction:derivative_norm_diagram_exact}
+    \frac{\partial}{\partial \conj{A}^{[x,y]}} \braket{\phi}{\phi}
+    = \frac{\partial}{\partial \conj{A}^{[x,y]}}
+    &\tensortr\sBr{\conj{A}^{[0,0]} A^{[0,0]} \dots \conj{A}^{[x,y-1]} A^{[x,y-1]} \conj{A}^{[x,y]} A^{[x,y]} \dots }
+    \\
+    = 
+    &\tensortr\sBr{\conj{A}^{[0,0]} A^{[0,0]} \dots \conj{A}^{[x,y-1]} A^{[x,y-1]} \hphantom{\conj{A}^{[x,y]}} A^{[x,y]} \dots }
+\end{split}
+\end{align}
+for the square norm.
+%
+This results in a tensor network of the form
+\begin{equation}
+    \frac{\partial}{\partial \conj{A}^{[x,y]}} \braket{\phi}{\phi}
+    ~~ = ~~ \frac{\partial}{\partial \conj{A}^{[x,y]}}
+    ~~
+    \vcenter{\hbox{\begin{tikzpicture}[scale=1.2]
+        % tensor nodes
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,1,3,4}
+                {
+                \node[double layer tensor] (A\x\y) at (20pt*\x,20pt*\y) {};
+                }
+        \node[double layer tensor] (A02) at (0pt,40pt) {};
+        \node[double layer tensor] (A12) at (20pt,40pt) {};
+        \node[double layer tensor] (A22) at (40pt,40pt) {};
+        \node[double layer tensor] (A42) at (80pt,40pt) {};
+        \node[peps tensor] (K) at (65pt,45pt) {};
+        \node[peps tensor] (B) at (55pt,35pt) {};
+        \node at (B) {$\star$};
+        %
+        % horizontal bonds
+        \foreach \x [count=\xi] in {0,...,3}
+            \foreach \y in {0,1,3,4}
+                \draw (A\x\y.east) -- (A\xi\y.west);
+        \draw (A02.east) -- (A12.west) (A12.east) -- (A22.west);
+        % vertical bonds
+        \foreach \x in {0,1,2,4}
+            \foreach \y [count=\yi] in {0,...,3}
+                \draw (A\x\y.north) -- (A\x\yi.south);
+        \draw (A30.north) -- (A31.south) (A33.north) -- (A34.south);
+        %
+        \draw (A22.east) to[out=-90,in=180] (B.west);
+        \draw (A31.north) to[out=180,in=270] (B.south);
+        \draw (A33.south) to[out=180,in=90] (B.north);
+        \draw (A42.west) to[out=-90,in=0] (B.east);
+        \draw (B.north east) -- (K.south west);
+        \draw[overdraw=5pt] (A22.east) to[out=90,in=180] (K.west);
+        \draw[overdraw=5pt] (A31.north) to[out=0,in=270] (K.south);
+        \draw[overdraw=5pt] (A33.south) to[out=0,in=90] (K.north);
+        \draw[overdraw=5pt] (A42.west) to[out=90,in=0] (K.east);
+        % redraw nodes to get rid of overdraw artifacts
+        \node[double layer tensor] (A22) at (40pt,40pt) {};
+        \node[double layer tensor] (A42) at (80pt,40pt) {};
+        \node[double layer tensor] (A31) at (60pt,20pt) {};
+        \node[double layer tensor] (A33) at (60pt,60pt) {};
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}[scale=1.2]
+        % tensor nodes
+        \foreach \x in {0,...,4}
+            \foreach \y in {0,1,3,4}
+                {
+                \node[double layer tensor] (A\x\y) at (20pt*\x,20pt*\y) {};
+                }
+        \node[double layer tensor] (A02) at (0pt,40pt) {};
+        \node[double layer tensor] (A12) at (20pt,40pt) {};
+        \node[double layer tensor] (A22) at (40pt,40pt) {};
+        \node[double layer tensor] (A42) at (80pt,40pt) {};
+        \node[peps tensor] (K) at (65pt,45pt) {};
+        \node[peps tensor, draw=none, fill=none] (B) at (55pt,35pt) {};
+        %
+        % horizontal bonds
+        \foreach \x [count=\xi] in {0,...,3}
+            \foreach \y in {0,1,3,4}
+                \draw (A\x\y.east) -- (A\xi\y.west);
+        \draw (A02.east) -- (A12.west) (A12.east) -- (A22.west);
+        % vertical bonds
+        \foreach \x in {0,1,2,4}
+            \foreach \y [count=\yi] in {0,...,3}
+                \draw (A\x\y.north) -- (A\x\yi.south);
+        \draw (A30.north) -- (A31.south) (A33.north) -- (A34.south);
+        %
+        \draw (A22.east) to[out=-90,in=180] (B.west);
+        \draw (A31.north) to[out=180,in=270] (B.south);
+        \draw (A33.south) to[out=180,in=90] (B.north);
+        \draw (A42.west) to[out=-90,in=0] (B.east);
+        \draw (B.north east) -- (K.south west);
+        \draw[overdraw=5pt] (A22.east) to[out=90,in=180] (K.west);
+        \draw[overdraw=5pt] (A31.north) to[out=0,in=270] (K.south);
+        \draw[overdraw=5pt] (A33.south) to[out=0,in=90] (K.north);
+        \draw[overdraw=5pt] (A42.west) to[out=90,in=0] (K.east);
+        % redraw nodes to get rid of overdraw artifacts
+        \node[double layer tensor] (A22) at (40pt,40pt) {};
+        \node[double layer tensor] (A42) at (80pt,40pt) {};
+        \node[double layer tensor] (A31) at (60pt,20pt) {};
+        \node[double layer tensor] (A33) at (60pt,60pt) {};
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+where the diagram consists of double layer tensors $F^{[x,y]}$ as defined in~\eqref{eq:tensornets:peps:norm_diagram}, and we expand the double layer structure only at site $(x,y)$.
+%
+We now evaluate this diagram using the same \acro{bmps} method~\eqref{eq:tensornets:peps:bmps_contraction_overview} as for the value of the norm.
+%
+Note that we need to sandwich the row on which the derivative acts with \acro{bmps} to find
+\begin{equation}
+    \label{eq:gradpeps:gradient_of_norm_with_bmps}
+    \frac{\partial}{\partial \conj{A}^{[x,y]}} \braket{\phi}{\phi}
+    ~~ \approx ~~
+    \vcenter{\hbox{\begin{tikzpicture}[scale=1.2]
+        % bottom bMPS
+        \node[double layer tensor, fill=orange!60] (A00) at (0pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A10) at (20pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A20) at (40pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A30) at (60pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A40) at (80pt,0pt) {};
+        % bMPO
+        \node[double layer tensor] (A01) at (0pt,20pt) {};
+        \node[double layer tensor] (A11) at (20pt,20pt) {};
+        \node[double layer tensor] (A21) at (40pt,20pt) {};
+        \node[double layer tensor] (A41) at (80pt,20pt) {};
+        % top bMPS
+        \node[double layer tensor, fill=orange!60] (A02) at (0pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A12) at (20pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A22) at (40pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A32) at (60pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A42) at (80pt,40pt) {};
+        % horizontal bonds
+        \draw (A00.east) -- (A10.west) (A10.east) -- (A20.west) (A20.east) -- (A30.west) (A30.east) -- (A40.west);
+        \draw (A01.east) -- (A11.west) (A11.east) -- (A21.west);
+        \draw (A02.east) -- (A12.west) (A12.east) -- (A22.west) (A22.east) -- (A32.west) (A32.east) -- (A42.west);
+        % vertical bonds
+        \draw (A00.north) -- (A01.south) (A01.north) -- (A02.south);
+        \draw (A10.north) -- (A11.south) (A11.north) -- (A12.south);
+        \draw (A20.north) -- (A21.south) (A21.north) -- (A22.south);
+        \draw (A40.north) -- (A41.south) (A41.north) -- (A42.south);
+        % only ket tensor at (x,y)
+        \node[peps tensor] (K) at (65pt,25pt) {};
+        \node[peps tensor, draw=white, fill=none] (B) at (55pt,15pt) {};
+        %
+        \draw (A21.east) to[out=-90,in=180] (B.west);
+        \draw (A30.north) to[out=180,in=270] (B.south);
+        \draw (A32.south) to[out=180,in=90] (B.north);
+        \draw (A41.west) to[out=-90,in=0] (B.east);
+        \draw (B.north east) -- (K.south west);
+        \draw[overdraw=5pt] (A21.east) to[out=90,in=180] (K.west);
+        \draw[overdraw=5pt] (A30.north) to[out=0,in=270] (K.south);
+        \draw[overdraw=5pt] (A32.south) to[out=0,in=90] (K.north);
+        \draw[overdraw=5pt] (A41.west) to[out=90,in=0] (K.east);
+        % redraw nodes to get rid of overdraw artifacts
+        \node[double layer tensor, fill=orange!60] (A30) at (60pt,0pt) {};
+        \node[double layer tensor] (A21) at (40pt,20pt) {};
+        \node[double layer tensor] (A41) at (80pt,20pt) {};
+        \node[double layer tensor, fill=orange!60] (A32) at (60pt,40pt) {};
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+where the top and bottom row are \acro{bmps}, approximating the rest of the diagram.
+%
+For expectation values of a \acro{pepo} $H$ with tensors $W^{[x,y]}$ drawn as red diamonds, we find
+\begin{equation}
+    \frac{\partial}{\partial \conj{A}^{[x,y]}} \braopket{\phi}{H}{\phi}
+    ~~ \approx ~~
+    \vcenter{\hbox{\begin{tikzpicture}[scale=1.2]
+        % bottom bMPS
+        \node[double layer tensor, fill=orange!60] (A00) at (0pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A10) at (20pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A20) at (40pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A30) at (60pt,0pt) {};
+        \node[double layer tensor, fill=orange!60] (A40) at (80pt,0pt) {};
+        % bMPO
+        \node[double layer tensor, fill=red!60] (A01) at (0pt,20pt) {};
+        \node[double layer tensor, fill=red!60] (A11) at (20pt,20pt) {};
+        \node[double layer tensor, fill=red!60] (A21) at (40pt,20pt) {};
+        \node[double layer tensor, fill=red!60] (A41) at (80pt,20pt) {};
+        % top bMPS
+        \node[double layer tensor, fill=orange!60] (A02) at (0pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A12) at (20pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A22) at (40pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A32) at (60pt,40pt) {};
+        \node[double layer tensor, fill=orange!60] (A42) at (80pt,40pt) {};
+        % horizontal bonds
+        \draw (A00.east) -- (A10.west) (A10.east) -- (A20.west) (A20.east) -- (A30.west) (A30.east) -- (A40.west);
+        \draw (A01.east) -- (A11.west) (A11.east) -- (A21.west);
+        \draw (A02.east) -- (A12.west) (A12.east) -- (A22.west) (A22.east) -- (A32.west) (A32.east) -- (A42.west);
+        % vertical bonds
+        \draw (A00.north) -- (A01.south) (A01.north) -- (A02.south);
+        \draw (A10.north) -- (A11.south) (A11.north) -- (A12.south);
+        \draw (A20.north) -- (A21.south) (A21.north) -- (A22.south);
+        \draw (A40.north) -- (A41.south) (A41.north) -- (A42.south);
+        % only ket tensor at (x,y)
+        \node[peps tensor, minimum width=0.3cm, minimum height=0.3cm, inner sep=0] (K) at (67pt,27pt) {};
+        \node[pepo tensor, minimum width=0.3cm, minimum height=0.3cm, inner sep=0] (O) at (60pt,20pt) {};
+        \node[peps tensor, draw=white, fill=none, minimum width=0.3cm, minimum height=0.3cm, inner sep=0] (B) at (53pt,13pt) {};
+        %
+        \draw (B.north east) -- (O.south west) (O.north east) -- (K.south west);
+        \draw (A32.south) to[out=0,in=90] (K.north);
+        \draw (A32.south) -- (O.north);
+        \draw (A32.south) to[out=180,in=90] (B.north);
+        \draw (A41.west) to[out=90,in=0] (K.east);
+        \draw (A41.west) -- (O.east);
+        \draw (A41.west) to[out=-90,in=0] (B.east);
+        \draw[overdraw=5pt] (A21.east) -- (O.west);
+        \draw[overdraw=5pt] (A30.north) -- (O.south);
+        \draw[overdraw=5pt] (A21.east) to[out=90,in=180] (K.west);
+        \draw[overdraw=5pt] (A30.north) to[out=0,in=270] (K.south);
+        \draw (A21.east) to[out=-90,in=180] (B.west);
+        \draw (A30.north) to[out=180,in=270] (B.south);
+        % redraw to get rid of overdraw artifacts
+        \draw (A21.east) -- (O.west);
+        \draw (A30.north) -- (O.south);
+        \draw (A21.east) to[out=90,in=180] (K.west);
+        \draw (A30.north) to[out=0,in=270] (K.south);
+        \node[double layer tensor, fill=orange!60] (A30) at (60pt,0pt) {};
+        \node[double layer tensor, fill=red!60] (A21) at (40pt,20pt) {};
+        \node[double layer tensor, fill=red!60] (A41) at (80pt,20pt) {};
+        \node[double layer tensor, fill=orange!60] (A32) at (60pt,40pt) {};
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+where the red square tensors in the middle row are three-layer tensors~\eqref{eq:tensornets:peps:pepo_diagram} containing the \acro{pepo}.
+%
+Derivatives of matrix elements $\braopket{\phi}{U(dt)}{\psi(t)}$ are analogous.
+
+
+
+In this scheme, the \acro{bmps}, and partial contractions of e.g.~\eqref{eq:gradpeps:gradient_of_norm_with_bmps}, can be re-used between the components of the gradient, i.e.~between the derivatives $\partial/\partial \conj{A}^{[x,y]}$ w.r.t.~tensors on different sites $(x, y)$.
+%
+Note also that in a gradient-based algorithm, we have an outer loop of the optimization algorithm that suggests a converging sequence of trial parameters.
+%
+Thus, we may store the \acro{bmps} that we find during the evaluation of the cost function or its gradient to use as an initial guess for the variational \acro{bmps} method in the next iteration of the outer loop.
+
+
+If the \acro{bmps} environments are used for local expectation values, their prefactors cancel between the numerator and denominator of a normalized expectation value.
+%
+This is \emph{not} the case here, and we need to explicitly keep track of the \acro{bmps} norm.

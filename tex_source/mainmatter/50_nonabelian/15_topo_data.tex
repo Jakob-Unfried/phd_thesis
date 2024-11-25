@@ -1,0 +1,782 @@
+In this section, we introduce and define several pieces of data -- commonly referred to as the \emph{topological data} of the symmetry -- that are needed to do computations in practice.
+%
+Note that we use ``symmetry" as a broad term here, not limited to group symmetries, but referring to any tensor category, such as e.g.~modular fusion categories describing anyons.
+%
+We give concrete values (or explicit formulae) for some common symmetries in appendix~\ref{ch:topo_data}.
+%
+We give a summary of the topological data, which can be used as an implementation guide in subsection~\ref{subsec:nonabelian:topo_data:summary}.
+
+A recurring pattern in the following subsections is that we define a unitary symbol \emph{implicitly}.
+%
+We are able to do this because the symbol relates two different ONBs for a Homspace.
+%
+For example, the F symbol is implicitly defined in equation~\eqref{eq:nonabelian:basics:def_F_symbol}.
+%
+The diagrams on both sides form orthonormal bases of $\Homset{a \otimes b \otimes c}{d}$, indexed by the respective indices ${e, \mu, \nu}$ (${f,\kappa,\lambda}$).
+%
+Thus, they are related by a unitary basis transformation\footnote{
+    Alternatively, unitarity can be proven explicitly.
+    As a sketch:~start from the orthonormality of one of the ONBs. Apply the symbol in both halves, where it is conjugated in the daggered half. Use the orthonormality of the other ONB to get back to an identity on the coupled sector. This equates the symbol, contracted with its matrix dagger, to a Kronecker delta, establishing unitarity.
+}.
+%
+This defines the F symbol as the matrix elements of that basis transformation.
+%
+For the F symbol only, we also give an explicit definition of these matrix elements in equation~\eqref{eq:nonabelian:basics:alternative_F_symbol_definition_explicit}.
+%
+Similar explicit definitions can be written down for all other symbols as well but are omitted as they are not particularly insightful, and the form of a basis transformation is more useful.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Recoupling and F symbol}
+\label{subsec:nonabelian:topo_data:F_symbol}
+
+The F symbol is related to \emph{recoupling} of fusion trees.
+%
+We could have also chosen a different order of pairwise fusion to build the fusion trees.
+%
+Such non-standard or non-canonical trees can always be written as linear combinations of standard trees since those are complete.
+%
+The coefficients of these linear combinations give rise to the F symbol.
+%
+\begin{equation}
+    \label{eq:nonabelian:basics:def_F_symbol}
+    \underbrace{
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (A1) {$a$};
+        \node[space, right=20pt of A1] (A2) {$b$};
+        \node[space, right=20pt of A2] (A3) {$c$};
+        \node[x tensor, above=20pt of -(A2)(A3)] (X1) {\blue{$\mu$}};
+        \node[x tensor, above=70pt of -(A1)(A2)] (X2) {\blue{$\nu$}};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X2.south)$);
+        \draw[arrow1] (A2.north) -- ($(A2.north |- X1.south)$);
+        \draw[arrow1] (A3.north) -- ($(A3.north |- X1.south)$);
+        \draw[arrow1={0.5}{above right}{\blue{$e$}}] (X1.north) to[out=90,in=270] ($(A2.north |- X2.south)$);
+        \draw[arrow1] (X2.north) -- ++(0,20pt) node[space, above] {$d$};
+    \end{tikzpicture}}}
+    }_\mathlarger{=: \tilde{X}^{abc}_{d,\blue{(e\mu\nu)}}}
+    \quad = \quad
+    \sum_{\red{f\kappa\lambda}} [ F^{abc}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}} ~~
+    \underbrace{
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (A1) {$a$};
+        \node[space, right=20pt of A1] (A2) {$b$};
+        \node[space, right=20pt of A2] (A3) {$c$};
+        \node[x tensor, above=20pt of -(A1)(A2)] (X1) {\red{$\kappa$}};
+        \node[x tensor, above=70pt of -(A2)(A3)] (X2) {\red{$\lambda$}};
+        \draw[arrow1] (A1.north) -- ($(A1.north |- X1.south)$);
+        \draw[arrow1] (A2.north) -- ($(A2.north |- X1.south)$);
+        \draw[arrow1] (A3.north) -- ($(A3.north |- X2.south)$);
+        \draw[arrow1={0.5}{above left}{\red{$f$}}] (X1.north) to[out=90,in=270] ($(A2.north |- X2.south)$);
+        \draw[arrow1] (X2.north) -- ++(0,20pt) node[space, above] {$d$};
+    \end{tikzpicture}}}
+    }_\mathlarger{=: X^{abc}_{d,\red{(f\kappa\lambda)}}}
+\end{equation}
+For fixed sectors $a, b, c, d$, the F symbol is unitary as a matrix of the outer indices, that is
+\begin{gather}
+    \label{eq:nonabelian:basics:F_unitary}
+    \begin{gathered}
+        \sum_{e\mu\nu}
+            [F^{abc}_d]^{e\mu\nu}_{f\kappa\lambda}
+            [\conj{F}^{abc}_d]^{e\mu\nu}_{f'\kappa'\lambda'}
+        = \delta_{f,f'} \delta_{\kappa,\kappa'} \delta_{\lambda,\lambda'} 
+        \\
+        \sum_{f\kappa\lambda}
+            [F^{abc}_d]^{e\mu\nu}_{f\kappa\lambda}
+            [\conj{F}^{abc}_d]^{e'\mu'\nu'}_{f\kappa\lambda}
+        = \delta_{e,e'} \delta_{\mu,\mu'} \delta_{\nu,\nu'} 
+        .
+    \end{gathered}
+\end{gather}
+
+Since F is unitary, the reverse transformation reads
+\begin{equation}
+    \label{eq:nonabelian:basics:F_symbol_reverse}
+    X^{abc}_{d,\red{(f\kappa\lambda)}}
+    = \sum_{\blue{e\mu\nu}} [ \conj{F}^{abc}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}}
+    \tilde{X}^{abc}_{d,\blue{(e\mu\nu)}}
+    ,
+\end{equation}
+which would admit a nice graphical representation similar to~\eqref{eq:nonabelian:basics:def_F_symbol}, but is omitted here for brevity.
+%
+Taking the dagger gives us two more relations, describing the recoupling of non-canonical splitting trees $\tilde{Y} := \hconj{\tilde{X}}$ to canonical splitting trees $Y = \hconj{X}$.
+\begin{equation}
+    \label{eq:nonabelian:basics:F_symbol_dagger}
+    \tilde{Y}^{abc}_{d,\blue{(e\mu\nu)}}
+    = \sum_{\red{f\kappa\lambda}}  [ \conj{F}^{abc}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}}
+    Y^{abc}_{d,\red{(f\kappa\lambda)}}
+    \qquad ; \qquad
+    Y^{abc}_{d,\red{(f\kappa\lambda)}}
+    = \sum_{\blue{e\mu\nu}} [ F^{abc}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}}
+    \tilde{Y}^{abc}_{d,\blue{(e\mu\nu)}}
+\end{equation}
+
+In addition to the implicit definition above, let us include an explicit form of the F symbol.
+%
+To obtain it from equation~\eqref{eq:nonabelian:basics:def_F_symbol}, we right-compose with $\hconj{(X^{abc}_{d,(f'\kappa'\lambda')})}$ and use orthonormality~\eqref{eq:nonabelian:basics:fusion_trees_orthonormal} to collapse the sum and find
+
+\begin{equation}
+    \label{eq:nonabelian:basics:alternative_F_symbol_definition_explicit}
+    [ F^{abc}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}}
+    \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (d) {$d$};
+        \draw[arrow1] (d.north) -- ++(0,80pt) node[space, above] {$d$};
+    \end{tikzpicture}}}
+    ~~ = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node (A1) {\hphantom{$a$}};
+        \node[right=20pt of A1] (A2) {\hphantom{$b$}};
+        \node[right=20pt of A2] (A3) {\hphantom{$c$}};
+        % above
+        \node[x tensor, above=10pt of -(A2)(A3)] (X1) {\blue{$\mu$}};
+        \node[x tensor, above=60pt of -(A1)(A2)] (X2) {\blue{$\nu$}};
+        \draw[arrow1={0.5}{above right}{\blue{$e$}}] (X1.north) to[out=90,in=270] ($(A2 |- X2.south)$);
+        % below
+        \node[y tensor, below=10pt of -(A1)(A2)] (Y1) {\red{$\kappa$}};
+        \node[y tensor, below=60pt of -(A2)(A3)] (Y2) {\red{$\lambda$}};
+        \draw[arrow1rev={0.5}{below left}{\red{$f$}}] (Y1.south) to[out=270,in=90] ($(A2 |- Y2.north)$);
+        % arrows from below to above
+        \draw[arrow1={0.5}{left}{$a$}] ($(A1 |- Y1.north)$) -- ($(A1 |- X1.south)$);
+        \draw[arrow1={0.5}{left}{$b$}] ($(A2 |- Y1.north)$) -- ($(A2 |- X1.south)$);
+        \draw[arrow1={0.5}{left}{$c$}] ($(A3 |- Y1.north)$) -- ($(A3 |- X1.south)$);
+        \draw ($(A1 |- X1.south)$) -- ($(A1 |- X2.south)$);
+        \draw ($(A3 |- Y2.north)$) -- ($(A3 |- Y1.north)$);
+        % % close the trace
+        % \draw[arrow1={0.7}{left}{$d$}] (X2.north) -- ++(0,15pt) coordinate (top);
+        % \draw[arrow1rev={0.7}{left}{$d$}] (Y2.south) -- ++(0,-15pt) coordinate (bot);
+        % \draw (bot) arc [start angle=180, end angle=360, x radius=30pt, y radius=20pt] coordinate (R0);
+        % \draw[arrow1rev={0.5}{right}{$d$}] (R0) -- ($(R0 |- top)$) coordinate (R1);
+        % \draw let \p{radius}=($0.5*(R1)-0.5*(top)$) in
+        %     (top) arc [start angle=180, end angle=0, x radius=\x{radius}, y radius=20pt];
+        %
+        % leave open ends
+        \draw[arrow1] (X2.north) -- ++(0,20pt) node[space, above] {$d$};
+        \draw[arrow1rev] (Y2.south) -- ++(0,-20pt) node[space, below] {$d$};
+    \end{tikzpicture}}}
+    .
+\end{equation}
+To get back to the implicit definition~\eqref{eq:nonabelian:basics:def_F_symbol}, use completeness~\eqref{eq:nonabelian:basics:fusion_trees_complete} of the canonical 
+\ifcolors
+    (red) trees.
+\else
+    trees (here labeled by $f, \kappa, \lambda$).
+\fi
+%
+Alternatively, use analogous completeness relations of the non-canonical
+\ifcolors
+    (blue) trees,
+\else
+    trees (here labeled by $e, \mu, \nu$),
+\fi
+to obtain equation~\eqref{eq:nonabelian:basics:F_symbol_reverse}.
+
+The F symbol fulfills its own pentagon consistency equation
+\begin{equation}
+    \sum_{h\gamma\delta\epsilon}
+        [ F^{abc}_i ]^{h\gamma\epsilon}_{j\lambda\rho}
+        [ F^{ahd}_e ]^{g\delta\kappa}_{i\epsilon\omega}
+        [ F^{bcd}_g ]^{f\mu\nu}_{h\gamma\delta}
+    =
+    \sum_\sigma
+        [ F^{jcd}_e ]^{g\nu\kappa}_{j\lambda\sigma}
+        [ F^{jcd}_e ]^{f\mu\sigma}_{i\rho\omega}
+    ~,
+\end{equation}
+which we can view either as inherited from the pentagon equation~\eqref{eq:nonabelian:pentagon_equation} of the associator%
+\footnote{
+    We can view the F symbol as matrix elements of the associator $\alpha$ in a basis given by the fusion (splitting) tensors. The graphical notation in equation~\eqref{eq:nonabelian:basics:alternative_F_symbol_definition_explicit} implies an associator $\alpha_{a,b,c}$ in the middle of the diagram, to compose $\id{a} \otimes X^{bc}_{e,\mu}$ with $Y^{ab}_{f,\kappa} \otimes \id{c}$.
+    
+}.
+%
+Alternatively, we can equate the coefficients that arise in the two inequivalent ways of recoupling a 4-to-1 fusion tree $a \otimes ( b \otimes (c \otimes d)) \to e$ to a canonical tree $((a \otimes b) \otimes c) \otimes d \to e$.
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Braiding and R symbol}
+\label{subsec:nonabelian:topo_data:R_symbol}
+Next up, we introduce the topological data related to braids: the R symbol.
+%
+We can think of the R symbol as the matrix elements of the braid $\tau_{a,b}$ in the basis given by fusion / splitting tensors.
+%
+Alternatively, think about braiding the legs below a fusion tensor $a \otimes b \to c$.
+%
+Since the braid is unitary, this composite object still gives an orthonormal and complete set, parametrized by the multiplicity index of the fusion tensor above the braid.
+%
+The R symbol is the unitary basis transformation that relates it to the standard fusion tensors $b \otimes a \to c$.
+%
+It is implicitly defined as the following coefficients.
+
+\begin{equation}
+    \label{eq:nonabelian:basics:def_R_symbol}
+    \underbrace{
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L1) {$b$};
+        \node[space, right=20pt of L1] (R1) {$a$};
+        \draw[arrow1] (L1.north) -- ++(0,20pt) coordinate (L2);
+        \draw[arrow1] (R1.north) -- ++(0,20pt) coordinate (R2);
+        \coordinate[above=30pt of L2] (L3);
+        \coordinate[above=30pt of R2] (R3);
+        \overbraid(L2)(R2)(L3)(R3);
+        \node[x tensor, above=70pt of -(L1)(R1)] (X) {\blue{$\mu$}};
+        \draw[arrow1={0.5}{left}{$a$}] (L3) -- ($(L3 |- X.south)$);
+        \draw[arrow1={0.5}{right}{$b$}] (R3) -- ($(R3 |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+    }_\mathlarger{=X^{ab}_{c,\blue{\mu}} \compose \tau_{b,a}}
+    \quad = \quad
+    \sum_{\red{\nu}} ~[ R^{ab}_c ]^{\blue{\mu}}_{\red{\nu}} \quad
+    \underbrace{
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L1) {$b$};
+        \node[space, right=20pt of L1] (R1) {$a$};
+        \node[x tensor, above=20pt of -(L1)(R1)] (X) {\red{$\nu$}};
+        \draw[arrow1] (L1) -- ($(L1 |- X.south)$);
+        \draw[arrow1] (R1) -- ($(R1 |- X.south)$);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] {$c$};
+    \end{tikzpicture}}}
+    }_\mathlarger{=X^{ba}_{c,\red{\nu}}}
+\end{equation}
+
+Note the convention for the order of upper indices.
+%
+We find this order practical since we use the R symbol when we have a fusion tensor with uncoupled sectors $a, b$ and apply a braid to it.
+%
+We can use the gauge freedom~\eqref{eq:nonabelian:basics:fusion_tensor_gauge_freedom} of the fusion tensors such that the R symbol is diagonal $[ R^{ab}_c ]^{{\mu}}_{{\nu}} \propto \delta_{\mu,\nu}$.
+
+We obtain a relation for applying an under-braid below a fusion tensor from unitarity of the R symbol
+\begin{equation}
+    X^{ab}_{c,\red{\nu}} \compose \hconj{\tau_{a,b}}
+    = \sum_{\blue{\mu}} [ \conj{R}^{ba}_c ]^{\blue{\mu}}_{\red{\nu}}
+    X^{ba}_{c,\blue{\mu}}
+    ~.
+\end{equation}
+Taking the dagger gives us relations for braiding above splitting tensors
+\begin{equation}
+    \hconj{\tau_{b,a}} \compose Y^{ab}_{c,\blue{\mu}}
+    = \sum_{\red{\nu}} [ \conj{R}^{ab}_c ]^{{\blue\mu}}_{\red{\nu}}
+    Y^{ba}_{c,\red{\nu}}
+    \qquad ; \qquad
+    \tau_{a,b} \compose Y^{ab}_{c,\red{\nu}}
+    = \sum_{\blue{\mu}} [ {R}^{ba}_c ]^{\blue{\mu}}_{\red{\nu}}
+    Y^{ba}_{c,\blue{\mu}}
+    ~.
+\end{equation}
+%
+Note that we get a permutation $a \leftrightarrow b$ on the upper indices for an underbraid on a fusion tensor $X$ and for an overbraid on a splitting tensor $Y$.
+
+
+The twist~\eqref{eq:nonabelian:basics:def_twist} is directly related to braiding.
+%
+By~\eqref{eq:nonabelian:basics:sector_map_is_multiple_of_id}, the twist $\theta_a \in \Endset{a}$ of a sector $a$ must be a multiple of the identity, which implicitly defines the prefactor $\Theta_a \in \Cbb$ such that
+\begin{equation}
+    \label{eq:nonabelian:topo_data:def_twist_prefactor}
+    \theta_a = \Theta_a \id{a}
+    ~.
+\end{equation}
+%
+Since the literature is inconsistent on whether $\theta_a$ or $\Theta_a$ is ``the twist", we will not carefully distinguish them either.
+%
+Since the twist is unitary, we have $\Theta_a \conj{\Theta_a} = 1$, meaning $\Theta_a$ is a complex phase.
+%
+The twist is contained\footnote{
+    A sketch of the derivation; Insert a resolution~\eqref{eq:nonabelian:basics:fusion_tensors_orthormal_and_complete} of identity above the braid in the definition~\eqref{eq:nonabelian:basics:def_twist}. Then, use~\eqref{eq:nonabelian:basics:sector_map_is_multiple_of_id} and~\eqref{eq:nonabelian:basics:trace_cyclic}.
+} in the R symbol as
+\begin{equation}
+    \label{eq:nonabelian:topo_data:twist_from_R}
+    \Theta_a = \sum_{b\in\mathcal{S}} \sum_{\mu=1}^{N^{aa}_b} \frac{d_b}{d_a} [R^{aa}_b]^\mu_\mu
+    .
+\end{equation}
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Dual sectors and Z isomorphism}
+\label{subsec:nonabelian:topo_data:dual_sectors}
+
+Let us now consider the dual space $\dualspace{a}$ of a sector $a$.
+%
+We know it is a simple space since $f \mapsto \transp{f}$ is a vector space isomorphism, establishing $\Endset{a} \cong \Endset{\dualspace{a}}$ and thus that $\Endset{\dualspace{a}}$ is one-dimensional.
+%
+The dual space $\dualspace{a}$ is, however (in general) not a sector since it may not be the representative of its isomorphism class\footnote{
+    In some cases, \emph{but not in general}, this can be gauged away by redefining the representatives.
+    %
+    Assume for every sector $a$ we have either $\dualspace{a} = a$ or $\dualspace{a} \ncong a$.
+    Then, we can redefine the sectors, that is, redefine which simple object represents each isomorphism class.
+    %
+    In the first case, $\dualspace{a}$ already is a sector, and in the second case, we may define $\dualspace{a}$ as the representative for its class, i.e.~as a sector.
+    %
+    However, if there is a sector $a$ such that $a \cong \dualspace{a} \neq a$, i.e.~such that $a$ and $\dualspace{a}$ are in the same sector but not equal, the representative is already fixed to $a$ and we can not have $\dualspace{a}$ as a representative at the same time.
+}.
+We write $\dualsector{a} \in \mathcal{S}$ for the sector that is isomorphic to $\dualspace{a} \cong \dualsector{a}$ and call it the \emph{dual sector} (of $a$).
+%
+Since $\dualspace{\dualsector{a}} \cong \doubledualspace{a} \cong a$, we have $\doubledualsector{a} = a$, i.e.~$a$ is the dual sector of $\dualsector{a}$.
+
+We write $Z_a : \dualspace{a} \isoTo \dualsector{a}$ for the isomorphism.
+%
+We may choose it to be unitary by rescaling.
+%
+Graphically, we represent it by an unlabelled smaller box with a rounded (instead of chamfered) corner.
+%
+The sector $a$ is clear from the wire below.
+\begin{equation}
+    \label{eq:nonabelian:topo_data:Z_iso_graphical}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[z iso] (Z) {};
+        \draw[arrow1] (Z.north) -- ++(0,20pt) node[space, above] {$\dualsector{a}$};
+        \draw[arrow1] (Z.south) -- ++(0,-20pt) node[space, below] {$a$};
+    \end{tikzpicture}}}
+    \quad := \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[morphism] (Z) {$Z_a$};
+        \draw[arrow1] (Z.north) -- ++(0,20pt) node[space, above] {$\dualsector{a}$};
+        \draw[arrow1] (Z.south) -- ++(0,-20pt) node[space, below] {$a$};
+    \end{tikzpicture}}}
+\end{equation}
+Let us state the graphical notation for the dagger and for the transpose at this point, as they might not be entirely intuitive.
+\begin{equation}
+    \left[~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[z iso] (Z) {};
+        \draw[arrow1] (Z.north) -- ++(0,20pt) node[space, above] {$\dualsector{a}$};
+        \draw[arrow1] (Z.south) -- ++(0,-20pt) node[space, below] {$a$};
+    \end{tikzpicture}}}
+    ~~\right]^{\mathlarger{\dagger}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[z iso daggered] (Z) {};
+        \draw[arrow1rev] (Z.north) -- ++(0,20pt) node[space, above] {$a$};
+        \draw[arrow1rev] (Z.south) -- ++(0,-20pt) node[space, below] {$\dualsector{a}$};
+    \end{tikzpicture}}}
+    %
+    \qquad ; \qquad
+    %
+    \left[~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[z iso] (Z) {};
+        \draw[arrow1] (Z.north) -- ++(0,20pt) node[space, above] {$\dualsector{a}$};
+        \draw[arrow1] (Z.south) -- ++(0,-20pt) node[space, below] {$a$};
+    \end{tikzpicture}}}
+    ~~\right]^{\mathlarger{\transpT}}
+    \quad = \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[z iso transposed] (Z) {};
+        \draw[arrow1] (Z.north) -- ++(0,20pt) node[space, above] {$a$};
+        \draw[arrow1] (Z.south) -- ++(0,-20pt) node[space, below] {$\dualsector{a}$};
+    \end{tikzpicture}}}
+\end{equation}
+%
+Recall that the dagger of a diagram is given by a mirror \emph{plus flipping arrow directions back}.
+%
+We also observe that both $\transp{(Z_a)}$ and $Z_{\dualsector{a}}$ are non-zero elements of $\Homset{\dualspace{\dualsector{a}}}{a}$.
+%
+Since that Homspace between simple objects is one-dimensional, they must be proportional.
+%
+This defines the \emph{Frobenius Schur indicator} $\chi_a$ as the prefactor $\transp{Z_a} = \chi_a Z_{\dualsector{a}}$. Graphically, this reads
+\begin{equation}
+    \label{eq:nonabelian:topo_data_def_frobenius_schur}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L1) {$\dualsector{a}$};
+        \node[z iso transposed, above=20pt of L1] (L2) {};
+        \node[space, above=20pt of L2] (L3) {$a$};
+        \draw[arrow1rev] (L1.north) -- (L2.south);
+        \draw[arrow1] (L2.north) -- (L3.south);
+    \end{tikzpicture}}}
+    \quad = ~~
+    \chi_a \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L1) {$\dualsector{a}$};
+        \node[z iso, above=20pt of L1] (L2) {};
+        \node[space, above=20pt of L2] (L3) {$a$};
+        \draw[arrow1rev] (L1.north) -- (L2.south);
+        \draw[arrow1] (L2.north) -- (L3.south);
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+The Frobenius Schur indicator is constrained\footnote{
+    Unitarity of $Z_a$ implies $\abs{\chi_a}^2 = 1$, i.e.~$\chi_a$ is a complex phase.
+    %
+    Taking the transpose of~\eqref{eq:nonabelian:topo_data_def_frobenius_schur}, and then applying it again we find $1 = \chi_a \chi_{\dualsector{a}}$ and therefore $\chi_{\dualsector{a}} = \conj{\chi_a}$.
+    %
+    Now, if $a \neq \dualsector{a}$, we can redefine the representative for the sector $\dualsector{a}$ such that $\chi_a = 1$.
+    %
+    For $a = \dualsector{a}$, we have $1 = \chi_a \chi_{\dualsector{a}} = \chi_a^2$, that is $\chi_a = \pm 1$.
+    %
+    In either case $\chi_{\dualsector{a}} = \conj{\chi_a} = \chi_a$.
+} by $\chi_a = \chi_{\dualsector{a}} = \pm 1$.
+
+Further, we can choose\footnote{
+    Let us sketch the derivation:
+    Consider applying first $\hconj{(Z_a)}$ and then a cap to the right wire in~\eqref{eq:nonabelian:cup_from_splitting_tensor}.
+    Both operations are reversible such that the resulting equation is equivalent.
+    Note the LHS is a map $a \to a$ and thus a multiple of the identity.
+    To derive/confirm the magnitude of the prefactor, compose \eqref{eq:nonabelian:cup_from_splitting_tensor} with its dagger.
+    The phase of the prefactor can be chosen by redefining $Z_a \mapsto \eto{\im\phi} Z_a$, fixing the phase of the Z isomorphism relative to the phase of the fusion tensors.
+}
+the phase of the Z isomorphism such that the splitting tensor $Y^{a\dualsector{a}}_{I,1}$ is related to the cups by
+\begin{equation}
+    \label{eq:nonabelian:cup_from_splitting_tensor}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L4) {$a$};
+        \node[space, right=20pt of L4] (R4) {$\dualsector{a}$};
+        \node[y tensor, below=20pt of -(L4)(R4)] (Y) {};
+        \draw[arrow1] ($(Y.north -| L4.south)$) -- (L4.south);
+        \draw[arrow1] ($(Y.north -| R4.south)$) -- (R4.south);
+    \end{tikzpicture}}}
+    \quad := \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L4) {$a$};
+        \node[space, right=20pt of L4] (R4) {$\dualsector{a}$};
+        \node[y tensor, below=20pt of -(L4)(R4)] (Y) {$1$};
+        \draw[arrow1] ($(Y.north -| L4.south)$) -- (L4.south);
+        \draw[arrow1] ($(Y.north -| R4.south)$) -- (R4.south);
+        \draw[dashed] (Y.south) -- ++(0,-20pt) node[space, below] {$I$};
+    \end{tikzpicture}}}
+    \quad= ~~\frac{1}{\sqrt{d_a}}\quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L4) {$a$};
+        \node[space, right=15pt of L4] (R4) {$\dualsector{a}$};
+        \node[z iso, below=20pt of R4] (Z) {};
+        \draw[arrow1] (Z.north) -- (R4.south);
+        \draw[arrow1={0.7}{}{}] (Z.south) -- ++(0,-10pt) coordinate (R3);
+        \draw[arrow1rev] (L4.south) -- ($(L4.south |- R3)$) coordinate (L3);
+        \draw let \p{radius}=($0.5*(R3)-0.5*(L3)$) in (L3) arc(180:360:\x{radius});
+    \end{tikzpicture}}}
+    \quad= ~~\frac{\chi_a}{\sqrt{d_a}}\quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L4) {$a$};
+        \node[space, right=15pt of L4] (R4) {$\dualsector{a}$};
+        \node[z iso, below=20pt of L4] (Z) {};
+        \draw[arrow1] (Z.north) -- (L4.south);
+        \draw[arrow1={0.7}{}{}] (Z.south) -- ++(0,-10pt) coordinate (L3);
+        \draw[arrow1rev] (R4.south) -- ($(R4.south |- L3)$) coordinate (R3);
+        \draw let \p{radius}=($0.5*(R3)-0.5*(L3)$) in (L3) arc(180:360:\x{radius});
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+Taking the dagger relates the fusion tensor $X^{a\dualsector{a}}_{I,1}$ to the caps.
+%
+
+We can plug these relations into the definition~\eqref{eq:nonabelian:basics:alternative_F_symbol_definition_explicit} of the F symbol to find that
+\begin{equation}
+    [F^{a\dualsector{a}a}_{a}]^{I11}_{I11} = \frac{\chi_a}{d_a}
+    .
+\end{equation}
+Since $d_a > 0$ and $\chi_a = \pm 1$ we obtain the following relations
+\begin{align}
+    \label{eq:nonabelian:topo_data:FrobeniusSchur_from_F}
+    \chi_a = \mathrm{sgn} [F^{a\dualsector{a}a}_{a}]^{I11}_{I11}
+    \\
+    \label{eq:nonabelian:topo_data:qdim_from_F}
+    d_a = \frac{1}{\abs{[F^{a\dualsector{a}a}_{a}]^{I11}_{I11}}}
+\end{align}
+which tells us that (and how) both the Frobenius Schur indicator and quantum dimension are contained in the F symbol and are not independent data.
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Braiding fusion trees and C symbol}
+\label{subsec:nonabelian:topo_data:C_symbol}
+
+While the R symbol defined in section~\ref{subsec:nonabelian:topo_data:R_symbol} contains all relevant data for braiding, the following composite symbol is also useful in practice.
+%
+It relates a (part of a larger) fusion tree with a braid to canonical fusion trees.
+%
+The C symbol is defined as the coefficients in the following equation.
+
+\begin{equation}
+    \label{eq:nonabelian:topo_data:def_C_symbol}
+    \underbrace{
+        \vcenter{\hbox{\begin{tikzpicture}
+            \node[space] (L0) {$a$};
+            \node[space, right=20pt of L0] (C0) {$c$};
+            \node[space, right=20pt of C0] (R0) {$b$};
+            \draw[arrow1] (L0.north) -- ++(0,20pt) coordinate (L1);
+            \draw[arrow1] (C0.north) -- ++(0,20pt) coordinate (C1);
+            \draw[arrow1] (R0.north) -- ++(0,20pt) coordinate (R1);
+            \coordinate[above=30pt of L1] (L2);
+            \coordinate[above=30pt of C1] (C2);
+            \coordinate[above=30pt of R1] (R2);
+            \draw (L1) -- (L2);
+            \overbraid(C1)(R1)(C2)(R2);
+            \node[x tensor, above=70pt of -(L0)(C0)] (X1) {\blue{$\mu$}};
+            \node[x tensor, above=120pt of -(C0)(R0)] (X2) {\blue{$\nu$}};
+            \draw[arrow1={0.5}{left}{$a$}] (L2) -- ($(L2 |- X1.south)$);
+            \draw[arrow1={0.5}{left}{$b$}] (C2) -- ($(C2 |- X1.south)$);
+            \draw[arrow1={0.5}{right}{$c$}] (R2) -- ($(R2 |- X1.south)$);
+            \draw ($(R2 |- X1.south)$) -- ($(R2 |- X2.south)$);
+            \draw[arrow1={0.5}{above left}{\blue{$e$}}] (X1.north) to[out=90,in=270] ($(C2 |- X2.south)$);
+            \draw[arrow1] (X2.north) -- ++(0,20pt) node[space, above] {$d$};
+        \end{tikzpicture}}}
+    }_\mathlarger{X^{abc}_{d,(\blue{e\mu\nu})} \compose (\id{a} \otimes \tau_{c,b})}
+    \quad = \quad
+    \sum_{\red{f\kappa\lambda}}~~ [ C^{abc}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}} ~~
+    \underbrace{
+        \vcenter{\hbox{\begin{tikzpicture}
+            \node[space] (A1) {$a$};
+            \node[space, right=20pt of A1] (A2) {$c$};
+            \node[space, right=20pt of A2] (A3) {$b$};
+            \node[x tensor, above=20pt of -(A1)(A2)] (X1) {\red{$\kappa$}};
+            \node[x tensor, above=70pt of -(A2)(A3)] (X2) {\red{$\lambda$}};
+            \draw[arrow1] (A1.north) -- ($(A1.north |- X1.south)$);
+            \draw[arrow1] (A2.north) -- ($(A2.north |- X1.south)$);
+            \draw[arrow1] (A3.north) -- ($(A3.north |- X2.south)$);
+            \draw[arrow1={0.5}{above left}{\red{$f$}}] (X1.north) to[out=90,in=270] ($(A2.north |- X2.south)$);
+            \draw[arrow1] (X2.north) -- ++(0,20pt) node[space, above] {$d$};
+        \end{tikzpicture}}}
+    }_\mathlarger{X^{acb}_{d,(\red{f\kappa\lambda})}}
+\end{equation}
+As for the R symbol, we choose the order of upper indices $abc$ to match the fusion tree $X^{abc}_{d,(e\mu\nu)}$ on the LHS before it is braided.
+
+The analogous relation for an underbraid follows from unitarity
+\begin{equation}
+    X^{abc}_{d,(\red{f\kappa\lambda})} \compose (\id{a} \otimes \hconj{\tau_{b,c}})
+    = \sum_{\blue{e\mu\nu}} [ \conj{C}^{acb}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}} X^{acb}_{d,(\blue{e\mu\nu})}
+    .
+\end{equation}
+%
+Taking the dagger gives us relations for braiding above splitting trees, namely
+\begin{align}
+    (\id{a} \otimes \tau_{b,c}) \compose Y^{abc}_{d,(\red{f\kappa\lambda})}
+    &= \sum_{\blue{e\mu\nu}} [ C^{acb}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}} Y^{acb}_{d,(\blue{e\mu\nu})}
+    \\
+    (\id{a} \otimes \hconj{\tau_{c,b}}) \compose Y^{abc}_{d,(\blue{e\mu\nu})}
+    &= \sum_{f\kappa\lambda} [ \conj{C}^{abc}_d ]^{\blue{e\mu\nu}}_{\red{f\kappa\lambda}} Y^{acb}_{d,(\red{f\kappa\lambda})}
+    .
+\end{align}
+Similar to the R move relations, we see a permutation $b \leftrightarrow c$ in the upper indices of the C symbol for the relations with an underbraid $\hconj{\tau}$ on a fusion tree $X$ or an overbraid $\tau$ on a splitting tree $Y$.
+
+We can naively derive an expression for the C symbol by acting on the LHS as follows;
+First, we do an inverse F move to get a fusion tensor above the braid, resolve the braid with an R move, and then get back to the canonical structure with a forward F move.
+%
+As a result we find
+\begin{equation}
+    [ C^{abc}_d ]^{{e\mu\nu}}_{{f\kappa\lambda}}
+    = \sum_{g\alpha\beta\gamma} 
+        [ \conj{F}^{abc}_d ]^{g\alpha\beta}_{{e\mu\nu}}
+        [ R^{bc}_g ]^{\alpha}_{\gamma}
+        [ F^{abc}_d ]^{g\gamma\beta}_{{f\kappa\lambda}}
+    .
+    \quad \text{(inefficient, use~\eqref{eq:nonabelian:basics:C_symbol_from_FR} in practice!)}
+\end{equation}
+%
+We can, however, obtain a more practical expression by using coherence to ``lift" the $c$ wire over the bottom fusion tensor, resolving the resulting underbraid of $a,c$ with an inverse R move, recoupling to the canonical tree structure with a single F move, and finally resolving the braid of $e, c$ with another R move.
+%
+We obtain
+\begin{equation}
+    \label{eq:nonabelian:basics:C_symbol_from_FR}
+    [ C^{abc}_d ]^{{e\mu\nu}}_{{f\kappa\lambda}}
+    = \sum_{\alpha\beta} 
+        [ R^{ec}_d ]^{\nu}_{\alpha}
+        [ F^{cab}_d ]^{e\mu\alpha}_{f\beta\lambda}
+        [ \conj{R}^{ac}_f ]^{\kappa}_{{\beta}}
+\end{equation}
+which is cheaper to use in practice since there is only one expensive F symbol and there is no sum over sectors.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Bending lines and B symbol}
+\label{subsec:nonabelian:topo_data:B_symbol}
+
+Another operation that we need to do to fusion tensors in practice is ``bending lines", that is e.g.~applying a cup below a fusion tensor.
+%
+It turns out that due to our choice of fusion trees, we only ever need to bend the right leg of a fusion tensor.
+
+We implicitly define the B symbol as the coefficients in the following linear combination.
+
+\begin{equation}
+    \label{eq:nonabelian:topo_data:def_B_symbol}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L0) {$a$};
+        \node[space, right=15pt of L0] (C0) {\hphantom{$b$}};
+        \node[x tensor, above=50pt of -(L0)(C0)] (X) {\blue{$\mu$}};
+        \draw[arrow1] (L0.north) -- ($(L0.north |- X.south)$);
+        \draw[arrow1rev={0.5}{right}{$b$}] ($(C0.north |- X.south)$) -- ++(0,-20pt) coordinate (C2);
+        \draw (C2) arc(180:360:15pt) coordinate (R2);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] (top) {$c$};
+        \draw[arrow1rev] (R2) -- ($(R2 |- top.south)$) node[space, above] (R3) {$b$};
+    \end{tikzpicture}}}
+    \quad = ~~ \sum_{\red{\nu}} ~~ \left[ B^{ab}_c \right]^{\blue{\mu}}_{\red{\nu}} \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L5) {$c$};
+        \node[space, right=20pt of L5] (R5) {$b$};
+        \node[y tensor, below=70pt of -(L5)(R5)] (X) {\red{$\nu$}};
+        % \draw[arrow1] (R5.south) -- ++(0,-20pt) node[old z iso daggered, below] (Z) {};
+        \node[z iso daggered, below=20pt of R5] (Z) {};
+        \draw[arrow1] (R5.south) -- (Z.north);
+        \draw[arrow1rev={0.5}{right}{$\dualsector{b}$}] (Z.south) -- ($(Z.south |- X.north)$);
+        \draw[arrow1rev] (L5.south) -- ($(L5.south |- X.north)$);
+        \draw[arrow1rev] (X.south) -- ++(0,-20pt) node[space, below] {$a$};
+    \end{tikzpicture}}}
+\end{equation}
+Note that we need to include a Z isomorphism to get the correct arrow directions.
+%
+Note that while both sides are orthogonal complete sets, only the composites on the RHS are normalized.
+%
+Therefore, the B symbol is \emph{not} unitary.
+%
+It is instead normalized\footnote{
+     To derive the normalization, compose~\eqref{eq:nonabelian:topo_data:def_B_symbol} with its dagger, use~\eqref{eq:nonabelian:basics:sector_map_is_multiple_of_id}, cyclic property of the trace and orthonormality of fusion tensors.
+} such that
+\begin{equation}
+    \label{eq:nonabelian:topo_data:B_symbol_alternative_when_Z_already_present}
+    \sum_\nu [B^{ab}_c]^{\mu}_{\nu} [\conj{B}^{ab}_c]^{\mu'}_{\nu}
+    = \frac{d_c}{d_a} \delta_{\mu,\mu'}
+    \qquad ; \qquad
+    \sum_\mu [B^{ab}_c]^{\mu}_{\nu} [\conj{B}^{ab}_c]^{\mu}_{\nu'}
+    = \frac{d_c}{d_a} \delta_{\nu,\nu'}
+    ~.
+\end{equation}
+
+If there was already a Z isomorphism present before bending the line, we can first slide it over using~\eqref{eq:nonabelian:basics:sliding_cup_cap}, then after the regular B move use~\eqref{eq:nonabelian:topo_data_def_frobenius_schur} to flip either one of the Z isomorphisms, such that it cancels the other.
+
+\begin{equation}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L0) {$a$};
+        \node[space, right=15pt of L0] (C0) {\hphantom{$b$}};
+        \node[x tensor, above=80pt of -(L0)(C0)] (X) {\blue{$\mu$}};
+        \draw[arrow1] (L0.north) -- ($(L0.north |- X.south)$);
+        \coordinate (C0X) at ($(C0.north |- X.south)$);
+        \node[z iso, below=20 pt of (C0X)] (Z) {};
+        \draw[arrow1rev={0.5}{right}{$b$}] (C0X) -- (Z.north);
+        % \draw[arrow1rev={0.5}{right}{$b$}]
+        %     ($(C0.north |- X.south)$) -- ++(0,-20pt)
+        %     node[old z iso, below] (Z) {};
+        \draw[arrow1={0.7}{}{}] (Z.south) -- ++(0,-10pt) coordinate (C2);
+        \draw (C2) arc(180:360:15pt) coordinate (R2);
+        \draw[arrow1] (X.north) -- ++(0,20pt) node[space, above] (top) {$c$};
+        \draw[arrow1] (R2) -- ($(R2 |- top.south)$) node[space, above] (R3) {$\dualsector{b}$};
+    \end{tikzpicture}}}
+    \quad = ~~ \sum_{\red{\nu}} ~~ \chi_b \left[ B^{ab}_c \right]^{\blue{\mu}}_{\red{\nu}} \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (L5) {$c$};
+        \node[space, right=20pt of L5] (R5) {$\dualsector{b}$};
+        \node[y tensor, below=20pt of -(L5)(R5)] (X) {\red{$\nu$}};
+        \draw[arrow1rev] (R5.south) -- ($(R5.south |- X.north)$);
+        \draw[arrow1rev] (L5.south) -- ($(L5.south |- X.north)$);
+        \draw[arrow1rev] (X.south) -- ++(0,-20pt) node[space, below] {$a$};
+    \end{tikzpicture}}}
+\end{equation}
+%
+Again, relations for bending lines on a splitting tensor can be obtained by taking the dagger.
+
+The B symbol can be obtained from the F symbol as follows.
+%
+Start with the LHS of~\eqref{eq:nonabelian:topo_data:def_B_symbol}, use~\eqref{eq:nonabelian:cup_from_splitting_tensor} on the cup, insert $\hconj{(\rho_a)} = Y^{aI}_{a,1}$ below and recouple the splitting tree with an F move to find
+\begin{equation}
+    \label{eq:nonabelian:topo_data:B_symbol_from_F}
+    [B^{ab}_c]^\mu_\nu = \sqrt{d_b} [\conj{F}^{ab\dualsector{b}}_a]^{I11}_{c\mu\nu}
+    .
+\end{equation}
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Summary of topological data}
+\label{subsec:nonabelian:topo_data:summary}
+
+In an implementation of a tensor backend, the following data/functions of a symmetry are strictly needed.
+\begin{enumerate}[label=(\roman*)]
+    \item \label{item:nonabelian:topo_data:summary:necessary_first}
+    A data format for sector labels. Preferably, this should be a simple and hashable data structure, such that fusion tree indices are hashable. We propose (arrays of) integers, e.g.~by storing $2S \in\Zbb$, twice the half-integer quantum numbers of $\SU{2}$ irreps.
+    \item The N symbol~\eqref{eq:nonabelian:basics:sector_decomposition_of_sector_product} and F symbols~\eqref{eq:nonabelian:basics:def_F_symbol}, which encode the fusion of sectors.
+    \item The R symbol~\eqref{eq:nonabelian:basics:def_R_symbol}, which encodes braiding.
+    \item \label{item:nonabelian:topo_data:summary:necessary_last}
+    If the number of sectors is infinite, a function to enumerate the possible fusion outcomes $\mathcal{F}_{a,b} := \setdef{c \in \mathcal{S}}{N^{a,b}_{c} > 0}$ is required, to obtain finite loops. It is convenient even if the number of sectors is finite.
+\end{enumerate}
+
+The following data can be obtained from the data above.
+%
+These relations can be used as fallback (default) implementations.
+%
+For a concrete symmetry, however, it is often possible to simplify the expressions, allowing more efficient implementations.
+\begin{enumerate}[resume,label=(\roman*)]
+    \item \label{item:nonabelian:topo_data:summary:optional_first} 
+    The C symbol, see~\eqref{eq:nonabelian:topo_data:def_C_symbol} with fallback implementation~\eqref{eq:nonabelian:basics:C_symbol_from_FR}.
+    %
+    \item 
+    The B symbol, see~\eqref{eq:nonabelian:topo_data:def_B_symbol} with fallback implementation~\eqref{eq:nonabelian:topo_data:B_symbol_from_F}.
+    %
+    \item
+    The quantum dimension $d_a$, see~\eqref{eq:nonabelian:basics:def_qdim}, with fallback implementation~\eqref{eq:nonabelian:topo_data:qdim_from_F}.
+    %
+    \item 
+    The Frobenius Schur indicator $\chi_a$, see~\eqref{eq:nonabelian:topo_data_def_frobenius_schur}, with fallback~\eqref{eq:nonabelian:topo_data:FrobeniusSchur_from_F}.
+    %
+    \item \label{item:nonabelian:topo_data:summary:optional_last}%
+    The twist $\Theta_a$, see ~\eqref{eq:nonabelian:topo_data:def_twist_prefactor}, with fallback implementation~\eqref{eq:nonabelian:topo_data:twist_from_R}.
+\end{enumerate}
+
+For a group symmetry (but not in general!), symmetric maps are linear maps between vector spaces.
+%
+We can thus convert symmetric tensors to (or from) their explicit matrix elements, that is, to (from) a representation that does not enforce the symmetry.
+%
+In order to do this, explicit matrix representations of the following maps are required
+\begin{enumerate}[resume,label=(\roman*)]
+    \item The fusion and splitting tensors~\eqref{eq:nonabelian:basics:fusion_tensors_splitting_tensors_graphical}. They are given by the Clebsch-Gordan coefficients.
+    \item The Z isomorphism~\eqref{eq:nonabelian:topo_data:Z_iso_graphical}. They may be a bit tricky to work out in practice and are rarely tabulated. Note that the prefactor is determined by unitarity and by demanding that equation~\eqref{eq:nonabelian:cup_from_splitting_tensor} holds.
+    For one-dimensional sectors, this fully determines Z isomorphism. This is enough for abelian groups, where all sectors are one-dimensional. For Lie groups, the concrete derivation that we give for $\SU{2}$ in section~\ref{subsec:topo_data:su2:z_iso_derivation} should readily generalize.
+\end{enumerate}
+
+This concludes the necessary and optional data associated with a symmetry.
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+
+\subsection{Anyon data}
+\label{subsec:nonabelian:topo_data:anyon_data}
+
+Now let us assume that the tensor category is a modular fusion category, meaning in addition to the properties we require of a tensor category, it additionally has a finite set of sectors, making it a fusion category and has an invertible S matrix~\eqref{eq:nonabelian:topo_data:S_matrix}, making it modular.
+%
+These modular fusion categories describe quantum states of anyonic excitations, and in that context, the following quantities are common and may serve as a sanity check to make sure that the category does indeed describe the anyon theory it is supposed to describe.
+
+The modular T matrix is the following composite
+\begin{equation}
+    T_{a,b} := \delta_{a,b} 
+    \quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \coordinate (S1);
+        \coordinate[right=60pt of S1] (S2);
+        \draw (S1) arc(270:90:20pt) coordinate (N1);
+        \draw (S2) arc(-90:90:20pt) coordinate (N2);
+        \draw (N1) to[out=0,in=180] (S2);
+        \draw[overdraw, arrow1={0.75}{above}{$a$}] (S1) to[out=0,in=180] (N2);
+    \end{tikzpicture}}}
+    \quad
+    = \delta_{a,b} \tr{\theta_a}
+    = \delta_{a,b} \Theta_a d_a
+    .
+\end{equation}
+
+The modular S matrix is the following composite
+\begin{equation}
+    \label{eq:nonabelian:topo_data:S_matrix}
+    S_{a,b} := 
+    ~~\frac{1}{\mathcal{D}}\quad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \coordinate (A1);
+        \coordinate[right=40pt of A1] (C1);
+        \draw (A1) arc[start angle=270, end angle=90, x radius=40pt, y radius=40pt] coordinate (A3);
+        \draw (C1) arc[start angle=-90, end angle=90, x radius=40pt, y radius=40pt] coordinate (C3);
+        \draw[arrow1={0.9}{left}{$b$}] (C1) to[out=180, in=270] ($(A1)!0.5!(A3)$) coordinate (A2);
+        \draw[overdraw, arrow1={0.9}{right}{$a$}] (A1) to[out=0,in=270] ($(C1)!0.5!(C3)$) coordinate (C2);
+        \draw (C2) to[out=90,in=0] (A3);
+        \draw[overdraw] (A2) to[out=90,in=180] (C3);
+    \end{tikzpicture}}}
+    = ~~\frac{1}{\mathcal{D}} \sum_{c\in\mathcal{S}} \sum_{\mu,\nu=1}^{N^{ab}_c} d_c \big[ R^{ba}_c \big]^\mu_\nu \big[ R^{ab}_c \big]^\mu_\nu
+    ,
+\end{equation}
+where $\mathcal{D} := \sqrt{\sum_a d_a^2}$ is the total quantum dimension of the theory.
+%
+The expression in terms of R symbols can be derived by inserting a resolution of identity~\eqref{eq:nonabelian:basics:fusion_tensors_orthormal_and_complete} in terms of fusion tensors above the braids and using two R moves~\eqref{eq:nonabelian:basics:def_R_symbol}, then using that the trace is cyclic and finally orthonormality of fusion tensors.

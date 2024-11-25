@@ -1,0 +1,91 @@
+We became aware after publication that the \acroshort{qr}-based truncation algorithm is closely related to the ideas of randomized linear algebra~\cite{halko2010}.
+%
+In this section, we highlight these parallels and differences, and put the ideas of \acroshort{qr}-based truncation into the framework of randomized matrix factorization.
+
+Let us first summarize the setup and general idea for randomized matrix decompositions.
+%
+The input is an $m \times n$ matrix $\theta$ with numerical rank $k$, meaning it has rank $k$ up to floating point errors, i.e.~only its first $k$ singular values are distinguishable from zero at machine precision.
+
+The first step in a randomized factorization is to obtain a $m \times \ell$ left isometry $Q$ that approximates the range of $\theta$, such that $Q \hconj{Q} \theta \approx \theta$.
+%
+If $\ell = k$, this is guaranteed to be possible, however numerically just as hard as simply computing a standard factorization of $\theta$, e.g.~truncated \acro{svd}.
+%
+The idea is then to allow oversampling, i.e.~allow $\ell$ slightly larger than $k$.
+%
+This typically involves drawing a random test matrix, which we can understand as $\ell$ sample vectors from some distribution.
+%
+For a fixed sample size $\ell$, error estimates, i.e.~bounds on the truncation error $\epsilon_Q = \Fnorm{(\eye - Q \hconj{Q}) \theta}$ can be proven to hold with some fixed probability close to one.
+
+As a result, an approximate factorization $\theta \approx Q (\hconj{Q}\theta)$ with rank $\ell$ is achieved.
+%
+As a second step, it can be post-processed to further reduce the rank to $k$ or achieve desirable properties such as those of a \acro{dsvd}~\eqref{eq:truncation:factorizations:dsvd}.
+%
+If the numerical rank $k$ and thus the sample size $\ell$ are small compared to the input size $m, n$, this can be done by acting with standard factorizations on smaller matrices, e.g.~on $\hconj{Q}\theta$, and is thus cheaper than direct standard factorizations of $\theta$.
+%
+This concludes a brief overview that is, of course, condensed and simplistic, omitting many possible algorithmic improvements and variations.
+
+
+
+A common randomized algorithm for computing an approximate truncated factorization uses a structured test matrix $\Omega$ such that the matrix product $\theta\Omega$ can be computed efficiently.
+%
+The test matrix proposed by Halko et al in~\cite[chpt.~4]{halko2010} is given by $\Omega = \sqrt{n / \ell} D F \Pi$, where $D$ is a $n \times n$ diagonal matrix of uniformly distributed random complex phases, $F$ is the $n \times n$ discrete Fourier transform and $\Pi$ is a random $n \times \ell$ column projections, whose rows are randomly selected from the rows of the $n \times n$ identity matrix.
+%
+Therefore, $Y = \theta\Omega$ can be computed by applying the phases from $D$ scaled by $\sqrt{n/\ell}$, followed by a subsampled \acro{fft} \cite{woolfe2008} at a total cost in $\bigO(mn\log\ell)$.
+%
+They refer to this class of test matrix $\Omega$ as \acrop{srft}.
+
+\begin{Algorithm}{Randomized SVD with Fast Randomized Range Finder}{
+    \label{algo:truncation:halko_rsvd}
+    This is an equivalent reframing of algorithms 4.5 and 5.1 in reference~\cite{halko2010} to match the notation of this thesis.
+    \\[1ex]
+    Given an $m \times n$ matrix $\theta$ and an integer $\ell \leq \min(m, n)$, computes an approximate \acro{svd} $\theta \approx U S \hconj{V}$ with rank $k \leq \ell$.
+    \label{algo:randomized_svd}
+}
+    \step\label{step:randomized_svd:draw_srft}
+    Draw a $n \times \ell$ random \acroshort{srft} (see main text) test matrix $\Omega$.
+    \step\label{step:randomized_svd:apply_Omega}
+    Form $Y = \theta \Omega$ via subsampled \acroshort{fft}
+    \step\label{step:randomized_svd:qr_decompose}
+    Compute the \acroshort{qr} decomposition $Y = QR$.
+    \step\label{step:randomized_svd:project_and_svd}
+    Form the $\ell \times n$ matrix $B = \hconj{Q}\theta$ and and compute its \acro{svd} $B = \tilde U S \hconj V$.
+    \step\label{step:randomized_svd:form_U} Form $U = Q \tilde U$.
+\end{Algorithm}
+
+The resulting algorithm, the randomized \acro{svd}, is transcribed in algorithm~\ref{algo:truncation:halko_rsvd}.
+%
+Steps \ref{step:randomized_svd:draw_srft}-\ref{step:randomized_svd:qr_decompose} realize a randomized range finder, and steps \ref{step:randomized_svd:project_and_svd}-\ref{step:randomized_svd:form_U} can be thought of as post-processing to achieve the \acro{svd} properties.
+
+As a first notable difference, for the \acroshort{qr}-based truncation -- and in the \acro{tns} context in general -- we do \emph{not} assume that we truncate only to the numerical rank $k$ of the matrix, but to some pre-determined target rank $k$ that is potentially significantly smaller.
+%
+While we require the truncation error~\eqref{eq:truncation:explicit_error} to remain small, for the simulation to be sensible, the resulting rank $k$ may be significantly smaller than the numerical rank of the input matrix $\theta$, i.e.~we \emph{do} discard singular values, that -- while ``small" -- are significantly larger than machine precision.
+
+
+
+Let us then compare the \acroshort{qr}-based truncation variants of the previous section with the randomized scheme of algorithm~\ref{algo:truncation:halko_rsvd}.
+%
+Compared with the simple \acroshort{qr}-based truncation of algorithm~\ref{algo:truncation:qr_simple}, we can identify a similar broad structure but see a different test matrix $\Omega$; instead of a random sample, it uses an informed initial guess.
+%
+The following \acroshort{qr} step is the same as for the randomized \acro{svd} algorithm and concludes the range finder;
+as we confirm empirically, we have $U\hconj{U}\theta \approx \theta$ at this point.
+%
+In addition to the heuristic of the previous section, we can understand this result also in the context of the randomized range finder; the deterministically selected test matrix of the \acroshort{qr}-based scheme seems to be typical enough of a random distribution to allow the same accurate approximation of the range of $\theta$.
+%
+In other words, the choice of the test matrix is not fine-tuned enough to hit those low-probability cases where the randomized range finder breaks down.
+%
+The second step of~\ref{algo:truncation:qr_simple} is then simply post-processing to the target \acro{svd}-like factorization.
+%
+The pedagogical example of iterating single site updates, as outlined in algorithm~\ref{algo:truncation:qr_simple_iteration} can be understood as an alternative randomized range finder, the ``randomized subspace iteration", see~\cite[alg. 4.4]{halko2010}, which realizes a power method to improve the subspace spanned by $\Omega$.
+%
+As a simple version with no subsequent further truncation, the simple scheme has $\ell = k$.
+
+The full \acroshort{qr}-based truncation scheme of algorithm~\ref{algo:truncation:qr_cbe}, on the other hand, does allow for oversampling with $\ell > k$.
+%
+Other than that, the range-finding step is the same as before and can be understood in the same way.
+%
+The post-processing, realized in steps 3-5, on the other hand, is unnecessarily complicated and exists in this form since it arose incrementally from the simple algorithm~\ref{algo:truncation:qr_simple}.
+%
+Indeed, we can instead compute a truncated \acro{svd} directly of $\tilde Y = \tilde{U} S \hconj{V}$, omitting the \acroshort{lq} factorization, as is done in the randomized \acro{svd}.
+%
+The resulting cost has the same formal scaling but with a smaller prefactor.
+%

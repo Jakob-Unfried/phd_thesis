@@ -1,0 +1,1864 @@
+A (finite) \acrofull{mps} is a quantum state on a chain of $N$ sites, where the coefficients of the wavefunction in computational bases $\set{\ket{i_n}}$ on each site $n$, is given by the following tensor network
+
+\begin{equation}
+    \label{eq:tensornets:mps:ansatz}
+    % \ket{\text{MPS}\rBr{\set{M^{[n]}}}}
+    \psiket
+    ~~ := ~~
+    \sum_{i_1,\dots, i_N} ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M1) {$M^{[1]}$};
+        \draw[dashed] (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt) node[space, below] (i1) {$i_1$};
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$M^{[2]}$};
+        \draw (M2.south) -- ++(0,-10pt) node[space, below] (i2) {$i_2$};
+        \draw (M2.east) -- ++(10pt,0) node[tensor, right] (M3) {$M^{[3]}$};
+        \draw (M3.south) -- ++(0,-10pt) node[space, below] (i3) {$i_3$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$\dots$};
+        \draw (M4.south) -- ++(0,-10pt) node[space, below] (i4) {$\dots$};
+        \draw (M4.east) -- ++(10pt,0) node[tensor, right] (M5) {$M^{[N]}$};
+        \draw (M5.south) -- ++(0,-10pt) node[space, below] (i4) {$i_N$};
+        \draw[dashed] (M5.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~ \ket{i_1,\dots, i_N} ~,
+\end{equation}
+where the dashed lines indicate a trivial index that can only take on a single value.
+
+
+For fixed physical indices $i_1,\dots, i_N$, the three-leg tensors $M^{[2]}$ reduce to a matrix $M^{[2]i_2}$ of the two remaining \emph{virtual} indices, such that the wavefunction coefficients
+\begin{equation}
+    \braket{i_1,\dots, i_N}{\psi}
+    = \sum_{\alpha_1,\dots,\alpha_{N-1}} (M^{[1]i_1})_{1,\alpha_1} (M^{[2]i_2})_{\alpha_1,\alpha_2} \dots (M^{[N]i_N})_{\alpha_{N-1},1}
+\end{equation}
+are given as a product of matrices, which coins the name of the ansatz.
+%
+The \emph{bond dimension} $\chi_n$ of the $n$-th bond between sites $n, n+1$ is given by the dimension of the contracted index $\alpha_n$ between the respective tensors $M^{[n]}, M^{[n+1]}$. 
+%
+The \emph{maximal bond dimension} $\chi = \max_n \chi_n$ is also referred to simply as ``the bond dimension of the \acro{mps}".
+
+In this section, we discuss several algorithmic aspects as basics for the later chapters of this thesis.
+%
+We cover the gauge freedom of \acro{mps} and how to exploit it to enforce special properties, namely the isometric form as a weaker requirement or the canonical form as a stronger special case, the \acro{dmrg} algorithm for ground state search, as well as the \acro{tebd} and \acro{mpoEvolution} algorithms for simulating dynamics.
+%
+We do not cover the \acro{tdvp} algorithm~\cite{haegeman2011a, haegeman2016a} for time evolution, infinite \acro{mps}~\cite{orus2008}, the \acro{vumps} algorithm for ground state search~\cite{zauner-stauber2018a}, or tangent space methods for excitations~\cite{haegeman2013, vanderstraeten2015, vanderstraeten2019a}, and refer the interested reader to the given references or reviews~\cite{cirac2021, orus2014a}.
+
+Throughout the section, we employ the following slight abuse of notation for brevity.
+%
+We use dot products to indicate the contraction of virtual \acro{mps} legs and imply the behavior of the physical legs, which remain untouched and in order of occurrence.
+%
+Any symbol with a superscript in square brackets is an \acro{mps} tensor and is understood to have three indices $\alpha, i, \beta$ with $i$ being the physical index, while other symbols are assumed to have only two virtual indices $\alpha, \beta$.
+%
+If neither symbol has a physical leg, the dot product denotes the matrix product $(R \cdot L)_{\alpha,\beta} = \sum_\gamma R_{\alpha\gamma} L_{\gamma\beta}$.
+%
+If there is one or two physical indices, we think of them as follows.
+\begin{gather}
+% \begin{gathered}
+    (M^{[n]} \cdot R)_{\alpha i_n \beta}
+    % = \sum_\gamma M^{[n]}_{\alpha i_n\gamma} L_{\gamma\beta}
+    ~~ := ~
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+        \node[tensor] (M) {$M^{[n]}$};
+        \draw (M.west) -- ++(-10pt,0) node[space, left] {$\alpha$};
+        \draw (M.south) -- ++(0,-10pt) node[space, below] {$i_n$};
+        \draw (M.east) -- ++(10pt,0) node[tensor, right] (L) {$R$};
+        \draw (L.east) -- ++(10pt,0) node[space, right] {$\beta$};
+    \end{tikzpicture}}}}
+    ~~ ; ~~
+    (L \cdot M^{[n]})_{\alpha i_n \beta}
+    % = \sum_\gamma R_{\alpha\gamma }M^{[n]}_{\gamma i_n\beta} L_{\gamma\beta}
+    ~~ := ~
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+        \node[tensor] (M) {$L$};
+        \draw (M.west) -- ++(-10pt,0) node[space, left] {$\alpha$};
+        \draw (M.east) -- ++(10pt,0) node[tensor, right] (L) {$M^{[n]}$};
+        \draw (L.east) -- ++(10pt,0) node[space, right] {$\beta$};
+        \draw (L.south) -- ++(0,-10pt) node[space, below] {$i_n$};
+    \end{tikzpicture}}}}
+    \nonumber
+    \\
+    \label{eq:tensornets:mps:dot_product_notation_abuse}
+    (M^{[n]} \cdot M^{[m]})_{\alpha i_n i_m\beta}
+    % = \sum_\gamma M^{[n]}_{\alpha i_n\gamma} M^{[m]}_{\gamma i_m\beta}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M) {$M^{[m]}$};
+        \draw (M.west) -- ++(-10pt,0) node[space, left] {$\alpha$};
+        \draw (M.east) -- ++(10pt,0) node[tensor, right] (L) {$M^{[m]}$};
+        \draw (L.east) -- ++(10pt,0) node[space, right] {$\beta$};
+        \draw (M.south) -- ++(0,-10pt) node[space, below] {$i_n$};
+        \draw (L.south) -- ++(0,-10pt) node[space, below] {$i_m$};
+    \end{tikzpicture}}}
+% \end{gathered}
+\end{gather}
+%
+
+% =============================================================================
+% =============================================================================
+% =============================================================================
+\subsection{Gauge fixing, isometric form and canonical form}
+\label{subsec:mps:gauge_fixing_forms}
+
+A common feature of TNS is a gauge freedom on every virtual bond, meaning there are many choices for the tensors in a tensor network, such that the physical quantum state is the same.
+%
+We may insert a resolution of identity $\eye = G_n G_n^{-1}$ in terms of any invertible matrix $G_n \in \mathrm{GL}(\chi_n)$ on the $n$-th virtual bond of dimension $\chi_n$, and absorb it into the respective tensors, that is
+%
+\begin{equation}
+    \label{eq:tensornets:mps:gauge_invariance}
+    \vcenter{\hbox{\scalebox{0.8}{\begin{tikzpicture}
+        \node[tensor] (M1) {$M^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$M^{[n+1]}$};
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~ = ~
+    \vcenter{\hbox{\scalebox{0.85}{\begin{tikzpicture}
+        \node[tensor] (M1) {$M^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (X1) {$G_n$};
+        \draw (X1.east) -- ++(10pt,0) node[tensor, right] (X2) {$G_n^{-1}$};
+        \draw (X2.east) -- ++(10pt,0) node[tensor, right] (M2) {$M^{[n+1]}$};
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~ =: ~
+    \vcenter{\hbox{\scalebox{0.8}{\begin{tikzpicture}
+        \node[tensor] (M1) {$\tilde{M}^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$\tilde{M}^{[n+1]}$};
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ,
+\end{equation}
+%
+such that clearly the quantum state~\eqref{eq:tensornets:mps:ansatz} remains unchanged.
+
+We can use this gauge freedom to enforce desirable properties on the tensors of the \acro{mps}.
+%
+In particular, consider the following family of states on the subsystem left of bond $n$, indexed by $\alpha = 1, \dots , \chi_n$
+%
+\begin{equation}
+    \label{eq:tensornets:mps:L_alpha_states}
+    \ket{L^{(n)}_\alpha}
+    ~~ = ~~
+    \sum_{i_1, \dots, i_n}
+    ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M1) {$M^{[1]}$};
+        \draw[dashed] (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt) node[space, below] (i1) {$i_1$};
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$M^{[2]}$};
+        \draw (M2.south) -- ++(0,-10pt) node[space, below] (i2) {$i_2$};
+        \draw (M2.east) -- ++(10pt,0) node[tensor, right] (M3) {$\dots$};
+        \draw (M3.south) -- ++(0,-10pt) node[space, below] (i3) {$\dots$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$M^{[n]}$};
+        \draw (M4.south) -- ++(0,-10pt) node[space, below] (i4) {$i_n$};
+        \draw (M4.east) -- ++(10pt,0) node[space, right] {$\alpha$};
+    \end{tikzpicture}}}
+    ~~ \ket{i_1, \dots, i_n} ~.
+\end{equation}
+
+Let us assume that those states span a $\chi_n$-dimensional subspace, since otherwise, the \acro{mps} could have been written down with a smaller bond dimension, namely the dimension of the span.
+%
+A gauge transformation~\eqref{eq:tensornets:mps:gauge_invariance} acts on them as 
+$\ket{L^{(n)}_\alpha} \mapsto \ket{\tilde{L}^{(n)}_\alpha} = \sum_\beta (G_n)_{\alpha\beta} \ket{L^{(n)}_\beta}$.
+%
+Now we may choose the transformation $G_n$, such that in the new gauge, these states are orthonormal $\braket{\tilde{L}^{(n)}_\alpha}{\tilde{L}^{(n)}_{\alpha'}} = \delta_{\alpha,\alpha'}$.
+%
+If we iterate this gauge choice for all bonds from left to right, we find a new set of tensors $A^{[1]}, \dots, A^{[N]}$ which give the same state $\ket{\text{MPS}(M^{[1]}, \dots , M^{[N]}))} = \mathcal{N} \ket{\text{MPS}(A^{[1]}, \dots , A^{[N]}))}$, possibly up to a normalization factor $\mathcal{N} > 0$, and fulfill the (left) isometric property
+%
+\begin{equation}
+    \label{eq:tensornets:mps:isometric_A_property}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt) node[left iso, below] (M2) {$\conj{A}^{[n]}$};
+        \draw (M1.east) -- ++(10pt,0);
+        \draw (M2.east) -- ++(10pt,0);
+        \draw (M1.west) -- ++(-10pt,0) coordinate (XL) to[out=180,in=180] ($(XL |- M2.west)$) -- (M2.west);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (M1) {\vphantom{$A^{[1]}$}};
+        \path (M1.south) -- ++(0,-10pt) node[space, below] (M2) {\vphantom{$A^{[1]}$}};
+        \draw (M1.west) -- ++(-10pt,0) coordinate (X) to[out=180,in=180] ($(X |- M2.west)$) -- (M2.west);
+    \end{tikzpicture}}}
+    \!\!\!\!.
+\end{equation}
+%
+Note that to enforce this property for the last tensor, we effectively just rescale it such that the \acro{mps} is normalized.
+%
+We call such tensors ``left isometric", or ``in (isometric) A form", as they are left isometries when reshaped to a matrix $A^{[n]}_{(\alpha i),\beta}$.
+
+To bring a given \acro{mps} to isometric A form in practice, note that we do not need to compute the transformation $G_n$. We only need to find the new tensors $A^{[n]}, \tilde{M}^{[n+1]}$ such that the former is in A form and such that the state is unchanged $A^{[n]} \cdot \tilde{M}^{[n+1]} = M^{[n]} \cdot M^{[n+1]}$.
+%
+This can be achieved with a \acroshort{qr} decomposition
+%
+\begin{equation}
+    \label{eq:tensornets:mps:QR_step_for_A_from}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[tensor] (M1) {$M^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$M^{[n+1]}$};
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~ \overset{\text{\acroshort{qr}}}{=} ~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$R$};
+        \draw (M2.east) -- ++(10pt,0) node[tensor, right] (M3) {$M^{[n+1]}$};
+        \draw (M3.south) -- ++(0,-10pt);
+        \draw (M3.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~ =: ~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$\tilde{M}^{[n+1]}$};
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~,
+\end{equation}
+%
+which for a full A form of the entire \acro{mps} needs to be iterated for all bonds, that is for $n=1,\dots, N-1$.
+%
+This procedure is contained as a special case $m=N$ in algorithm~\ref{algo:tensornets:mps:mixed_isometric_form}.
+%
+Note that we only require the orthogonal property of the Q factor and do not use the triangular properties of the R factor in the \acroshort{qr} decomposition.
+
+We can alternatively go right to left instead and map the family 
+%
+\begin{equation}
+    \label{eq:tensornets:mps:R_beta_states}
+    \ket{R^{(n)}_\beta}
+    ~~ = ~~
+    \sum_{i_{n+1}, \dots, i_N}
+    ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M1) {$M^{[n+1]}$};
+        \draw (M1.west) -- ++(-10pt, 0) node[space, left] {$\beta$};
+        \draw (M1.south) -- ++(0,-10pt) node[space, below] (i1) {$i_{n+1}$};
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$M^{[n+2]}$};
+        \draw (M2.south) -- ++(0,-10pt) node[space, below] (i2) {$i_{n+2}$};
+        \draw (M2.east) -- ++(10pt,0) node[tensor, right] (M3) {$\dots$};
+        \draw (M3.south) -- ++(0,-10pt) node[space, below] (i3) {$\dots$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$M^{[N]}$};
+        \draw (M4.south) -- ++(0,-10pt) node[space, below] (i4) {$i_N$};
+        \draw[dashed] (M4.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~\ket{i_{n+1}, \dots, i_N}
+\end{equation}
+%
+of states on the right of a given bond to an orthonormal set.
+%
+Note that the superscript refers to the $n$-th \emph{bond} of the system on which the index $\beta$ lives, such that the first site of the state is site $n + 1$, to the right of that bond.
+%
+This yields \acro{mps} tensors in right isometric form, or isometric B form, with the property
+%
+\begin{equation}
+    \label{eq:tensornets:mps:isometric_B_property}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[right iso] (M1) {$B^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt) node[right iso, below] (M2) {$\conj{B}^{[n]}$};
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M2.west) -- ++(-10pt,0);
+        \draw (M1.east) -- ++(10pt,0) coordinate (X) to[out=0,in=0] ($(X |- M2.east)$) -- (M2.east);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[space] (M1) {\vphantom{$B^{[1]}$}};
+        \path (M1.south) -- ++(0,-10pt) node[space, below] (M2) {\vphantom{$B^{[1]}$}};
+        \draw (M1.east) -- ++(10pt,0) coordinate (X) to[out=0,in=0] ($(X |- M2.east)$) -- (M2.east);
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+It can be achieved in practice by sweeping \acroshort{lq} decompositions from left to right, forming $X = M^{[n]} \cdot L$ and \acroshort{lq} decomposing $X = L \cdot B^{[n]}$ instead, see algorithm~\ref{algo:tensornets:mps:mixed_isometric_form} with $m=1$.
+
+Or we can go to a mixed isometric form, where we gauge all bonds to the left of a given tensor $n$ to A form and all bonds to the right to B form.
+%
+As a result, we find
+\begin{equation}
+    \label{eq:tensornets:mps:mixed_isometric_form_defininc_C_property}
+    \ket{\psi}
+    ~~ = ~~
+    \sum_{i_1, \dots, i_N}
+    ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[1]}$};
+        \draw[dashed] (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt) node[space, below] (i1) {$i_1$};
+        \draw (M1.east) -- ++(10pt,0) node[left iso, right] (M2) {$\dots$};
+        \draw (M2.south) -- ++(0,-10pt) node[space, below] (i2) {$\dots$};
+        \draw (M2.east) -- ++(10pt,0) node[left iso, right] (M3) {$A^{[n-1]}$};
+        \draw (M3.south) -- ++(0,-10pt) node[space, below] (i3) {$i_{n-1}$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$C^{[n]}$};
+        \draw (M4.south) -- ++(0,-10pt) node[space, below] (i4) {$i_n$};
+        \draw (M4.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+1]}$};
+        \draw (M5.south) -- ++(0,-10pt) node[space, below] (i5) {$i_{n+1}$};
+        \draw (M5.east) -- ++(10pt,0) node[right iso, right] (M6) {$\dots$};
+        \draw (M6.south) -- ++(0,-10pt) node[space, below] (i6) {$\dots$};
+        \draw (M6.east) -- ++(10pt,0) node[right iso, right] (M7) {$B^{[N]}$};
+        \draw (M7.south) -- ++(0,-10pt) node[space, below] (i7) {$i_N$};
+        \draw[dashed] (M7.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    \ket{i_1, \dots, i_N}
+    .
+\end{equation}
+
+We call a tensor in isometric central form, or isometric C form, if the \acro{mps} can be written with only A tensors to its left and only B tensors to its right, as above.
+%
+Such tensors are also referred to as an orthogonality center.
+%
+It is common to normalize the C form tensor to $\Fnorm{C^{[n]}} = 1$, as this gives a normalized \acro{mps} $\norm{\psiket} = 1$.
+%
+A procedure to establish a mixed isometric form is given in algorithm~\ref{algo:tensornets:mps:mixed_isometric_form}.
+
+\begin{Algorithm}{Establishing an isometric form}{
+    \label{algo:tensornets:mps:mixed_isometric_form}
+    Given an \acro{mps} $\ket{\psi} = \ket{\text{MPS}(M^{[1]},\dots,M^{[N]})}$ and integer $m \in\set{1,\dots,N}$, find tensors $A^{[1]},\dots,A^{[m-1]}$ in isometric A form, $C^{[m]}$ and tensors $B^{[m+1]},\dots,B^{[N]}$ in isometric B form such that $\ket{\psi} = \mathcal{N} \ket{\text{MPS}(A^{[1]},\dots,A^{[m-1]},C^{[m]},B^{[m+1]},\dots,B^{[N]})}$, where $\mathcal{N} = \norm{\psiket}$.
+    The result is in isometric B form if $m=1$, in A form if $m=N$ and in a mixed isometric form otherwise.
+    We employ the dot product notation~\eqref{eq:tensornets:mps:dot_product_notation_abuse}.
+}
+    \step Initialize $R = 1 \in \Cbb^{1 \times 1}$.
+    \step For $n=1,\dots, m-1$ (left to right):
+    \step \quad Form $X = R \cdot M^{[n]}$
+    \step \quad Update $R$ and set $A^{[n]}$ by computing the \acroshort{qr} factorization $X = A^{[n]} \cdot R$
+    \step Set $\tilde{M}^{[m]}$ = $R \cdot M^{[m]}$
+    \step Initialize $L = 1 \in \Cbb^{1 \times 1}$.
+    \step For $n=N,N-1,\dots,m+1$ (right to left):
+    \step \quad Form $X = M^{[n]} \cdot L$.
+    \step \quad Update $L$ and set $B^{[n]}$ by computing the \acroshort{lq} factorization $X = L \cdot B^{[m]}$.
+    \step Update $\tilde{M}^{[m]} \gets \tilde{M}^{[m]} \cdot L$
+    \step Compute $\mathcal{N} = \norm{\tilde{M}^{[m]}}$ and set $C^{[m]} = \tilde{M}^{[m]} / \mathcal{N}$.
+\end{Algorithm}
+
+We can perform an additional orthogonalization, e.g.~a \acroshort{qr} factorization of $C^{[n]}$, to shift the orthogonality center from a site to a bond and find
+\begin{equation}
+    \label{eq:tensornets:mps:isometric_form_bond_center}
+    \ket{\psi}
+    ~~ = ~~
+    \sum_{i_1, \dots, i_N}
+    ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[1]}$};
+        \draw[dashed] (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt) node[space, below] (i1) {$i_1$};
+        \draw (M1.east) -- ++(10pt,0) node[left iso, right] (M2) {$\dots$};
+        \draw (M2.south) -- ++(0,-10pt) node[space, below] (i2) {$\dots$};
+        \draw (M2.east) -- ++(10pt,0) node[left iso, right] (M3) {$A^{[n]}$};
+        \draw (M3.south) -- ++(0,-10pt) node[space, below] (i3) {$i_{n}$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$\Xi^{(n)}$};
+        \draw (M4.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+1]}$};
+        \draw (M5.south) -- ++(0,-10pt) node[space, below] (i5) {$i_{n+1}$};
+        \draw (M5.east) -- ++(10pt,0) node[right iso, right] (M6) {$\dots$};
+        \draw (M6.south) -- ++(0,-10pt) node[space, below] (i6) {$\dots$};
+        \draw (M6.east) -- ++(10pt,0) node[right iso, right] (M7) {$B^{[N]}$};
+        \draw (M7.south) -- ++(0,-10pt) node[space, below] (i7) {$i_N$};
+        \draw[dashed] (M7.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~~
+    \ket{i_1, \dots, i_N}
+    .
+\end{equation}
+If the given state $\psiket$ can be written in this fashion, with isometric A form tensor to the left of the bond and B tensors to its right, we call $\Xi^{(n)}$ a \emph{bond matrix}.
+%
+Note that in an isometric form, unlike in the stronger canonical form, the bond matrices are not determined by the state $\psiket$ alone but also depend on the choice of the A and B tensors.
+%
+From this bond central form, we find
+\begin{equation}
+    \label{eq:tensornets:mps:schmidt_like_decomposition_from_isometric_form}
+    \ket{\psi}
+    = \sum_{\alpha\beta} \Xi^{(n)}_{\alpha\beta} \ket{L^{(n)}_\alpha} \otimes \ket{R^{(n)}_\beta}
+    .
+\end{equation}
+%
+This already looks structurally similar to the Schmidt decomposition~\eqref{eq:tensornets:entanglement:schmidt_decomposition}, but we have not yet chosen the particular bases for the left/right subsystem in which the coefficients $\Xi^{(n)}_{\alpha\beta}$ become diagonal.
+
+The A, B, and C isometric forms are related as follows
+%
+\begin{equation}
+    \label{eq:tensornets:mps:relations_between_isometric_forms}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$\Xi^{(n)}$};
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M1) {$C^{[n]}$};
+        \draw (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[right iso] (M1) {$B^{[n]}$};
+        \draw (M1.east) -- ++(10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0) node[tensor, left] (M2) {$\Xi^{(n-1)}$};
+        \draw (M2.west) -- ++(-10pt,0);
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+%
+Note that an A tensor at the very right site is by definition also in C form $A^{[N]} = C^{[N]}$, and similarly, a B tensor at the very left $B^{[1]} = C^{[1]}$.
+%
+This motivates the definition for the bond matrices $\Xi^{(0)} = \Xi^{(N)} = 1 \in \Cbb^{1\times 1}$ for the trivial bonds at the system boundary, such that both sides of~\eqref{eq:tensornets:mps:relations_between_isometric_forms} hold also for $n=1$ and $n=N$.
+%
+Storing the bond matrices in addition to the \acro{mps} tensors allows convenient conversion between different forms on the fly.
+%
+It does, however, require us to consider if the bond matrices remain valid when updating \acro{mps} tensors.
+%
+Note that algorithm~\ref{algo:tensornets:mps:mixed_isometric_form} does not yield the bond matrices.
+%
+To establish an isometric form with all bond matrices, we instead need to use algorithm~\ref{algo:tensornets:mps:right_canonical_form}, but can relax the \acro{svd} to a \acrofull{dsvd}, that is a \acro{svd}-like decomposition $X = U \cdot \Xi^{(n)} \cdot B^{[n]}$ with a non-diagonal central factor $\Xi^{(n)}$, see section~\ref{subsec:truncation:factorizations:deformed_svd}.
+
+Demanding an isometric form (A, B or mixed) only partially fixes the gauge freedom, and transformations of the form~\eqref{eq:tensornets:mps:gauge_invariance} leave both the state and the isometric properties invariant, if we restrict to $G_n \in \U{\chi_n}$, i.e.~to unitary gauge transformations.
+%
+We can further fix some of the remaining gauge freedom by demanding the canonical form.
+%
+We can take two equivalent perspectives on how to arrive there.
+%
+First, instead of choosing $G_n$ to map the $\ket{L^{(n)}_\alpha}$ to \emph{any} orthonormal set, we may choose it to map to the particular orthonormal set given by the left Schmidt states.
+%
+This gives rise to the procedure summarized in algorithm~\ref{algo:tensornets:mps:right_canonical_form}, which is similar to algorithm~\ref{algo:tensornets:mps:mixed_isometric_form}, except we need to perform an \acro{svd} instead of \acroshort{qr} decompositions.
+%
+Alternatively, we can gauge an existing isometric form with bond matrix~\eqref{eq:tensornets:mps:isometric_form_bond_center} to match the Schmidt decomposition by performing an \acro{svd} of the bond matrix
+\begin{equation}
+    \label{eq:tensornets:mps:svd_isometric_to_canonical_form}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$\Xi^{(n)}$};
+        \draw (M2.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+1]}$};
+        \draw (M5.south) -- ++(0,-10pt);
+        \draw (M5.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~~ \overset{\text{\acroshort{svd}}}{=} ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$U_n$};
+        \draw (M2.east) -- ++(10pt,0) node[tensor, right] (M3) {$S^{(n)}$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$V_n^\dagger$};
+        \draw (M4.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+1]}$};
+        \draw (M5.south) -- ++(0,-10pt);
+        \draw (M5.east) -- ++(10pt,0);
+        %
+        \coordinate (A1) at ($(M1.south west)+(-2pt,-12pt)$);
+        \coordinate (A2p) at ($(M2.east)+(2pt,0)$);
+        \coordinate (A2) at ($(A2p |- A1)$);
+        \draw[decoration={brace,mirror}, decorate, ultra thick] (A1) -- node[below] {=: $\tilde{A}^{[n]}$} (A2);
+        %
+        \coordinate (B2) at ($(M5.south east)+(2pt,-12pt)$);
+        \coordinate (B1p) at ($(M4.west)+(-2pt,0)$);
+        \coordinate (B1) at ($(B1p |- B2)$);
+        \draw[decoration={brace,mirror}, decorate, ultra thick] (B1) -- node[below] {=: $\tilde{B}^{[n+1]}$} (B2);        
+    \end{tikzpicture}}}}
+    .
+\end{equation}
+%
+Thus, if we have access to all bond matrices and perform their \acro{svd} $\Xi^{(n)} =: U_n S^{(n)} V_n^\dagger$, we obtain the Schmidt values $S^{(n)}$ for all bonds (which are the bond matrices of the canonical form) and can obtain the MPS tensors in canonical form (with tilde) from their counterparts in isometric form (no tilde) as follows
+\begin{gather}
+\begin{gathered}
+    \label{eq:tensornets:mps:isometric_to_canonical_form_transform_mps_tensors}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (M1) {$\tilde{A}^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M1.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0) node[right iso, left] (U1) {$U_{n-1}^\dagger$};
+        \draw (M1.east) -- ++(10pt,0)  node[left iso, right] (U2) {$U_n$};
+        \draw (U1.west) -- ++(-10pt,0);
+        \draw (U2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    \\
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[right iso] (M1) {$\tilde{B}^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M1.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[right iso] (M1) {$B^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0) node[right iso, left] (U1) {$V_{n-1}^\dagger$};
+        \draw (M1.east) -- ++(10pt,0)  node[left iso, right] (U2) {$V_n$};
+        \draw (U1.west) -- ++(-10pt,0);
+        \draw (U2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    \\
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M1) {$\tilde{C}^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M1.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M1) {$C^{[n]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0) node[right iso, left] (U1) {$U_{n-1}^\dagger$};
+        \draw (M1.east) -- ++(10pt,0)  node[left iso, right] (U2) {$V_n$};
+        \draw (U1.west) -- ++(-10pt,0);
+        \draw (U2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~.
+\end{gathered}
+\end{gather}
+
+\begin{Algorithm}{Establishing a right canonical form}{
+    \label{algo:tensornets:mps:right_canonical_form}
+    Given an \acro{mps} $\ket{\psi} = \ket{\text{MPS}(M^{[1]},\dots,M^{[N]})}$ and integer $n\in\set{1,\dots,N}$, find the Schmidt values $S^{(1)},\dots,S^{(N-1)}$ of $\ket{\psi}$, as well as tensors $B^{[1]},\dots,B^{[n-1]}$ in canonical B form, $C^{[n]}$, and tensors $A^{[n+1]},\dots,A^{[N]}$ in canonical A form, such that $\ket{\psi} = \mathcal{N} \ket{\text{MPS}(B^{[1]},\dots,B^{[N]})}$, where $\mathcal{N} = \norm\psiket$.
+    The result is in canonical B form if $n=1$, in A form if $n=N$, and in mixed canonical form otherwise.
+    We employ the dot product notation~\eqref{eq:tensornets:mps:dot_product_notation_abuse}.
+}
+    \step Initialize $W = 1 \in \Cbb^{1 \times 1}$ and use the dummy value $S^{(0)} = 1 \in \Cbb^{1 \times 1}$
+    \step For $m=1,\dots,n-1$ (left to right):
+    \step \quad Form $X = S^{(m-1)} \cdot W \cdot M^{[m]}$.
+    \step \quad Update $W$ and set $A^{[m]}, S^{(m)}$ by computing the \acro{svd} $X = A^{[m]} \cdot S^{(m)} \cdot W$.
+    \step Set $\tilde{M}^{[n]} = S^{(n-1)} \cdot W \cdot M^{[n]}$.
+    \step Initialize $U = 1 \in \Cbb^{1 \times 1}$ and use the dummy value $S^{(N)} = 1 \in \Cbb^{1 \times 1}$.
+    \step For $m=N,\dots,n+1$ (right to left):
+    \step \quad Form $X = M^{[m]} \cdot U \cdot S^{(m)}$
+    \step \quad Update $U$ and set $S^{(m)}, B^{[m]}$ by computing the \acro{svd} $X = U \cdot S^{(m)} \cdot B^{[m]}$
+    \step Update $\tilde{M}^{[n]} \gets \tilde{M}^{[n]} \cdot U \cdot S^{(n)}$.
+    \step Compute $\mathcal{N} = \norm{\tilde{M}^{[n]}}$ and set $C^{[n]} = \tilde{M}^{[n]} / \mathcal{N}$.
+\end{Algorithm}
+
+As an explicit definition, an \acro{mps} is in left canonical form, or canonical A form, if the left states $\ket{L^{(n)}_\alpha}$, defined in~\eqref{eq:tensornets:mps:L_alpha_states} are left Schmidt states of the bipartition on every bond $n$.
+%
+Similarly it is in right canonical form, or B form, if the right states $\ket{R_\beta^{(n)}}$ in~\eqref{eq:tensornets:mps:R_beta_states} are right Schmidt states of the bipartition on every bond $n$, and in mixed canonical form if the A property holds up to some bond, while the B property holds for the rest.
+%
+Thus, a canonical form is a special case of an isometric form, where the bond matrices $\Xi^{(n)}$ are diagonal, real, and non-negative, which means that they are the Schmidt values $S^{(n)}$ of $\psiket$ w.r.t.~a bipartition on bond $n$.
+%
+The canonical form almost fixes the gauge; the remaining freedom is $G_n \in \bigoplus_{i=1}^{\chi} \U{1}$, meaning a phase choice for every Schmidt state, or possibly larger $\U{N}$ if there is a multiplet of $N$ degenerate Schmidt values.
+
+The main benefit of an isometric or canonical form are the isometric properties~\eqref{eq:tensornets:mps:isometric_A_property} and~\eqref{eq:tensornets:mps:isometric_B_property}.
+%
+They allow us to operate locally in algorithms.
+%
+Firstly, expectation values of local operators, e.g.~of $\braopket{\psi}{O_n}{\psi}$ where $O_n$ is a single site operator acting on site $n$ reduce to
+%
+\begin{align}
+    \label{eq:tensornets:mps:local_expval_using_isometric_property}
+    % \braopket{\psi}{O_n}{\psi}
+    % ~~ &= ~~
+    \vcenter{\hbox{\scalebox{0.8}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[1]}$};
+        \draw (M1.east) -- ++(10pt,0) node[left iso, right] (M2) {$\dots$};
+        \draw (M2.east) -- ++(10pt,0) node[left iso, right] (M3) {$A^{[n-1]}$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$C^{[n]}$};
+        \draw (M4.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+1]}$};
+        \draw (M5.east) -- ++(10pt,0) node[right iso, right] (M6) {$\dots$};
+        \draw (M6.east) -- ++(10pt,0) node[right iso, right] (M7) {$B^{[N]}$};
+        %
+        \draw (M4.south) -- ++(0,-10pt) node[tensor, below] (O) {$O$};
+        %
+        \draw (O.south) -- ++(0,-10pt) node[tensor, below] (B4) {$\conj{C}^{[n]}$};
+        \draw (M1.south) -- ($(M1.south |- B4.north)$) node[left iso, below] (B1) {$\conj{A}^{[1]}$};
+        \draw (M2.south) -- ($(M2.south |- B4.north)$) node[left iso, below] (B2) {$\dots\vphantom{\conj{A}^{[1]}}$};
+        \draw (M3.south) -- ($(M3.south |- B4.north)$) node[left iso, below] (B3) {$\conj{A}^{[n-1]}$};
+        \draw (M5.south) -- ($(M5.south |- B4.north)$) node[right iso, below] (B5) {$\conj{B}^{[n+1]}$};
+        \draw (M6.south) -- ($(M6.south |- B4.north)$) node[right iso, below] (B6) {$\dots\vphantom{\conj{A}^{[1]}}$};
+        \draw (M7.south) -- ($(M7.south |- B4.north)$) node[right iso, below] (B7) {$\conj{B}^{[N]}$};
+        %
+        \draw (B1.east) -- (B2.west) (B2.east) -- (B3.west) (B3.east) -- (B4.west) (B4.east) -- (B5.west) (B5.east) -- (B6.west) (B6.east) -- (B7.west);
+        %
+        \draw[dashed] (M1.west) -- ++(-2pt,0) coordinate (XL) to[out=180,in=180] ($(XL |- B1.west)$) -- (B1.west);
+        \draw[dashed] (M7.east) -- ++(2pt,0) coordinate (XR) to[out=0,in=0] ($(XR |- B7.east)$) -- (B7.east);
+    \end{tikzpicture}}}}
+    % \\ ~~ &= ~~
+    ~~ = ~~
+    \vcenter{\hbox{\scalebox{0.8}{\begin{tikzpicture}
+        \node[tensor] (M4) {$C^{[n]}$};
+        \draw (M4.south) -- ++(0,-10pt) node[tensor, below] (O) {$O$};
+        \draw (O.south) -- ++(0,-10pt) node[tensor, below] (B4) {$\conj{C}^{[n]}$};
+        \draw (M4.west) -- ++(-2pt,0) coordinate (XL) to[out=180,in=180] ($(XL |- B4.west)$) -- (B4.west);
+        \draw (M4.east) -- ++(2pt,0) coordinate (XR) to[out=0,in=0] ($(XR |- B4.east)$) -- (B4.east);
+    \end{tikzpicture}}}}
+    ,
+\end{align}
+where we can obtain $C^{[n]}$ on the fly from any canonical form via~\eqref{eq:tensornets:mps:relations_between_isometric_forms}, if we have access to the bond matrices.
+%
+Secondly, the isometric property connects the norm $\Vert\blank\Vert_\mathcal{H}$ of the many-body Hilbert space to the local 2-norm $\Vert\blank\Vert_\text{F}$ of single tensor(s) in the following sense.
+%
+Consider modifying an \acro{mps} in mixed canonical form by changing the tensor at the orthogonality center.
+%
+Then, the distance between these two states in the Hilbert space norm is simply given by the 2-norm distance of the respective tensors
+
+\begin{align}
+    \label{eq:tensornets:mps:isometric_property_connects_norms}
+    &\left\Vert ~
+    \vcenter{\hbox{\scalebox{0.8}{\begin{tikzpicture}
+        \node[left iso] (M2) {$\dots$};
+        \draw[dashed] (M2.west) -- ++(-10pt, 0);
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw[draw=none] (M2.south) -- ++(0,10pt);  % invisible line for vertical spacing
+        \draw (M2.east) -- ++(10pt,0) node[left iso, right] (M3) {$A^{[n-1]}$};
+        \draw (M3.south) -- ++(0,-10pt);
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$C^{[n]}$};
+        \draw (M4.south) -- ++(0,-10pt);
+        \draw (M4.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+1]}$};
+        \draw (M5.south) -- ++(0,-10pt);
+        \draw (M5.east) -- ++(10pt,0) node[right iso, right] (M6) {$\dots$};
+        \draw (M6.south) -- ++(0,-10pt);
+        \draw[dashed] (M6.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~ - ~
+    \vcenter{\hbox{\scalebox{0.8}{\begin{tikzpicture}
+        \node[left iso] (M2) {$\dots$};
+        \draw[dashed] (M2.west) -- ++(-10pt, 0);
+        \draw[draw=none] (M2.south) -- ++(0,10pt);  % invisible line for vertical spacing
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt,0) node[left iso, right] (M3) {$A^{[n-1]}$};
+        \draw (M3.south) -- ++(0,-10pt);
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right, fill=black!20] (M4) {$\tilde{C}^{[n]}$};
+        \draw (M4.south) -- ++(0,-10pt);
+        \draw (M4.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+1]}$};
+        \draw (M5.south) -- ++(0,-10pt);
+        \draw (M5.east) -- ++(10pt,0) node[right iso, right] (M6) {$\dots$};
+        \draw (M6.south) -- ++(0,-10pt);
+        \draw[dashed] (M6.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~ \right\Vert_\mathcal{H}
+    \nonumber
+    \\[2ex]
+    &\qquad = ~~
+    \left\Vert ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M2) {$C^{[n]}$};
+        \draw[draw=white] (M2.south) -- ++(0,10pt);  % invisible line for vertical spacing
+        \draw (M2.west) -- ++(-10pt, 0);
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt, 0);
+    \end{tikzpicture}}}
+    ~~ - ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor, fill=black!20] (M2) {$\tilde{C}^{[n]}$};
+        \draw[draw=none] (M2.south) -- ++(0,10pt);  % invisible line for vertical spacing
+        \draw (M2.west) -- ++(-10pt, 0);
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt, 0);
+    \end{tikzpicture}}}
+    ~~\right\Vert_\text{F}
+    ,
+\end{align}
+where
+\begin{equation}
+    \label{eq:tensornets:mps:def_local_F_nrom}
+    \left\Vert ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M2) {$M$};
+        \draw[draw=white] (M2.south) -- ++(0,10pt);  % invisible line for vertical spacing
+        \draw (M2.west) -- ++(-10pt, 0);
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M2.east) -- ++(10pt, 0);
+    \end{tikzpicture}}}
+    ~~ \right\Vert_\text{F}
+    ~~ = ~~
+    \sqrt{
+        ~~
+        \vcenter{\hbox{\begin{tikzpicture}
+            \node[tensor] (M2) {$M$};
+            \draw (M2.south) -- ++(0,-10pt) node[tensor, below] (B2) {$\conj{M}$};
+            \draw (M2.west) -- ++(-2pt, 0) coordinate (XL) to[out=180,in=180] ($(XL |- B2.west)$) -- (B2.west);
+            \draw (M2.east) -- ++(2pt, 0) coordinate (XR) to[out=0,in=0] ($(XR |- B2.east)$) -- (B2.east);
+        \end{tikzpicture}}}
+        ~~
+    }
+    ~~ = ~~
+    \sqrt{\sum_{\alpha,i,\beta} \abs{M_{\alpha,i,\beta}}^2}
+\end{equation}
+%
+is the Frobenius norm of a tensor $M$.
+
+As a result, we can derive updates locally, meaning such that they are optimal in the local norm $\Vert\blank\Vert_\text{F}$ and get global optimality in the Hilbert space norm as a result.
+%
+Having this feature without any caveats is unique to loop-free tensor networks such as \acro{mps}, and we believe it to be a main factor in the success of \acro{mps} algorithms.
+
+The full canonical form, compared to an isometric form, has comparatively few additional benefits.
+%
+For one, the canonical form allows direct access to the Schmidt values of the state, e.g.~to extract bipartite entanglement entropies, which would require additional \acrop{svd} of the bond matrices in an isometric form.
+%
+On the other hand, (almost) fixing the gauge may be beneficial for stability in some algorithmic settings.
+
+The canonical form allows us to \emph{conceptually} connect the \acro{mps} representation to a Schmidt decomposition with respect to any single bond.
+%
+In particular, truncating that bond by keeping only some of the singular values and corresponding slices of \acro{mps} to either side of the bond realizes a truncation of the Schmidt decomposition and inherits the optimality properties of its error~\eqref{eq:tensornets:entanglement:error_truncated_schmidt_decomp}.
+%
+Repeating this truncation on every bond yields an \acro{mps} approximation of the original state, and the resulting error can be controlled by tight bounds -- see, e.g., Lemma 1 in~\cite{verstraete2006}.
+%
+In particular, we find that the required bond dimension to approximate an area law state up to some target error threshold is finite and independent of system size.
+
+%
+However, achieving the truncation in practice does not rely on the canonical form, as instead of truncating the singular values in a canonical form, we may employ any approximate low-rank factorization of the bond matrix in an isometric form.
+%
+Thus, to truncate a single bond of an isometric \acro{mps} from dimension $\chi$ to $\tilde\chi < \chi$, we may perform an approximate factorization of the bond matrix as follows
+\begin{equation}
+    \label{eq:tensornets:mps:compression_in_isometric_form_svd_of_bond_matrix}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \node[tensor, right=10pt of M1] (M2) {$\Xi^{(n)}$};
+        \draw[ultra thick] (M1.east) -- (M2.west) node[midway, above] {$\chi$};
+        \node[tensor, right=10pt of M2] (M5) {$B^{[n+1]}$};
+        \draw[ultra thick] (M2.east) -- (M5.west) node[midway, above] {$\chi$};
+        \draw (M5.south) -- ++(0,-10pt);
+        \draw (M5.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~~ \overset{\text{\acroshort{dsvd}}}{\approx} ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[n]}$};
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M1.south) -- ++(0,-10pt);
+        \node[left iso, right=10pt of M1] (M2) {$U_n$};
+        \draw[ultra thick] (M1.east) -- (M2.west) node[midway, above] {$\chi$};
+        \node[tensor, right=10pt of M2] (M3) {$\tilde{\Xi}^{(n)}$};
+        \draw (M2.east) -- (M3.west) node[midway, above] {$\tilde\chi$};
+        \node [right iso, right=10pt of M3] (M4) {$V_n^\dagger$};
+        \draw (M3.east) -- (M4.west) node[midway, above] {$\tilde\chi$};
+        \node[right iso, right=10pt of M4] (M5) {$B^{[n+1]}$};
+        \draw[ultra thick] (M4.east) -- (M5.west) node[midway, above] {$\chi$};
+        \draw (M5.south) -- ++(0,-10pt);
+        \draw (M5.east) -- ++(10pt,0);
+        %
+        \coordinate (A1) at ($(M1.south west)+(-2pt,-12pt)$);
+        \coordinate (A2p) at ($(M2.east)+(2pt,0)$);
+        \coordinate (A2) at ($(A2p |- A1)$);
+        \draw[decoration={brace,mirror}, decorate, ultra thick] (A1) -- node[below] {=: $\tilde{A}^{[n]}$} (A2);
+        %
+        \coordinate (B2) at ($(M5.south east)+(2pt,-12pt)$);
+        \coordinate (B1p) at ($(M4.west)+(-2pt,0)$);
+        \coordinate (B1) at ($(B1p |- B2)$);
+        \draw[decoration={brace,mirror}, decorate, ultra thick] (B1) -- node[below] {=: $\tilde{B}^{[n+1]}$} (B2);        
+    \end{tikzpicture}}}}
+    .
+\end{equation}
+Here, the approximate factorization of $\Xi^{(n)}$ must have isometric factors $U_n, V_n^\dagger$ like an \acro{svd}, but the central factor $\tilde{\Xi}^{(n)}$ does not need to be diagonal.
+%
+We call such a factorization a \acrofull{dsvd}, see section~\ref{subsec:truncation:factorizations:deformed_svd}.
+%
+If a standard \acro{svd}, a special case of the above, is used, we end up in a canonical form for this bond, but in general, the result is only in isometric form.
+%
+The local truncation error of this approximate factorization is equal to the global error we incur w.r.t.~the original many-body state because of the isometric properties.
+%
+Truncating all bonds in a general isometric form (not requiring the bond to be an orthogonality center) is achieved by approximately factorizing all bond matrices $\Xi^{(n)} \approx: U_n \tilde{\Xi}^{(n)} V_n^\dagger$ and then updating the \acro{mps} analogous to~\eqref{eq:tensornets:mps:isometric_to_canonical_form_transform_mps_tensors}.
+
+Of course, if the \acro{mps} was in canonical form to begin with -- i.e.~such that the bond matrix $\Xi^{(n)} = S^{(n)}$ is diagonal, real, positive -- the low-rank approximation can be read off directly, by setting $U_n^\dagger = V_n^\dagger$ to the $\tilde\chi \times \chi$ projector that keeps the largest singular values, i.e.~such that $\tilde{S}^{(n)} = U_n^\dagger S^{(n)} V_n$ is diagonal and contains the largest $\tilde\chi$ singular values.
+%
+In that case, the truncation can be carried out cheaply by extracting rows/columns.
+
+Note that while truncating a single bond in this fashion gives the optimal error for the given bond dimension (if using an optimal local truncation), a sequence of multiple such truncation steps that is required to truncate all bonds of an \acro{mps} to below some threshold is in general not optimal.
+%
+We discuss an improved algorithm based on variational updates in section~\ref{subsec:mps:mpo_evolution}.
+
+\subsection{Matrix Product Operators (MPOs)}
+\label{subsec:mps:mpo}
+
+Several \acro{mps} algorithms, e.g.~\acro{dmrg}, \acro{tdvp} and \acro{mpoEvolution}, rely on a compatible representation of the relevant operators, e.g.~the Hamiltonian or evolution operator, in the form of a \acro{mpo}.
+%
+An \acro{mpo} is an operator whose coefficients in the computational basis are given in the form of a tensor network with a structure similar to an \acro{mps}, i.e.~an operator of the form
+
+\begin{align}
+\begin{split}
+    \label{eq:tensornets:mps:mpo_network}
+    % &\text{MPO}(\set{W^{[n]}})
+    % ~~ :=
+    % \\
+    &\sum_{\substack{i_1,\dots,i_N\\j_1,\dots,j_N}} ~~
+    % \sum_{i_1,\dots, i_N} ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[mpo tensor] (M1) {$W^{[1]}$};
+        \draw[dashed] (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt) node[space, below] (i1) {$i_1$};
+        \draw (M1.north) -- ++(0,10pt) node[space, above] (j1) {$j_1$};
+        \draw (M1.east) -- ++(10pt,0) node[mpo tensor, right] (M2) {$W^{[2]}$};
+        \draw (M2.south) -- ++(0,-10pt) node[space, below] (i2) {$i_2$};
+        \draw (M2.north) -- ++(0,10pt) node[space, above] (j2) {$j_2$};
+        \draw (M2.east) -- ++(10pt,0) node[mpo tensor, right] (M3) {$W^{[3]}$};
+        \draw (M3.south) -- ++(0,-10pt) node[space, below] (i3) {$i_3$};
+        \draw (M3.north) -- ++(0,10pt) node[space, above] (j3) {$j_3$};
+        \draw (M3.east) -- ++(10pt,0) node[mpo tensor, right] (M4) {$\dots\vphantom{W^{[N]}}$};
+        \draw (M4.south) -- ++(0,-10pt) node[space, below] (i4) {$\dots$};
+        \draw (M4.north) -- ++(0,10pt) node[space, above] (j4) {$\dots$};
+        \draw (M4.east) -- ++(10pt,0) node[mpo tensor, right] (M5) {$W^{[N]}$};
+        \draw (M5.south) -- ++(0,-10pt) node[space, below] (i5) {$i_N$};
+        \draw (M5.north) -- ++(0,10pt) node[space, above] (j5) {$j_N$};
+        \draw[dashed] (M5.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~~ \ketbra{i_1}{j_1} \otimes\dots\otimes \ketbra{i_N}{j_N} ~.
+\end{split}
+\end{align}
+
+%
+In fact, we can understand \acrop{mpo} as \acrop{mps} in the space $\hilbert_\text{op} =  \Homset{\hilbert}{\hilbert} \cong \hilbert \otimes\dualspace\hilbert$ of operators.
+%
+We use a chamfered box for the \acro{mpo} tensors, which has no particular meaning other than being a reminder that they parametrize an operator, not a state.
+
+While in principle, any operator can be written as an \acro{mpo}, the required bond dimension for general operators is exponential in system size.
+%
+Hamiltonians of physical models, however, are commonly given in a highly structured form that allows explicit construction~\cite{crosswhite2008b, crosswhite2008c, pirvu2010, paeckel2017a} of \acrop{mpo} using finite state machines.
+%
+This framework can be extended~\cite{zaletel2015a} to approximate the time evolution operator $\eto{-\im H \;\delta t}$ induced by such a Hamiltonian $H$ in a Suzuki Trotter-like approximation assuming small $\delta t$.
+%
+For complicated models, in particular models which are (a) two-dimensional, (b) have many degrees of freedom per site, and/or (c) have long-range couplings, the resulting bond dimensions may still be unfeasibly large.
+%
+Since \acrop{mpo} are \acrop{mps} in the doubled Hilbert space, they may be compressed, i.e.~approximated by a lower bond dimension \acro{mpo}, using \acro{mps} compression methods, as discussed in section~\ref{subsec:mps:gauge_fixing_forms} and~\ref{subsec:mps:mpo_evolution}.
+
+\subsection{Time evolving block decimation (TEBD)}
+\label{subsec:mps:tebd}
+
+The \acrofull{tebd} algorithm, originally devised as a time evolution algorithm, can be generalized to apply sequences of arbitrary nearest neighbor operators to an \acro{mps}, and approximate the resulting state again as an \acro{mps}.
+
+Let us first derive this gate sequence for the time evolution induced by a nearest neighbor Hamiltonian $H = \sum_{n=1}^{N-1} h_{n,n+1}$.
+%
+We can employ a Suzuki Trotter decomposition to approximately factorize its time evolution operator as
+\begin{equation}
+    \label{eq:tensornets:mps:tebd:trotterization}
+    U({\delta t})
+    = \eto{\im H \delta t} 
+    = \underbrace{
+        U_\text{e}({\delta t}) ~ U_\text{o}({\delta t})
+    }_{=: U^{(1)}(\delta t)}
+    + \bigO({\delta t}^2)
+\end{equation}
+or
+\begin{equation}
+    U({\delta t})
+    = \underbrace{
+        U_\text{e}({\delta t}/{2}) ~ U_\text{o}({\delta t}) ~ U_\text{e}({\delta t}/{2})
+    }_{=: U^{(2)}(\delta t)}
+    + \bigO({\delta t}^3)
+\end{equation}
+in either first or second order, where 
+\begin{equation}
+    \label{eq:tensornets:mps:tebd:trotterization_details}
+    U_\text{e(o)}(t) := \prod_{\substack{n=1 \\ n \text{ even (odd)}}}^{N} U_{n,n+1}(t)
+    \qquad ; \qquad
+    U_{n,n+1}(t) := \eto{\im h_{n,n+1} t}
+    ~.
+\end{equation}
+
+This results in a brick-wall circuit for the time evolution operator.
+%
+Given an initial \acro{mps} $\ket{\psi_0} = \ket{\text{MPS}(\set{M^{[n]}})}$, the task for \acro{tebd} is then to approximate the action of e.g.~a first order Trotterized step
+\begin{align}
+\begin{split}
+    \label{eq:tensornets:mps:tebd:brick_wall}
+    &U^{(1)}(\delta t) \ket{\psi_0}
+    ~~ = ~~
+    \\[2ex]
+    &\sum_{i_1,\dots, i_N} ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[tensor] (M1) {$M^{[1]}$};
+        \draw[dashed] (M1.west) -- ++(-10pt, 0);
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$M^{[2]}$};
+        \draw (M2.east) -- ++(10pt,0) node[tensor, right] (M3) {$M^{[3]}$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right] (M4) {$M^{[4]}$};
+        \draw (M4.east) -- ++(10pt,0) node[tensor, right] (M5) {$\dots$};
+        \draw (M5.east) -- ++(10pt,0) node[tensor, right] (M6) {$M^{[N-1]}$};
+        \draw (M6.east) -- ++(10pt,0) node[tensor, right] (M7) {$M^{[N]}$};
+        \draw[dashed] (M7.east) -- ++(10pt,0);
+        %
+        \node[tensor, below=10pt of -(M1)(M2)] (U12) {$U_{1,2}(\delta t)$};
+        \node[tensor, below=10pt of -(M3)(M4)] (U34) {$U_{3,4}(\delta t)$};
+        \node[tensor, below=10pt of -(M5)(M6)] (U56) {$\dots$};
+        \node[tensor, below=40pt of -(M2)(M3)] (U23) {$U_{2,3}(\delta t)$};
+        \node[tensor, below=40pt of -(M4)(M5)] (U45) {$\dots$};
+        \node[tensor, below=40pt of -(M6)(M7)] (U67) {$U_{N-1,N}(\delta t)$};
+        %
+        \draw (M1.south) -- ($(M1.south |- U12.north)$);
+        \draw (M2.south) -- ($(M2.south |- U12.north)$);
+        \draw (M3.south) -- ($(M3.south |- U34.north)$);
+        \draw (M4.south) -- ($(M4.south |- U34.north)$);
+        \draw (M5.south) -- ($(M5.south |- U56.north)$);
+        \draw (M6.south) -- ($(M6.south |- U56.north)$);
+        \draw (M7.south) -- ($(M7.south |- U67.north)$);
+        %
+        \draw ($(M2.south |- U12.south)$) -- ($(M2.south |- U23.north)$);
+        \draw ($(M3.south |- U34.south)$) -- ($(M3.south |- U23.north)$);
+        \draw ($(M4.south |- U34.south)$) -- ($(M4.south |- U45.north)$);
+        \draw ($(M5.south |- U56.south)$) -- ($(M5.south |- U45.north)$);
+        \draw ($(M6.south |- U56.south)$) -- ($(M6.south |- U67.north)$);
+        %
+        \draw ($(M2.south |- U23.south)$) -- ++(0,-10pt) coordinate (i2) node[space, below] {$i_2$};
+        \draw ($(M1.south |- U12.south)$) -- ($(M1.south |- i2)$) node[space, below] {$i_1$};
+        \draw ($(M3.south |- U23.south)$) -- ($(M3.south |- i2)$) node[space, below] {$i_3$};
+        \draw ($(M4.south |- U45.south)$) -- ($(M4.south |- i2)$) node[space, below] {$i_4$};
+        \draw ($(M5.south |- U45.south)$) -- ($(M5.south |- i2)$) node[space, below] {$\dots$};
+        \draw ($(M6.south |- U67.south)$) -- ($(M6.south |- i2)$) node[space, below] {$i_{N-1}$};
+        \draw ($(M7.south |- U67.south)$) -- ($(M7.south |- i2)$) node[space, below] {$i_N$};
+    \end{tikzpicture}}}}
+    ~~ \ket{i_1,\dots,i_N}
+\end{split}
+\end{align}
+as an \acro{mps} with bounded bond dimension.
+%
+Repeating this many times allows us to simulate time evolution by providing access to
+$[U^{(i)}(\delta t)]^m \ket{\psi_0} \approx [U(\delta t)]^m \ket{\psi_0} = \ket{\psi(t = m~\delta t)}$.
+%
+
+%
+The gates $U_{n,n+1}$ are then applied one after the other by updating only the two \acro{mps} tensors at the sites $n,n+1$ where the gate acts.
+%
+The gate can be applied exactly, resulting in a two-site wavefunction $\tilde\theta$ given by
+%
+\begin{equation}
+    \label{eq:tensornets:mps:tebd:isometric_form_update}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M1) {$C^{[n]}$};
+        \draw (M1.east) -- ++(10pt,0) node[right iso, right] (M2) {$B^{[n+1]}$};
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M2.east) -- ++(10pt,0);
+        \node[tensor, below=10pt of -(M1)(M2)] (U) {$U_{n,n+1}$};
+        \draw (M1.south) -- ($(M1.south |- U.north)$);
+        \draw (M2.south) -- ($(M2.south |- U.north)$);
+        \draw ($(M1.south |- U.south)$) -- ++(0,-10pt);
+        \draw ($(M2.south |- U.south)$) -- ++(0,-10pt);
+    \end{tikzpicture}}}
+    ~~ =: ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor, minimum width=2cm] (T) {$\tilde\theta$};
+        \draw (T.west) -- ++(-10pt, 0);
+        \draw ($(T.south)!0.8!(T.south west)$) -- ++(0, -10pt);
+        \draw ($(T.south)!0.8!(T.south east)$) -- ++(0, -10pt);
+        \draw (T.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~~ \overset{\text{trunc}}{\approx} ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (M1) {$\tilde{A}^{[n]}$};
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (M2) {$\tilde{C}^{[n+1]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+%
+which subsequently needs to be factorized to retain the \acro{mps} form.
+%
+To keep the bond dimension of the \acro{mps} bounded, this factorization needs to be truncated, e.g.~using 
+a truncated \acro{svd} $\tilde\theta \approx \tilde{A}^{[n]} \cdot (S \cdot W^{[n+1]}) =: \tilde{A}^{[n]} \cdot \tilde{C}^{[n+1]}$.
+%
+It is crucial that the isometric form of the \acro{mps} is such that one of the tensors above the gate -- here $C^{[n]}$ -- is the orthogonality center.
+%
+This guarantees that a locally optimal truncation of $\tilde\theta$ is optimal globally, analogous to~\eqref{eq:tensornets:mps:isometric_property_connects_norms}.
+
+
+%
+If the gates are unitary, this can be done by always maintaining a right isometric form\footnote{
+    This is a conventional choice, and operating in a left isometric form is possible too.
+} of the tensors, and keeping track of the bond matrices, to obtain local wavefuntions on the fly via~\eqref{eq:tensornets:mps:relations_between_isometric_forms}, as suggested in~\cite{vidal2007}.
+%
+This is because a unitary gate acting on sites $n, n+1$, applied according to the first equality in~\eqref{eq:tensornets:mps:tebd:isometric_form_update}, preserves the defining property of the isometric B form for all other bonds.
+%
+To the right of the update, this is trivial, since the right Schmidt-like states~\eqref{eq:tensornets:mps:R_beta_states}, that is $\ket{R^{(m)}_\beta}$ for $m > n$ are unchanged, while to the left, the Schmidt-like states $\ket{R^{(m)}_\beta}$ for $m < n$ retain their orthonormality if the gate is unitary.
+%
+Since similar arguments apply to A form tensors, the bond matrices $\Xi^{(m)}$ for $m \neq n$, for all bonds except where the gate was applied, remain valid bond matrices.
+%
+If the isometric form happens to be a canonical form, we can understand this from a different perspective:
+%
+a unitary transformation acting only on one of the subsystems does not change the Schmidt values or states of a given bipartition, and thus, the canonical form is preserved for all bonds that the gate does not act on.
+
+We can perform the \acro{tebd} update as 
+\begin{equation}
+    \label{eq:tensornets:mps:tebd:svd_of_evolved_theta}
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[right iso] (M1) {$B^{[n]}$};
+        \draw (M1.east) -- ++(10pt,0) node[right iso, right] (M2) {$B^{[n+1]}$};
+        \draw (M1.west) -- ++(-10pt,0) node[left, tensor] (S1) {$\Xi^{(n-1)}$};
+        \draw (S1.west) -- ++(-10pt,0);
+        \draw (M2.east) -- ++(10pt,0);
+        \node[tensor, below=10pt of -(M1)(M2)] (U) {$U_{n,n+1}$};
+        \draw (M1.south) -- ($(M1.south |- U.north)$);
+        \draw (M2.south) -- ($(M2.south |- U.north)$);
+        \draw ($(M1.south |- U.south)$) -- ++(0,-10pt);
+        \draw ($(M2.south |- U.south)$) -- ++(0,-10pt);
+    \end{tikzpicture}}}}
+    ~~ =: ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[tensor, minimum width=2cm] (T) {$\tilde\theta$};
+        \draw (T.west) -- ++(-10pt, 0);
+        \draw ($(T.south)!0.8!(T.south west)$) -- ++(0, -10pt);
+        \draw ($(T.south)!0.8!(T.south east)$) -- ++(0, -10pt);
+        \draw (T.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~~ \overset{\text{\acroshort{dsvd}}}{\approx} ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A$};
+        \draw (M1.east) -- ++(10pt,0) node[tensor, right] (S2) {$\tilde{\Xi}^{(n)}$};
+        \draw (S2.east) -- ++(10pt,0) node[tensor, right] (M2) {$\tilde{B}^{[n+1]}$};
+        \draw (M1.south) -- ++(0,-10pt);
+        \draw (M2.south) -- ++(0,-10pt);
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M2.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+\end{equation}
+and find the new B form tensor for site $n+1$, as well as the new bond matrix for the updated \acro{mps}.
+%
+From a \acrofull{dsvd}, we get the left tensor in an isometric A form, however.
+%
+To restore the B form, we need to solve~\eqref{eq:tensornets:mps:relations_between_isometric_forms}
+and find
+\begin{equation}
+    \label{eq:tensornets:mps:tebd:canonical_form_inversion_free}
+    %
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[right iso] (B) {$\tilde{B}^{[n]}$};
+        \draw (B.east) -- ++(10pt,0);
+        \draw (B.west) -- ++(-10pt,0);
+        \draw (B.south) -- ++(0,-10pt);
+    \end{tikzpicture}}}}  
+    ~~ := ~~  
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (U) {$A$};
+        \draw (U.east) -- ++(10pt,0) node[right, tensor] (S2) {$\tilde{\Xi}^{(n)}$};
+        \draw (S2.east) -- ++(10pt,0);
+        \draw (U.west) -- ++(-10pt,0) node[left, tensor] (S1) {$(\Xi^{(n-1)})^{-1}$};
+        \draw (S1.west) -- ++(-10pt,0);
+        \draw (U.south) -- ++(0,-10pt);
+    \end{tikzpicture}}}} 
+    ~~ \approx ~~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[right iso] (M1) {$B^{[n]}$};
+        \draw (M1.east) -- ++(10pt,0) node[right iso, right] (M2) {$B^{[n + 1]}$};
+        \draw (M1.west) -- ++(-10pt,0);
+        \draw (M2.east) -- ++(10pt,0) coordinate (R);
+        \node[tensor, below=10pt of -(M1)(M2)] (U) {$U_{n,n+1}$};
+        \draw (M1.south) -- ($(M1.south |- U.north)$);
+        \draw (M2.south) -- ($(M2.south |- U.north)$);
+        \draw ($(M1.south |- U.south)$) -- ++(0,-40pt);
+        \draw ($(M2.south |- U.south)$) -- ++(0,-10pt) node[right iso, below] (Bconj) {$\conj{\tilde{B}}^{[n+1]}$};
+        %
+        \draw (R) to[out=0,in=0] ($(Bconj.east -| R)$) -- (Bconj.east);
+        \draw (Bconj.west) to[out=180,in=180] ($(Bconj.west)+(0,-20pt)$) -- ++(10pt, 0);
+    \end{tikzpicture}}}}
+    ~,
+\end{equation}
+where the approximate equality follows by left-multiplying~\eqref{eq:tensornets:mps:tebd:svd_of_evolved_theta} with $(\Xi^{(n-1)})^{-1}$ and projecting onto $\conj{\tilde{B}}^{[n+1]}$.
+%
+It is the preferred way to form $\tilde{B}^{[n]}$ in practice since it avoids instabilities from inverting the bond matrix.
+%
+Note that this uses the assumption of unitarity since we use the unmodified bond matrix ${\Xi}^{(n-1)}$ for bond $i-1$.
+%
+Note also that the contraction for $\tilde{B}^{[n]}$ shares intermediate objects with the contraction of $\tilde\theta$.
+%
+As a result, any sequence of gates can be applied in this fashion, and we do not rely on the particular brickwall structure of the circuit that arises from the Trotterization.
+
+
+If the gates are not unitary, on the other hand, applying the gate invalidates the bond matrices on \emph{every} bond.
+%
+This is because the orthonormality of the Schmidt-like states $\ket{L^{(n)}_\alpha}$ to its right or of the $\ket{R^{(n)}_\beta}$ to its left is broken by applying a gate, which invalidates any isometric A form to its right and B form to its left and thus invalidates all bond matrices.
+%
+In particular, we may not use the unmodified $\Xi^{(n-1)}$ to convert the A form tensor that we get out of a \acro{dsvd} to B form.
+%
+Additionally, the isometric or canonical form of the \acro{mps} tensors is only preserved if it is a mixed canonical form with orthogonality center at either of the two active sites $n,n+1$.
+%
+Thus, in this case, the update needs to be performed according to equation~\eqref{eq:tensornets:mps:tebd:isometric_form_update}.
+%
+Since the bond matrices are immediately invalidated when the next gate in a sequence is applied, there is no need to store them in non-unitary \acro{tebd}.
+
+%
+There are two ways of carrying out the truncated factorization, which is a \acrofull{tqr} as discussed in section~\ref{subsec:truncation:factorizations:tqr}.
+%
+We can either have $\tilde\theta \approx \tilde{A}^{[n]} \cdot \tilde{C}^{[n+1]}$, which has the isometric factor on the left and is suitable for a subsequent update to the right, on sites $n+1,n+2$.
+%
+Alternatively, we can have $\tilde\theta \approx \tilde{C}^{[n]} \cdot \tilde{B}^{[n+1]}$ with a right isometry $\tilde{B}^{[n+1]}$ which is suitable for updating the bond to the left next.
+%
+Thus, a staircase pattern is more convenient for non-unitary \acro{tebd} than a brickwall circuit.
+%
+If the brickwall structure is unavoidable, we may intersperse steps that simply shift the orthogonality center, using e.g.~a \acroshort{qr} decomposition for an isometric form or an \acro{svd} if a full canonical form is enforced, similar to~\eqref{eq:tensornets:mps:qr_to_shift_ortho_center}.
+
+The computational cost of \acro{tebd} is typically given as $\bigO(d^3 \chi^3)$, where the dominant contribution comes from the factorization of $\tilde{\theta}$.
+%
+Using a standard truncated \acro{svd} for this step results in the above scaling.
+%
+However, using cheaper truncated factorization routines, we can bring the cost down to $\bigO(d^2 \chi^3)$, as we discuss in chapter~\ref{ch:truncation}.
+%
+The cost can not be brought down further than that by improving the factorization, as the cost of forming $\tilde{\theta}$ from the \acro{mps} tensors is in $\bigO(d^2 \chi^3)$.
+
+
+The \acro{tebd} algorithm is limited to nearest neighbor gates, and thus can only directly simulate time evolution of a nearest neighbor Hamiltonian.
+%
+Models with slightly longer-ranged couplings (or circuits with few body gates) can be addressed by grouping sites until the couplings between effective sites are nearest neighbor terms again.
+%
+This comes at the cost of increasing the dimension $d$ of the effective local Hilbert space -- and thus also the cost of all algorithms -- exponentially and is therefore limited to very short-ranged couplings.
+%
+For general longer range terms, time evolution can be simulated using \acro{mpoEvolution}, see section~\ref{subsec:mps:mpo_evolution}, or \acro{tdvp}~\cite{haegeman2011a, haegeman2016a}.
+
+The \acro{tebd} algorithm can also be used to approximate the \emph{imaginary} time evolution of a given nearest neighbor Hamiltonian, which projects the initial state onto the ground state in the limit of infinite evolved imaginary time.
+%
+Thus, imaginary time \acro{tebd} can, in principle, be used as a ground state search.
+%
+This is, however, suboptimal, as such a method is restricted to nearest neighbor models (after potentially grouping sites), slow to converge, and prone to local minima.
+%
+In virtually all cases, the \acro{dmrg} method gives better results, faster.
+
+% =============================================================================
+% =============================================================================
+% =============================================================================
+\subsection{Density matrix renormalization group (DMRG)}
+\label{subsec:mps:dmrg}
+
+Due to its long history, and reformulation as a tensor network method, there are several ways to understand why the \acro{dmrg} algorithm for \acro{mps} ground state search works.
+%
+Here, we choose the perspective of a variational updating algorithm, where the goal is minimizing the energy $E = \braopket{\psi}{H}{\psi}$ of a trial \acro{mps} $\ket{\psi}$ while keeping $\braket{\psi}{\psi} = 1$.
+%
+We assume the Hamiltonian $H = \text{MPO}(W^{[1]},\dots,W^{[N]})$ is given as an \acro{mpo}.
+%
+The strategy is then to update the \acro{mps} tensors on two neighboring sites, the ``active sites", while keeping the other tensors fixed.
+%
+Starting from some initial guess in \acro{mps} form, these updates are then repeated for all pairs of sites, and for a number of iterations, until e.g.~the energy of the trial state converges.
+%
+Since the update is, in general, not unitary, the discussion regarding \acro{tebd} with non-unitary gates applies, and an isometric form of the \acro{mps} is only preserved by the update if the form has an orthogonality center at either one of the active sites.
+%
+Moreover, bond matrices $\Xi$ for the other bonds are invalidated by the update.
+%
+Therefore, the isometric / canonical form is handled such that we always have A tensors to the left of the active site(s) and B tensors to the right, and there is no need to keep track of the bond matrices.
+
+To derive the update, we first find the optimal two-site wavefunction $\theta_{\alpha,i,j,\beta}$ such that the modified \acro{mps}-like state
+\begin{equation}
+    \label{eq:tensornets:mps:dmrg:state_with_two_site_theta}
+    \ket{\psi}
+    ~~ = ~~
+    \sum_{i_1,\dots,i_N}
+    ~~ 
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[left iso] (M1) {$A^{[1]}$};
+        \draw[dashed] (M1.west) -- ++(-10pt, 0);
+        \draw (M1.south) -- ++(0,-10pt) node[space, below] (i1) {$i_1$};
+        \draw (M1.east) -- ++(10pt,0) node[left iso, right] (M2) {$\dots$};
+        \draw (M2.south) -- ++(0,-10pt) node[space, below] (i2) {$\dots$};
+        \draw (M2.east) -- ++(10pt,0) node[left iso, right] (M3) {$A^{[n-1]}$};
+        \draw (M3.south) -- ++(0,-10pt) node[space, below] (i3) {$i_{n-1}$};
+        \draw (M3.east) -- ++(10pt,0) node[tensor, right, minimum width=2cm] (M4) {$\theta$};
+        \draw ($(M4.south)!0.9!(M4.south west)$) -- ++(0, -10pt) node[space, below] {$i_{n}$};
+        \draw ($(M4.south)!0.9!(M4.south east)$) -- ++(0, -10pt) node[space, below] {$i_{n+1}$};
+        \draw (M4.east) -- ++(10pt,0) node[right iso, right] (M5) {$B^{[n+2]}$};
+        \draw (M5.south) -- ++(0,-10pt) node[space, below] (i5) {$i_{n+2}$};
+        \draw (M5.east) -- ++(10pt,0) node[right iso, right] (M6) {$\dots$};
+        \draw (M6.south) -- ++(0,-10pt) node[space, below] (i6) {$\dots$};
+        \draw (M6.east) -- ++(10pt,0) node[right iso, right] (M7) {$B^{[N]}$};
+        \draw (M7.south) -- ++(0,-10pt) node[space, below] (i7) {$i_N$};
+        \draw[dashed] (M7.east) -- ++(10pt,0);
+    \end{tikzpicture}}}}
+    ~
+    \ket{i_1,\dots,i_N}
+\end{equation}
+gives the lowest possible energy, where $A^{[1]}, \dots, A^{[n-1]}$ and $B^{[n+2]}, \dots, B^{[N]}$ are the \acro{mps} tensors of the current best guess, before the update.
+%
+The optimization problem, formulated in terms of $\theta$ is
+\begin{equation}
+    \label{eq:tensornets:mps:dmrg:local_optimization_problem}
+    \theta^\dagger \cdot H_\text{eff}^{n,n+1} \cdot \theta \to \mathrm{MIN}
+    \qquad \text{while} \quad
+    \theta^\dagger \cdot N_\text{eff}^{n,n+1} \cdot \theta = 1
+    ~,
+\end{equation}
+where the effective Hamiltonian $H_\text{eff}^{n,n+1}$ and effective norm matrix $N_\text{eff}^{n,n+1}$ for active sites $(n,n+1)$ consist of the other tensors and the \acro{mpo} and are in particular constant as a function of $\theta$.
+%
+They are given by
+\begin{align}
+\begin{split}
+    \label{eq:tensornets:mps:dmrg:def_H_eff}
+    &\rBr{H_\text{eff}^{n,n+1}}^{\alpha i j \beta}_{\alpha' i' j' \beta'}
+    ~~ := ~~
+    \\[2ex]
+    &
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \node[mpo tensor] (O1) {$W^{[1]}$};
+        \draw (O1.east) -- ++(10pt,0) node[mpo tensor, right] (O2) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O2.east) -- ++(10pt,0) node[mpo tensor, right] (O3) {$W^{[n-1]}$};
+        \draw (O3.east) -- ++(10pt,0) node[mpo tensor, right] (O4) {$W^{[n]}$};
+        \draw (O4.east) -- ++(10pt,0) node[mpo tensor, right] (O5) {$W^{[n+1]}$};
+        \draw (O5.east) -- ++(10pt,0) node[mpo tensor, right] (O6) {$W^{[n+2]}$};
+        \draw (O6.east) -- ++(10pt,0) node[mpo tensor, right] (O7) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O7.east) -- ++(10pt,0) node[mpo tensor, right] (O8) {$W^{[N]}$};
+        %
+        \draw (O1.north) -- ++(0,10pt) node[left iso, above] (K1) {$A^{[1]}$};
+        \draw (O2.north) -- ++(0,10pt) node[left iso, above] (K2) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O3.north) -- ++(0,10pt) node[left iso, above] (K3) {$A^{[n-1]}$};
+        \draw (O6.north) -- ++(0,10pt) node[right iso, above] (K6) {$B^{[n+2]}$};
+        \draw (O7.north) -- ++(0,10pt) node[right iso, above] (K7) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O8.north) -- ++(0,10pt) node[right iso, above] (K8) {$B^{[N]}$};
+        \draw (K1.east) -- (K2.west);
+        \draw (K2.east) -- (K3.west);
+        \draw (K3.east) -- ++(5pt,0) node[space, right] {$\alpha$};
+        \draw (O4.north) -- ++(0,10pt) node[space, right] {$i$};
+        \draw (O5.north) -- ++(0,10pt) node[space, left] {$j$};
+        \draw (K6.west) -- ++(-5pt,0) node[space, left] {$\beta$};
+        \draw (K6.east) -- (K7.west);
+        \draw (K7.east) -- (K8.west);
+        %
+        \draw (O1.south) -- ++(0,-10pt) node[left iso, below] (B1) {$\conj{A}^{[1]}$};
+        \draw (O2.south) -- ++(0,-10pt) node[left iso, below] (B2) {$\dots\vphantom{\conj{A}^{[n-1]}}$};
+        \draw (O3.south) -- ++(0,-10pt) node[left iso, below] (B3) {$\conj{A}^{[n-1]}$};
+        \draw (O6.south) -- ++(0,-10pt) node[right iso, below] (B6) {$\conj{B}^{[n+2]}$};
+        \draw (O7.south) -- ++(0,-10pt) node[right iso, below] (B7) {$\dots\vphantom{\conj{A}^{[n-1]}}$};
+        \draw (O8.south) -- ++(0,-10pt) node[right iso, below] (B8) {$\conj{B}^{[N]}$};
+        \draw (B1.east) -- (B2.west);
+        \draw (B2.east) -- (B3.west);
+        \draw (B3.east) -- ++(5pt,0) node[space, right] {$\alpha'$};
+        \draw (O4.south) -- ++(0,-10pt) node[space, right] {$i'$};
+        \draw (O5.south) -- ++(0,-10pt) node[space, left] {$j'$};
+        \draw (B6.west) -- ++(-5pt,0) node[space, left] {$\beta'$};
+        \draw (B6.east) -- (B7.west);
+        \draw (B7.east) -- (B8.west);
+        %
+        \draw[dashed] (O1.west) -- ++(-10pt,0) coordinate (L);
+        \draw[dashed] (K1.west) to[out=180,in=90] (L) to[out=270,in=180] (B1.west);
+        \draw[dashed] (O8.east) -- ++(10pt,0) coordinate (R);
+        \draw[dashed] (K8.east) to[out=0,in=90] (R) to[out=270,in=0] (B8.east);
+    \end{tikzpicture}}}}
+    ,
+\end{split}
+\end{align}
+where $\set{W^{[n]}}$ are the \acro{mpo} tensors of the Hamiltonian, as well as
+\begin{align}
+\begin{split}
+    \label{eq:tensornets:mps:dmrg:def_N_eff}
+    \rBr{N_\text{eff}^{n,n+1}}^{\alpha i j \beta}_{\alpha' i' j' \beta'}
+    ~ := ~
+    \vcenter{\hbox{\scalebox{0.9}{\begin{tikzpicture}
+        \coordinate (O1);
+        \coordinate[right=40pt of O1] (O2);
+        \coordinate[right=40pt of O2] (O3);
+        \coordinate[right=50pt of O3] (O4);
+        \coordinate[right=40pt of O4] (O5);
+        \coordinate[right=50pt of O5] (O6);
+        \coordinate[right=40pt of O6] (O7);
+        \coordinate[right=40pt of O7] (O8);
+        %
+        \draw (O1.north) -- ++(0,10pt) node[left iso, above] (K1) {$A^{[1]}$};
+        \draw (O2.north) -- ++(0,10pt) node[left iso, above] (K2) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O3.north) -- ++(0,10pt) node[left iso, above] (K3) {$A^{[n-1]}$};
+        \draw (O6.north) -- ++(0,10pt) node[right iso, above] (K6) {$B^{[n+2]}$};
+        \draw (O7.north) -- ++(0,10pt) node[right iso, above] (K7) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O8.north) -- ++(0,10pt) node[right iso, above] (K8) {$B^{[N]}$};
+        \draw (K1.east) -- (K2.west);
+        \draw (K2.east) -- (K3.west);
+        \draw (K3.east) -- ++(5pt,0) node[space, right] {$\alpha$};
+        \draw (O4.north) -- ++(0,10pt) node[space, right] {$i$};
+        \draw (O5.north) -- ++(0,10pt) node[space, left] {$j$};
+        \draw (K6.west) -- ++(-5pt,0) node[space, left] {$\beta$};
+        \draw (K6.east) -- (K7.west);
+        \draw (K7.east) -- (K8.west);
+        %
+        \draw (O1.south) -- ++(0,-10pt) node[left iso, below] (B1) {$\conj{A}^{[1]}$};
+        \draw (O2.south) -- ++(0,-10pt) node[left iso, below] (B2) {$\dots\vphantom{\conj{A}^{[n-1]}}$};
+        \draw (O3.south) -- ++(0,-10pt) node[left iso, below] (B3) {$\conj{A}^{[n-1]}$};
+        \draw (O6.south) -- ++(0,-10pt) node[right iso, below] (B6) {$\conj{B}^{[n+2]}$};
+        \draw (O7.south) -- ++(0,-10pt) node[right iso, below] (B7) {$\dots\vphantom{\conj{A}^{[n-1]}}$};
+        \draw (O8.south) -- ++(0,-10pt) node[right iso, below] (B8) {$\conj{B}^{[N]}$};
+        \draw (B1.east) -- (B2.west);
+        \draw (B2.east) -- (B3.west);
+        \draw (B3.east) -- ++(5pt,0) node[space, right] {$\alpha'$};
+        \draw (O4.south) -- ++(0,-10pt) node[space, right] {$i'$};
+        \draw (O5.south) -- ++(0,-10pt) node[space, left] {$j'$};
+        \draw (B6.west) -- ++(-5pt,0) node[space, left] {$\beta'$};
+        \draw (B6.east) -- (B7.west);
+        \draw (B7.east) -- (B8.west);
+        %
+        \draw[dashed] (K1.west) to[out=180,in=90] ($(O1)+(-25pt,0)$) to[out=270,in=180] (B1.west);
+        \draw[dashed] (K8.east) to[out=0,in=90] ($(O8)+(25pt,0)$) to[out=270,in=0] (B8.east);
+    \end{tikzpicture}}}}
+    ~.
+\end{split}
+\end{align}
+The effective norm matrix $N_\text{eff}^{n,n+1} = \eye$ reduces to the identity because of the isometric properties~\eqref{eq:tensornets:mps:isometric_A_property} and~\eqref{eq:tensornets:mps:isometric_B_property}.
+%
+Therefore, we can find the optimal two-site update by finding the lowest eigenvector of the eigenvalue problem $H_\text{eff}^{n,n+1} \cdot \theta = \epsilon \theta$ and directly obtain the energy $\epsilon$ of the resulting state.
+%
+Conceptually, we should find a normalized eigenvector, such that $\theta^\dagger \theta = 1$, but this can be taken care of by the normalization after the truncation step in practice.
+
+The effective Hamiltonian is given in a factorized form, such that matrix-vector products 
+%
+\begin{equation}
+    \label{eq:tensornets:mps:dmrg:H_eff_applied_to_theta}
+    H^{n,n+1}_\text{eff} \cdot \theta
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$L_n$};
+        \draw (L.east) -- ++(10pt,0) node[mpo tensor, right] (O4) {$W^{[n]}$};
+        \draw (O4.east) -- ++(10pt,0) node[mpo tensor, right] (O5) {$W^{[n+1]}$};
+        \draw (O5.east) -- ++(10pt,0) node[tensor, right] (R) {$R_{n+1}$};
+        \node[tensor, above=10pt of -(O4)(O5)] (theta) {$\theta$};
+        \draw (O4.north) -- ($(O4.north |- theta.south)$);
+        \draw (O5.north) -- ($(O5.north |- theta.south)$);
+        \draw (O4.south) -- ++(0,-10pt);
+        \draw (O5.south) -- ++(0,-10pt);
+        \draw (L.north) to[out=90,in=180] (theta.west);
+        \draw (R.north) to[out=90,in=0] (theta.east);
+        \draw (L.south) to[out=270,in=180] ($(theta.west)+(0,-65pt)$);
+        \draw (R.south) to[out=270,in=0] ($(theta.east)+(0,-65pt)$);
+    \end{tikzpicture}}}
+\end{equation}
+%
+can be computed more efficiently than forming the whole $H_\text{eff}$ matrix.
+%
+The left and right environment tensors are defined recursively as
+\begin{align}
+    \label{eq:tensornets:mps:dmrg:def_L_R_environments}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$L_{n+1}$};
+        \draw (L.east) -- ++(10pt,0) coordinate (X);
+        \draw (L.north) to[out=90,in=180] ($(X)+(0,35pt)$);
+        \draw (L.south) to[out=270,in=180] ($(X)+(0,-35pt)$);
+    \end{tikzpicture}}}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$L_n$};
+        \draw (L.east) -- ++(10pt,0) node[mpo tensor, right] (O) {$W^{[n]}$};
+        \draw (O.north) -- ++(0,10pt) node[left iso, above] (K) {$A^{[n]}$};
+        \draw (O.south) -- ++(0,-10pt) node[left iso, below] (B) {$\conj{A}^{[n]}$};
+        \draw (L.north) to[out=90,in=180] (K.west);
+        \draw (L.south) to[out=270,in=180] (B.west);
+        \draw (B.east) -- ++(10pt,0);
+        \draw (O.east) -- ++(10pt,0);
+        \draw (K.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    \qquad ; \qquad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$R_{n-1}$};
+        \draw (L.west) -- ++(-10pt,0) coordinate (X);
+        \draw (L.north) to[out=90,in=0] ($(X)+(0,35pt)$);
+        \draw (L.south) to[out=270,in=0] ($(X)+(0,-35pt)$);
+    \end{tikzpicture}}}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$R_n$};
+        \draw (L.west) -- ++(-10pt,0) node[mpo tensor, left] (O) {$W^{[n]}$};
+        \draw (O.north) -- ++(0,10pt) node[right iso, above] (K) {$B^{[n]}$};
+        \draw (O.south) -- ++(0,-10pt) node[right iso, below] (B) {$\conj{B}^{[n]}$};
+        \draw (L.north) to[out=90,in=0] (K.east);
+        \draw (L.south) to[out=270,in=0] (B.east);
+        \draw (B.west) -- ++(-10pt,0);
+        \draw (O.west) -- ++(-10pt,0);
+        \draw (K.west) -- ++(-10pt,0);
+    \end{tikzpicture}}}
+    ~,
+\end{align}
+with the base cases $L_1 = R_N = 1 \in \Cbb^{1 \times 1 \times 1}$.
+%
+Additionally, we have access to an initial guess for the solution -- the two site wavefunction from the \acro{mps} before the update -- which becomes better and better the closer the outer \acro{dmrg} loop is to convergence.
+%
+For these two reasons, it is beneficial to use an iterative eigensolver, such as e.g.~the Lanczos algorithm, to find the ground state $\tilde\theta$ of $H_\text{eff}^{n,n+1}$.
+   
+\begin{Algorithm}{Simple two-site finite DMRG}{
+    Given a hermitian operator $H = \text{MPO}(W^{[1]}, \dots, W^{[N]}))$, a maximum bond dimension $\chi$, and an initial guess $\ket{\psi} = \ket{\text{MPS}(\tilde{M}^{[1]},\dots,\tilde{M}^{[N]})}$, computes a normalized \acro{mps} approximation $\ket{\phi} = \ket{\text{MPS}(M^{[1]}, \dots, M^{[N]})}$ of the ground state of $H$ with bond dimension at most $\chi$.
+    %
+    Regarding notation, we think of only a single variable $M^{[n]}$ for every site that stores the \acro{mps} tensor for the current best guess. We use subscripts to keep track of its isometric form, but e.g.~$M_A^{[n]}$ and $M_B^{[n]}$ refer to the same variable.
+    %
+    We employ the dot product notation~\eqref{eq:tensornets:mps:dot_product_notation_abuse}.
+    \label{algo:tensornets:mps:dmrg}
+}
+    \step Initialize \acro{mps} tensors $M_A^{[1]}, M_C^{[2]}, M_B^{[3]}, \dots, M_B^{[N]}$ by bringing $\ket{\psi}$ to a mixed isometric form with orthogonality center on site $m=2$, e.g.~using algorithm~\ref{algo:tensornets:mps:mixed_isometric_form}.
+    \step Compute the right environments $R_n$ for $n=N,\dots, 2$ using~\eqref{eq:tensornets:mps:dmrg:def_L_R_environments}.
+    \step Initialize the left environments $L_n$ for $n=1, \dots, N-1$ with placeholders.
+    \step Repeat until convergence:
+    %
+    \step \quad For $n = 1, \dots , N-2$ (right to left):
+    \step \qquad Form $\theta_0 = M^{[n]} \cdot M^{[n+1]}$ (the isometric form is $M_A^{[1]}M_C^{[2]}$ or $M_C^{[n]}M_B^{[n+1]}$).
+    \step \qquad Find the ground state $\tilde \theta$ of $H^{n,n+1}_\text{eff}$,~\eqref{eq:tensornets:mps:dmrg:H_eff_applied_to_theta}, iteratively with initial guess $\theta_0$.
+    \step \qquad  \label{step:tensornets:mps:dmrg:decomposition1}
+    Decompose $\tilde\theta \approx U^{[n]} \cdot C^{[n+1]}$ with rank $\leq \chi$ such that $U^{[n]}$ is left isometric.
+    \step \qquad Update $M_A^{[n]} \gets U^{[n]}$ and $M_C^{[n+1]} \gets C^{[n+1]} / \norm{C^{[n+1]}}$.
+    \step \qquad Update $L_{n+1}$ using~\eqref{eq:tensornets:mps:dmrg:def_L_R_environments}. Note that the $R_n$ is now invalid.
+    %
+    \step \quad For $n = N - 1, \dots, 2$ (left to right):
+    \step \qquad Form $\theta_0 = M^{[n]} \cdot M^{[n+1]}$ (the isometric form is $M_C^{[N-1]} M_B^{[N]}$ or $M_A^{[n]} M_C^{[n + 1]}$).
+    \step \qquad Find the ground state $\tilde \theta$ of $H^{n,n+1}_\text{eff}$,~\eqref{eq:tensornets:mps:dmrg:H_eff_applied_to_theta}, iteratively with initial guess $\theta_0$.
+    \step \qquad \label{step:tensornets:mps:dmrg:decomposition2}
+    Decompose $\tilde\theta \approx C^{[n]} \cdot W^{[n+1]}$ at rank $\leq \chi$ s.t.~$W^{[n+1]}$ is right isometric.
+    \step \qquad Update $M_C^{[n]} \gets C^{[n]} / \norm{C^{[n]}}$ and $M_B^{[n+1]} \gets W^{[n+1]}$
+    \step \qquad Update $R_n$ using~\eqref{eq:tensornets:mps:dmrg:def_L_R_environments}. Note that $L_{n+1}$ is now invalid.
+\end{Algorithm}
+
+At this point, we proceed similar to the \acro{tebd} algorithm to renormalize the two-site update $\tilde\theta$, by approximating it in \acro{mps} form with a bounded bond dimension.
+%
+This two-site update is then repeated for all pairs of sites, sweeping first left to right, then right to left.
+%
+These sweeps are repeated until a convergence condition is met.
+%
+Typically, one looks at the convergence of energy and bipartite entanglement entropy.
+%
+If both are no longer changing substantially, with relative changes below a threshold of e.g.~ $\sim 10^{-8}$, we consider the algorithm converged.
+%
+The resulting procedure is summarized in algorithm~\ref{algo:tensornets:mps:dmrg}.
+%
+We call it ``simple" since additional algorithmic considerations, such as dynamically increasing the maximum bond dimension or adding density matrix perturbations~\cite{hubig2015} are omitted.
+%
+The decomposition in steps~\ref{step:tensornets:mps:dmrg:decomposition1} and~\ref{step:tensornets:mps:dmrg:decomposition2} can e.g.~be performed using truncated \acrop{svd}, or with other approximate low rank decompositions, see section~\ref{sec:truncation:factorizations}.
+%
+For completeness, let us mention that single-site versions of \acro{dmrg} have been formulated~\cite{white2005b}, which we do not discuss here.
+
+The computational cost of the two-site algorithm is in $\bigO(d^2\eta\chi^3)$, where $d$ is the dimension of the local Hilbert space, $\eta$ the bond dimension of the \acro{mpo} and $\chi$ the \acro{mps} bond dimension, assuming $d\eta \leq \chi$.
+%
+Under the same assumptions, the pure\footnote{
+    Some approaches to add density matrix perturbations (``mixing") have a higher cost scaling, namely in $\bigO(d^2\eta\chi^3)$, same as the two-site \acro{dmrg}, though typically with a smaller prefactor.
+    We do not consider these costs here.
+} single-site version has a cost in $\bigO(d\eta\chi^3)$.
+
+% =============================================================================
+% =============================================================================
+% =============================================================================
+\subsection{MPO Time evolution}
+\label{subsec:mps:mpo_evolution}
+
+Let us now discuss methods to approximately apply a \acrofull{mpo} $O = \text{MPO}(W^{[1]}, \dots, W^{[N]})$ to an \acro{mps} $\ket{\psi} = \ket{\text{MPS}(M^{[1]}, \dots, M^{[N]})}$, that is to approximate $O \ket{\psi} \approx \ket{\phi}$ by a new \acro{mps} $\ket{\phi} = \ket{\text{MPS}(\tilde{M}^{[1]}, \dots, \tilde{M}^{[N]})}$ \emph{of bounded bond dimension}.
+%
+This problem may arise from time evolution if $O = \eto{-\im H t}$ is (an approximation of) the time evolution operator of a given system, but can also arise in different settings, such as simulating quantum circuits.
+%
+In either case, it is known under the keyword ``\acro{mpoEvolution}".
+
+A straight-forward approach is to first perform the contraction exactly and then -- if needed -- truncate the bond dimension similar to~\eqref{eq:tensornets:mps:svd_isometric_to_canonical_form}, by establishing an isometric form in a first sweep of \acroshort{qr} steps and then truncating using a second sweep of \acro{svd} steps.
+%
+It turns out that the contraction and the \acroshort{qr} sweep can be conveniently achieved in parallel by iterating
+%
+\begin{equation}
+    \label{eq:tensornets:mps:mpo_evolution:svd_compression_qr_step}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M) {$M^{[n]}$};
+        \draw (M.south) -- ++(0,-10pt) node[mpo tensor, below] (W) {$W^{[n]}$};
+        \node[tensor, left=30pt of ($(M)!0.5!(W)$)] (R) {$R$};
+        \draw (R.west) -- ++(-10pt,0);
+        \draw (R.north east) to[out=45,in=180] (M.west);
+        \draw (R.south east) to[out=-45,in=180] (W.west);
+        \draw (M.east) -- ++(10pt,0);
+        \draw (W.east) -- ++(10pt,0);
+        \draw (W.south) -- ++(0,-10pt);
+    \end{tikzpicture}}}
+    ~~\overset{\text{\acroshort{qr}}}{=} ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[left iso] (A) {$\tilde{A}^{[n]}$};
+        \draw (A.east) -- ++(10pt,0) node[tensor, right] (R) {$R$};
+        \draw (A.west) -- ++(-10pt,0);
+        \draw (A.south) -- ++(0,-10pt);
+        \draw (R.north east) to[out=45,in=180] ++(20pt,5pt);
+        \draw (R.south east) to[out=-45,in=180] ++(20pt,-5pt);
+    \end{tikzpicture}}}
+\end{equation}
+from left to right, such that $\ket{\text{MPS}(\tilde{A}^{[1]}, \dots, \tilde{A}^{[N]})} = \tfrac{1}{\mathcal{N}} O \ket{\psi}$ equals the target state exactly (up to normalization) and is in left isometric form.
+%
+The resulting \acro{mps} has bond dimension $\eta\chi$, where $\eta$ is the bond dimension of the operator $O$ and $\chi$ the bond dimension of the state $\psiket$.
+%
+Next, we sweep right to left with truncated \acrop{svd} to achieve an approximation with the desired bond dimension.
+%
+The resulting procedure is summarized in algorithm~\ref{algo:tensornets:mps:svd_based_mpo_compression}.
+
+\begin{Algorithm}{SVD-based MPO compression}{
+    \label{algo:tensornets:mps:svd_based_mpo_compression}
+    Given $O = \text{MPO}(W^{[1]}, \dots, W^{[N]})$ and $\ket{\psi} = \ket{\text{MPS}(M^{[1]}, \dots, M^{[N]})}$ and a bond dimension $\chi$, find a normalized \acro{mps} approximation $O \ket{\psi} \approx \mathcal{N} \ket{\text{MPS}(\tilde{B}^{[1]}, \dots, \tilde{B}^{[N]})}$ in right isometric form with bond dimension $\leq \chi$, where $\mathcal{N} > 0$ is the norm of the approximation.
+    We employ the dot product notation~\eqref{eq:tensornets:mps:dot_product_notation_abuse}.
+}
+    \step Initialize $R = 1 \in \Cbb^{1\times1\times1}$
+    \step For $n = 1, \dots, N-1$
+    \step \quad Update $R$ and set $\tilde{A}^{[n]}$ via the contraction and \acroshort{qr} decomposition of~\eqref{eq:tensornets:mps:mpo_evolution:svd_compression_qr_step}
+    \step Set $\tilde{C}^{[N]}$ as the LHS of~\eqref{eq:tensornets:mps:mpo_evolution:svd_compression_qr_step}, without decomposing it.
+    \step Compute $\mathcal{N}_1 = \norm{\tilde{C}^{[N]}}$ and normalize $\tilde{C}^{[N]} \gets \tilde{C}^{[N]} / \mathcal{N}_1$.
+    \step Initialize $C = 1 \in \Cbb^{1\times 1}$.
+    \step For $n=N,\dots,2$:
+    \step \quad Form $X = \tilde{A}^{[n]} \cdot C$.
+    \step \quad Set $C$ and $\tilde{B}^{[n]}$ via truncated \acro{svd} $X \approx U \cdot (S W^{[n]}) =: C \cdot \tilde{B}^{[n]}$ at rank $\leq \chi$.
+    \step Compute $\mathcal{N}_2 = \norm{C}$ and set $\tilde{B}^{[1]} = C / \mathcal{N}_2$ as well as $\mathcal{N} = \mathcal{N}_1 \mathcal{N}_2$.
+\end{Algorithm}
+
+Here, the isometric form guarantees that if a single truncation is optimal locally, e.g.~by using a truncated \acro{svd}, it is also optimal globally.
+%
+However, the sequence of multiple truncations in the \acro{svd}-based compression scheme is not optimal and, in general, does not find the best \acro{mps} approximation at a given bond dimension.
+%
+Better approximations can be obtained with a variational algorithm, similar to the \acro{dmrg} algorithm, but instead of minimizing the energy, we minimize the square distance
+\begin{equation}
+    \Delta^2
+    = \norm{\ket{\phi} - U \ket{\psi}}^2
+    = \braket{\phi}{\phi} - 2 \mathrm{Re} \braopket{\phi}{U}{\psi} \pconst
+\end{equation}
+%
+and parametrize the trial state $\ket{\phi} = \mathcal{N} \ket{\tilde{M}^{[1]}, \dots, \tilde{M}^{[N]}}$ as a normalized \acro{mps} and a normalization factor $\mathcal{N} > 0$.
+
+If we again focus on a two-site version first, the local problem to solve for a two-site wavefunction $\theta$ at an orthogonality center at sites $n, n+1$ is now
+\begin{equation}
+    \Delta^2 = \theta^\dagger \cdot \theta - 2 \mathrm{Re} ~ \theta^\dagger \cdot \varphi_\text{eff}^{n,n+1} \pconst \to \text{MIN}
+    ~.
+\end{equation}
+The overlap is taken with $\varphi_\text{eff}^{n,n+1}$, the evolved state projected by the other tensors of the trial state
+\begin{align}
+\begin{split}
+    \label{eq:tensornets:mps:mpo_evolution:def_phi_eff}
+    &\rBr{\varphi_\text{eff}^{n,n+1}}_{\alpha,i,j,\beta}
+    \\[2ex]
+    &:= ~~ 
+    \vcenter{\hbox{\scalebox{0.8}{\begin{tikzpicture}
+        \node[mpo tensor] (O1) {$W^{[1]}$};
+        \draw (O1.east) -- ++(10pt,0) node[mpo tensor, right] (O2) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O2.east) -- ++(10pt,0) node[mpo tensor, right] (O3) {$W^{[n-1]}$};
+        \draw (O3.east) -- ++(10pt,0) node[mpo tensor, right] (O4) {$W^{[n]}$};
+        \draw (O4.east) -- ++(10pt,0) node[mpo tensor, right] (O5) {$W^{[n+1]}$};
+        \draw (O5.east) -- ++(10pt,0) node[mpo tensor, right] (O6) {$W^{[n+2]}$};
+        \draw (O6.east) -- ++(10pt,0) node[mpo tensor, right] (O7) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O7.east) -- ++(10pt,0) node[mpo tensor, right] (O8) {$W^{[N]}$};
+        %
+        \draw (O1.north) -- ++(0,10pt) node[tensor, above] (K1) {$M^{[1]}$};
+        \draw (O2.north) -- ++(0,10pt) node[tensor, above] (K2) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O3.north) -- ++(0,10pt) node[tensor, above] (K3) {$M^{[n-1]}$};
+        \draw (O4.north) -- ++(0,10pt) node[tensor, above] (K4) {$M^{[n-1]}$};
+        \draw (O5.north) -- ++(0,10pt) node[tensor, above] (K5) {$M^{[n-1]}$};
+        \draw (O6.north) -- ++(0,10pt) node[tensor, above] (K6) {$M^{[n+2]}$};
+        \draw (O7.north) -- ++(0,10pt) node[tensor, above] (K7) {$\dots\vphantom{W^{[n-1]}}$};
+        \draw (O8.north) -- ++(0,10pt) node[tensor, above] (K8) {$M^{[N]}$};
+        \draw (K1.east) -- (K2.west);
+        \draw (K2.east) -- (K3.west);
+        \draw (K3.east) -- (K4.west);
+        \draw (K4.east) -- (K5.west);
+        \draw (K5.east) -- (K6.west);
+        \draw (K6.east) -- (K7.west);
+        \draw (K7.east) -- (K8.west);
+        %
+        \draw (O1.south) -- ++(0,-10pt) node[left iso, below] (B1) {$\conj{A}^{[1]}$};
+        \draw (O2.south) -- ++(0,-10pt) node[left iso, below] (B2) {$\dots\vphantom{\conj{A}^{[n-1]}}$};
+        \draw (O3.south) -- ++(0,-10pt) node[left iso, below] (B3) {$\conj{A}^{[n-1]}$};
+        \draw (O6.south) -- ++(0,-10pt) node[right iso, below] (B6) {$\conj{B}^{[n+2]}$};
+        \draw (O7.south) -- ++(0,-10pt) node[right iso, below] (B7) {$\dots\vphantom{\conj{A}^{[n-1]}}$};
+        \draw (O8.south) -- ++(0,-10pt) node[right iso, below] (B8) {$\conj{B}^{[N]}$};
+        \draw (B1.east) -- (B2.west);
+        \draw (B2.east) -- (B3.west);
+        \draw (B3.east) -- ++(5pt,0) node[space, right] {$\alpha$};
+        \draw (O4.south) -- ++(0,-10pt) node[space, right] {$i$};
+        \draw (O5.south) -- ++(0,-10pt) node[space, left] {$j$};
+        \draw (B6.west) -- ++(-5pt,0) node[space, left] {$\beta$};
+        \draw (B6.east) -- (B7.west);
+        \draw (B7.east) -- (B8.west);
+        %
+        \draw[dashed] (O1.west) -- ++(-10pt,0) coordinate (L);
+        \draw[dashed] (K1.west) to[out=180,in=90] (L) to[out=270,in=180] (B1.west);
+        \draw[dashed] (O8.east) -- ++(10pt,0) coordinate (R);
+        \draw[dashed] (K8.east) to[out=0,in=90] (R) to[out=270,in=0] (B8.east);
+    \end{tikzpicture}}}}
+    ~,
+\end{split}
+\end{align}
+where $M^{[n]}$ are the \acro{mps} tensors of the old state $\ket{\psi}$ and $A^{[n]}, B^{[n]}$ are the \acro{mps} tensors of the trial state that is currently updated.
+%
+Unlike \acro{dmrg}, where we have to solve for the ground state of the effective Hamiltonian numerically, this local problem has the closed form solution $\tilde{\theta} = \varphi_\text{eff}^{n,n+1}$.
+%
+Like in \acro{dmrg}, it is practical to contract it using environment tensors, which are partial contractions of~\eqref{eq:tensornets:mps:mpo_evolution:def_phi_eff} that can be reused for subsequent updates on other sites
+
+\begin{equation}
+    \label{eq:tensornets:mps:mpo_evolution:phi_eff}
+    \rBr{\varphi_\text{eff}^{n,n+1}}_{\alpha,i,j,\beta}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$L_n$};
+        \draw (L.east) -- ++(10pt,0) node[mpo tensor, right] (O4) {$W^{[n]}$};
+        \draw (O4.east) -- ++(10pt,0) node[mpo tensor, right] (O5) {$W^{[n+1]}$};
+        \draw (O5.east) -- ++(10pt,0) node[tensor, right] (R) {$R_{n+1}$};
+        \draw (O4.north) -- ++(0,10pt) node[tensor, above] (K4) {$M^{[n]}$};
+        \draw (O5.north) -- ++(0,10pt) node[tensor, above] (K5) {$M^{[n+1]}$};
+        \draw (O4.south) -- ++(0,-10pt) node[space, right] {$i$};
+        \draw (O5.south) -- ++(0,-10pt) node[space, left] {$j$};
+        \draw (K4.east) -- (K5.west);
+        \draw (L.north) to[out=90,in=180] (K4.west);
+        \draw (R.north) to[out=90,in=0] (K5.east);
+        \draw (L.south) to[out=270,in=180] ($(O4.west)+(0,-40pt)$) node[space, right] {$\alpha$};
+        \draw (R.south) to[out=270,in=0] ($(O5.east)+(0,-40pt)$) node[space, left] {$\beta$};
+    \end{tikzpicture}}}
+    ~.
+\end{equation}
+Note that the environment tensors now have \acro{mps} tensors of the old state $\ket{\psi}$ in the ket layer, in any isometric form, and tensors of the current trial \acro{mps} in fixed isometric form in the bra layer
+\begin{align}
+    \label{eq:tensornets:mps:mpo_evolution:def_environments}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$L_{n+1}$};
+        \draw (L.east) -- ++(10pt,0) coordinate (X);
+        \draw (L.north) to[out=90,in=180] ($(X)+(0,35pt)$);
+        \draw (L.south) to[out=270,in=180] ($(X)+(0,-35pt)$);
+    \end{tikzpicture}}}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$L_n$};
+        \draw (L.east) -- ++(10pt,0) node[mpo tensor, right] (O) {$W^{[n]}$};
+        \draw (O.north) -- ++(0,10pt) node[tensor, above] (K) {$M^{[n]}$};
+        \draw (O.south) -- ++(0,-10pt) node[left iso, below] (B) {$\conj{A}^{[n]}$};
+        \draw (L.north) to[out=90,in=180] (K.west);
+        \draw (L.south) to[out=270,in=180] (B.west);
+        \draw (B.east) -- ++(10pt,0);
+        \draw (O.east) -- ++(10pt,0);
+        \draw (K.east) -- ++(10pt,0);
+    \end{tikzpicture}}}
+    \qquad ; \qquad
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$R_{n-1}$};
+        \draw (L.west) -- ++(-10pt,0) coordinate (X);
+        \draw (L.north) to[out=90,in=0] ($(X)+(0,35pt)$);
+        \draw (L.south) to[out=270,in=0] ($(X)+(0,-35pt)$);
+    \end{tikzpicture}}}
+    ~~ := ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$R_n$};
+        \draw (L.west) -- ++(-10pt,0) node[mpo tensor, left] (O) {$W^{[n]}$};
+        \draw (O.north) -- ++(0,10pt) node[tensor, above] (K) {$M^{[n]}$};
+        \draw (O.south) -- ++(0,-10pt) node[right iso, below] (B) {$\conj{B}^{[n]}$};
+        \draw (L.north) to[out=90,in=0] (K.east);
+        \draw (L.south) to[out=270,in=0] (B.east);
+        \draw (B.west) -- ++(-10pt,0);
+        \draw (O.west) -- ++(-10pt,0);
+        \draw (K.west) -- ++(-10pt,0);
+    \end{tikzpicture}}}
+    ~,
+\end{align}
+where again the base cases are $L_1 = 1 \in \Cbb^{1\times 1 \times 1} = R_N$.
+
+
+\begin{Algorithm}{Two-site variational MPO compression}{
+    Given an operator $O = \text{MPO}(W^{[1]}, \dots, W^{[N]}))$, a state $\psiket = \ket{\text{MPS}(M^{[1]}, \dots, M^{[N]})}$, a maximum bond dimension $\chi$, and an initial guess $\ket{\phi_0}$ in \acro{mps} form, computes an \acro{mps} approximation $\ket{\phi} = \mathcal{N} \ket{\text{MPS}(\tilde{M}^{[1]}, \dots, \tilde{M}^{[N]})} \approx O\psiket$ with bond dimension at most $\chi$.
+    %
+    This is in terms of a normalized \acro{mps} and the factor $\mathcal{N} > 0$ is the norm of the approximation.
+    %
+    We employ the same notation as in algorithm~\ref{algo:tensornets:mps:dmrg}, where e.g.~$\tilde{M}^{[n]}_A$ and $\tilde{M}^{[n]}_B$ refer to the same variable and the subscript only indicates its current isometric form.
+    %
+    We employ the dot product notation~\eqref{eq:tensornets:mps:dot_product_notation_abuse}.
+    \label{algo:tensornets:mps:mpo_evolution_two_site}
+}
+    \step Initialize \acro{mps} tensors $\tilde{M}_A^{[1]}, \tilde{M}_C^{[2]}, \tilde{M}_B^{[3]}, \dots, \tilde{M}_B^{[N]}$ by bringing $\ket{\phi_0}$ to a mixed isometric form with orthogonality center on site $m=2$, e.g.~using algorithm~\ref{algo:tensornets:mps:mixed_isometric_form}.
+    \step Compute the right environments $R_n$ for $n=N,\dots, 2$ using~\eqref{eq:tensornets:mps:mpo_evolution:def_environments}.
+    \step Initialize the left environments $L_n$ for $n=1, \dots, N-1$ with placeholders.
+    \step Repeat until convergence:
+    %
+    \step \quad For $n = 1, \dots , N-2$: (right sweep)
+    \step \qquad Form $\varphi_\text{eff}^{n,n+1}$ given by ~\eqref{eq:tensornets:mps:mpo_evolution:phi_eff}.
+    \step \qquad
+    Decompose $\varphi_\text{eff}^{n,n+1} \approx U^{[n]} \cdot C^{[n+1]}$ at rank $\leq \chi$ s.t.~$U^{[n]}$ is left isometric.
+    \step \qquad Update $\tilde{M}_A^{[n]} \gets U^{[n]}$. Note that there is no need to update $\tilde{M}^{[n+1]}$.
+    \step \qquad Update $L_{n+1}$ using~\eqref{eq:tensornets:mps:mpo_evolution:def_environments}. Note that the $R_n$ is now invalid.
+    %
+    \step \quad For $n = N - 1, \dots, 2$ (left sweep)
+    \step \qquad Form $\varphi_\text{eff}^{n,n+1}$ given by ~\eqref{eq:tensornets:mps:mpo_evolution:phi_eff}.
+    \step \qquad
+    Decompose $\varphi_\text{eff}^{n,n+1} \approx C^{[n]} \cdot W^{[n+1]}$ at rank $\leq \chi$ s.t.~$W^{[n+1]}$ is right isometric.
+    \step \qquad Update $\tilde{M}_B^{[n+1]} \gets W^{[n+1]}$. Note that $\tilde{M}^{[n]}$ is not needed unless $n=2$.
+    \step \qquad Update $R_n$ using~\eqref{eq:tensornets:mps:mpo_evolution:def_environments}. Note that $L_{n+1}$ is now invalid.
+    %
+    \step \quad Compute $\mathcal{N} = \norm{C^{[2]}}$ and update $\tilde{M}_C^{[2]} \gets C^{[2]} / \mathcal{N}$.
+\end{Algorithm}
+
+
+
+Now, like in \acro{dmrg}, after solving the local problem and finding the optimal two-site wavefunction $\tilde\theta$, we need to factorize it and truncate to restore the \acro{mps} form.
+%
+Note that a subsequent update on a neighboring pair of sites immediately overrides one tensor from the previous update, such that it is not necessary to compute it, and we only need both factors at the very end of a sweep where the algorithm may terminate.
+%
+A common convergence criterion for the outer loop is a convergence of the square distance $\Delta^2$.
+%
+The resulting procedure is summarized in algorithm~\ref{algo:tensornets:mps:mpo_evolution_two_site}.
+
+
+
+
+Instead of updating two active sites at a time, a single-site version of the variational algorithm can be formulated.
+%
+For a local update, we require the current trial \acro{mps} to be in mixed canonical form with orthogonality center at the active site.
+%
+Analogously to the two-site version, the optimal single-site update is $\tilde{C}^{[n]} = \varphi_\text{eff}^{n}$, which is given by 
+\begin{equation}
+    \label{eq:tensornets:mps:mpo_evolution:phi_eff_single_site}
+    \rBr{\varphi_\text{eff}^{n}}_{\alpha,i,\beta}
+    ~~ = ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (L) {$L_n$};
+        \draw (L.east) -- ++(10pt,0) node[mpo tensor, right] (O4) {$W^{[n]}$};
+        \draw (O4.east) -- ++(10pt,0) node[tensor, right] (R) {$R_n$};
+        \draw (O4.north) -- ++(0,10pt) node[tensor, above] (K4) {$M^{[n]}$};
+        \draw (O4.south) -- ++(0,-10pt) node[space, right] {$i$};
+        \draw (L.north) to[out=90,in=180] (K4.west);
+        \draw (R.north) to[out=90,in=0] (K4.east);
+        \draw (L.south) to[out=270,in=180] ($(O4.west)+(0,-40pt)$) node[space, right] {$\alpha$};
+        \draw (R.south) to[out=270,in=0] ($(O4.east)+(0,-40pt)$) node[space, left] {$\beta$};
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+using the same environments~\eqref{eq:tensornets:mps:mpo_evolution:def_environments} as for the two-site version.
+%
+There is no truncation step required, such that we need to shift the orthogonality center explicitly, e.g.~using a \acroshort{qr} decomposition on a right sweep
+\begin{equation}
+    \label{eq:tensornets:mps:qr_to_shift_ortho_center}
+    \tilde{C}^{[n]} \cdot B^{[n + 1]}
+    \overset{\text{\acroshort{qr}}}{=} \tilde{A}^{[n]} \cdot R \cdot B^{[n+1]}
+    =: \tilde{A}^{[n]} \cdot \tilde{C}^{[n+1]}
+\end{equation}
+and could then proceed to update the active next site $n+1$.
+%
+Note that if there is a subsequent update, i.e.~unless the algorithm terminates, there is no need to compute $\tilde{C}^{[n+1]}$, as it will be overridden in the next update anyway.
+%
+The resulting procedure is summarized in algorithm~\ref{algo:tensornets:mps:mpo_evolution_single_site}.
+%
+
+\begin{Algorithm}{Single-site variational MPO compression}{
+    Given an operator $O = \text{MPO}(W^{[1]}, \dots, W^{[N]}))$, a state $\psiket = \ket{\text{MPS}(M^{[1]}, \dots, M^{[N]})}$, and an initial guess $\ket{\phi_0}$ in \acro{mps} form, computes an \acro{mps} approximation $\ket{\phi} = \mathcal{N} \ket{\text{MPS}(\tilde{M}^{[1]}, \dots, \tilde{M}^{[N]})} \approx O\psiket$ with the same bond dimensions as $\ket{\phi_0}$.
+    %
+    This is in terms of a normalized \acro{mps} and the factor $\mathcal{N} > 0$ is the norm of the approximation.
+    %
+    We employ the same notation as in algorithm~\ref{algo:tensornets:mps:dmrg}, where e.g.~$\tilde{M}^{[n]}_A$ and $\tilde{M}^{[n]}_B$ refer to the same variable and the subscript only indicates its current isometric form.
+    %
+    We employ the dot product notation~\eqref{eq:tensornets:mps:dot_product_notation_abuse}.
+    \label{algo:tensornets:mps:mpo_evolution_single_site}
+}
+    \step Initialize \acro{mps} tensors $\tilde{M}_C^{[1]}, \tilde{M}_B^{[2]}, \tilde{M}_B^{[3]}, \dots, \tilde{M}_B^{[N]}$ by bringing $\ket{\phi_0}$ to a mixed isometric form with orthogonality center on site $n=1$, e.g.~using algorithm~\ref{algo:tensornets:mps:mixed_isometric_form}.
+    \step Compute the right environments $R_n$ for $n=N,\dots, 1$ using~\eqref{eq:tensornets:mps:mpo_evolution:def_environments}.
+    \step Initialize the left environments $L_n$ for $n=1, \dots, N$ with placeholders.
+    \step Repeat until convergence:
+    %
+    \step \quad For $n = 1, \dots , N-1$: (right sweep):
+    \step \qquad Form $\varphi_\text{eff}^{n}$ given by ~\eqref{eq:tensornets:mps:mpo_evolution:phi_eff_single_site}.
+    \step \qquad Update $\tilde{M}_A^{[n]}$ by computing the \acroshort{qr} decomposition $\varphi_\text{eff}^{n} = \tilde{M}_A^{[n]} \cdot R$.
+    \step \qquad Update $L_{n+1}$ using~\eqref{eq:tensornets:mps:mpo_evolution:def_environments}. Note that the $R_{n-1}$ is now invalid.
+    %
+    \step \quad For $n = N, \dots, 2$ (left sweep):
+    \step \qquad Form $\varphi_\text{eff}^{n}$ given by ~\eqref{eq:tensornets:mps:mpo_evolution:phi_eff_single_site}.
+    \step \qquad Update $\tilde{M}_B^{[n]}$ by computing the \acroshort{lq} decomposition $\varphi_\text{eff}^{n} = L \cdot \tilde{M}_A^{[n]}$.
+    \step \qquad Update $R_{n-1}$ using~\eqref{eq:tensornets:mps:mpo_evolution:def_environments}. Note that $L_{n+1}$ is now invalid.
+    %
+    \step \quad Update $\tilde{M}_C^{[1]} \gets \tilde{M}_A^{[1]} \cdot L$.
+    \step \quad Compute $\mathcal{N} = \norm{\tilde{M}_C^{[1]}}$ and update $\tilde{M}_C^{[1]} \gets \tilde{M}_C^{[1]} / \mathcal{N}$.
+    \step Optionally, establish a full canonical form using algorithm~\eqref{algo:tensornets:mps:right_canonical_form}.
+\end{Algorithm}
+%
+%
+Note that unlike for the two-site version, the bond dimension of the trial \acro{mps} can not dynamically grow and is fixed by the initial guess, which should therefore be chosen with the full target bond dimension.
+%
+This can be remedied by incorporating subspace expansion methods (``mixing") similar to the adjustments in single-site \acro{dmrg} \cite{white2005b, hubig2015}.
+%
+While this seems to be strictly necessary to get good results with single-site \acro{dmrg}, single-site \acro{mpoEvolution} can work well even without mixing.
+
+
+
+Both of these variational algorithms require an initial guess.
+%
+In a general setting we may start from well-chosen states with exact \acro{mps} representations, such as product states, from an \acro{mps} with random tensor entries, or from a state that results from any other \acro{mpoEvolution} method, such as the \acro{svd}-based compression of algorithm~\ref{algo:tensornets:mps:svd_based_mpo_compression}.
+%
+For this particular purpose, a modified version of the \acro{svd}-based compression may be employed, that trades accuracy for performance, which is commonly called the zip-up method.
+%
+It is similar to the \acro{svd}-based method, but directly performs truncation, even if there is no isometric form established yet.
+%
+This is done by iterating
+\begin{equation}
+    \label{eq:tensornets:mps:mpo_evolution:zip_up_step}
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[tensor] (M) {$M^{[n]}$};
+        \draw (M.south) -- ++(0,-10pt) node[mpo tensor, below] (W) {$W^{[n]}$};
+        \node[tensor, right=30pt of ($(M)!0.5!(W)$)] (R) {$C$};
+        \draw (R.east) -- ++(10pt,0);
+        \draw (R.north west) to[out=135,in=0] (M.east);
+        \draw (R.south west) to[out=-135,in=0] (W.east);
+        \draw (M.west) -- ++(-10pt,0);
+        \draw (W.west) -- ++(-10pt,0);
+        \draw (W.south) -- ++(0,-10pt);
+    \end{tikzpicture}}}
+    ~~\overset{\text{trunc}}{\approx} ~~
+    \vcenter{\hbox{\begin{tikzpicture}
+        \node[right iso] (A) {$\tilde{B}^{[n]}$};
+        \draw (A.west) -- ++(-10pt,0) node[tensor, left] (R) {$C$};
+        \draw (A.east) -- ++(10pt,0);
+        \draw (A.south) -- ++(0,-10pt);
+        \draw (R.north west) to[out=135,in=0] ++(-20pt,5pt);
+        \draw (R.south west) to[out=-135,in=0] ++(-20pt,-5pt);
+    \end{tikzpicture}}}
+    ~,
+\end{equation}
+%
+with a \acrofull{tqr} factorization, or rather an LQ version of it, see section~\ref{subsec:truncation:factorizations:tqr}.
+%
+This is clearly sub-optimal and in general the results are not accurate enough to use this as a stand-alone method, but it is significantly cheaper in the presence of strong truncation.
+%
+We summarize this approach in algorithm~\ref{algo:tensornets:mps:mpo_evolution_zip_up}.
+
+
+\begin{Algorithm}{Zip-up MPO compression}{
+    Given an operator $O = \text{MPO}(W^{[1]}, \dots, W^{[N]}))$, a state $\psiket = \ket{\text{MPS}(M^{[1]}, \dots, M^{[N]})}$ and a maximum bond dimension $\chi$, computes a \emph{crude}  approximation $\ket{\phi} = \mathcal{N} \ket{\text{MPS}(\tilde{B}^{[1]}, \dots, \tilde{B}^{[N]})} \approx O\psiket$ with a normalized \acro{mps} in isometric B form, bond dimension at most $\chi$ and norm $\mathcal{N} > 0$.
+    %
+    The resulting approximation is generally of low quality and intended as an initial guess only.
+    %
+    We employ the dot product notation~\eqref{eq:tensornets:mps:dot_product_notation_abuse}.
+    \label{algo:tensornets:mps:mpo_evolution_zip_up}
+}
+    \step Initialize $C = 1 \in\Cbb^{1\times 1}$
+    \step For $n = N,N-1,\dots,2$ (right to left):
+    \step \quad Update $C$ and set $\tilde{B}^{[n]}$ via the contraction and factorization of \eqref{eq:tensornets:mps:mpo_evolution:zip_up_step}.
+    \step Set $\tilde{C}^{[1]}$ as the LHS of \eqref{eq:tensornets:mps:mpo_evolution:zip_up_step}, without decomposing it.
+    \step Compute $\mathcal{N} = \norm{\tilde{C}^{[1]}}$ and set $\tilde{B}^{[1]} = \tilde{C}^{[1]} / \mathcal{N}$
+\end{Algorithm}
+
+
+We give the computational cost for all four methods in table~\ref{tab:tensornets:mps:mpo_evolution_costs}.
+
+\begin{table}[htp]
+    \centering
+    \renewcommand{\arraystretch}{1.}
+    \begin{tabular}{llll}
+        \toprule
+        Method & Definition & Cost scaling & Dominant step(s)
+        \\ \midrule
+        Two-Site Var.
+            & Alg. \ref{algo:tensornets:mps:mpo_evolution_two_site}
+            & $\bigO(d^2 \eta \chi^3) + \mathcal{C}_\text{init}$
+            & Contractions for $\varphi^{n,n+1}_\text{eff}$
+        \\
+        Single-Site Var.
+            & Alg. \ref{algo:tensornets:mps:mpo_evolution_single_site}
+            & $\bigO(d \eta \chi^3) + \mathcal{C}_\text{init}$
+            & Contractions for $\varphi^n_\text{eff}, L_n, R_n$
+        \\
+        \acro{svd} compression 
+            & Alg. \ref{algo:tensornets:mps:svd_based_mpo_compression}
+            & $\bigO(d^2 \eta^3 \chi^3)$
+            & \acroshort{qr} decomposition
+        \\
+        Zip-up
+            & Alg. \ref{algo:tensornets:mps:mpo_evolution_zip_up}
+            & $\bigO(d^2 \eta \chi^3)$
+            & \acro{dsvd}
+        \\ \bottomrule
+    \end{tabular}
+    \caption[
+        Computational cost for different MPO-MPS compression methods
+    ]{
+        Computational cost scaling for different MPO-MPS compression methods.
+        We consider the scaling with the dimension $d$ of the local Hilbert space, the bond dimensions $\chi$ of the state $\psiket$ to apply the operator $O$ to, and the bond dimension $\eta$ of that operator.
+        %
+        We assume that we want to find an \acro{mps} approximation of $O \psiket$ with the same bond dimension $\chi$, which is realistic e.g.~during time evolution when the state $\psiket$ to be evolved already has the maximal allowed bond dimension.
+        %
+        For the variational methods, $\mathcal{C}_\text{init}$ denotes the cost of computing the initial guess, for which we have proposed either the other methods with costs listed here or methods with subdominant costs.
+        %
+        We simplify the big O expressions, and decide which contribution is dominant under the mild assumptions $d \leq \eta$ and $d\eta \leq \chi$.
+    }
+    \label{tab:tensornets:mps:mpo_evolution_costs}
+\end{table}
+    
+The variational compression methods can be generalized to approximate states as bounded bond dimension \acro{mps} in a more general setting, as long as the effective local states $\phi_\text{eff}$ of~\eqref{eq:tensornets:mps:mpo_evolution:def_phi_eff} or~\eqref{eq:tensornets:mps:mpo_evolution:phi_eff_single_site} can be computed efficiently.
+%
+In particular, this applies to compressing states that are given as \acro{mps} already, to a smaller bond dimension, i.e.~compressing them.
+%
+We can achieve this by simply ``leaving out" the \acro{mpo} tensors from the diagrams above, or alternatively we can formally view the operator $O = \eye$ with tensors $W^{[n]} \in \Cbb^{1 \times d \times d \times 1}$ given by $W^{[n]}_{\alpha,i,i',\beta} = \eye_{i,i'} = \delta_{i,i'}$, such that its tensors can be contracted for free.
+%
+This improves upon simply truncating the Schmidt values in a canonical form or iterating~\eqref{eq:tensornets:mps:svd_isometric_to_canonical_form} in an isometric form.

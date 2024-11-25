@@ -1,0 +1,238 @@
+\documentclass[12pt,a4paper]{book}
+\usepackage[inner=3.5cm, outer=2.5cm, top=3.00cm, bottom=3.00cm]{geometry}
+\usepackage[skip=10pt]{parskip}  % vertical space instead of indent on \par
+\interfootnotelinepenalty=10000  % large penalty for splitting footnotes to next pages
+
+% COLOR MODE : online versus print
+\newif\ifcolors
+\colorstrue
+% \colorsfalse
+
+\input{preamble}
+
+
+% ===========================================================================
+% METADATA
+% ===========================================================================
+\title{Advancing Tensor Network Simulations — Hardware Acceleration, Stable Optimization, and Symmetries}
+\author{Jakob Unfried}
+\date{\today}
+\makeatletter
+\hypersetup{
+    colorlinks=false,
+    urlcolor=blue,
+    pdfauthor={\@author},%
+    pdftitle={\@title},%
+    pdfkeywords={%
+        Technische Universität München;%
+        TUM School of Natural Sciences;%
+        PhD Thesis;%
+        Jakob Unfried%
+    }
+}
+\makeatother
+
+% ===========================================================================
+% BEGIN DOCUMENT
+% ===========================================================================
+\begin{document}
+
+\subfile{00_title_page}
+% ===========================================================================
+% FRONT MATTER
+% ===========================================================================
+\frontmatter
+
+\cleardoublepage
+\subfile{00_abstract}
+
+\setcounter{tocdepth}{1}
+\tableofcontents
+
+
+% ===========================================================================
+% MAIN MATTER
+% ===========================================================================
+\mainmatter
+
+\chapter*{List of Publications}
+\label{list_of_publications}
+\addcontentsline{toc}{chapter}{List of publications}  
+\subfile{mainmatter/05_publications}
+
+\chapter{Introduction}\label{ch:introduction}
+\subfile{mainmatter/10_introduction}
+
+% ===========================================================================
+\chapter{Review of tensor network methods}
+\label{ch:tensornets}
+\subfile{mainmatter/20_tensornets/00_intro}
+
+\section{Entanglement}
+\label{sec:tensornets:entanglement}
+\subfile{mainmatter/20_tensornets/10_entanglement}
+
+\section{Tensors and diagrammatic notation}
+\label{sec:tensornets:tensors}
+\subfile{mainmatter/20_tensornets/20_tensors_diagrams}
+
+\section{Matrix Product States (MPS) in one dimension}
+\label{sec:tensornets:mps}
+\subfile{mainmatter/20_tensornets/30_mps}
+
+\section{Tensor networks in higher dimensions}
+\label{sec:tensornets:peps}
+\subfile{mainmatter/20_tensornets/40_peps}
+
+\section{Symmetries}
+\label{sec:tensornets:symmetries}
+\subfile{mainmatter/20_tensornets/50_symmetries}
+
+\section{The Tensor Network Python (TeNPy) library}
+\label{sec:tensornets:tenpy}
+\subfile{mainmatter/20_tensornets/60_tenpy}
+
+% ===========================================================================
+\chapter{Fast time evolution of matrix product states}
+\addtocontents{loa}{\protect\addvspace{2ex}} % hack for spacing in list of algorithms
+\label{ch:truncation}
+\subfile{mainmatter/30_truncation/00_intro}
+
+\section{Matrix factorizations}
+\label{sec:truncation:factorizations}
+\subfile{mainmatter/30_truncation/05_factorizations}
+
+\section{QR-based truncation}
+\label{sec:truncation:qr_tebd}
+\subfile{mainmatter/30_truncation/10_qr_tebd}
+
+\section{Connection to randomized linear algebra}
+\label{sec:truncation:rand_nla}
+\subfile{mainmatter/30_truncation/20_rand_nla}
+
+\section{Synthesized truncation routines}
+\label{sec:truncation:synthesized_routines}
+\subfile{mainmatter/30_truncation/25_synthesized_routines}
+
+\section{Benchmark}
+\label{sec:truncation:benchmark}
+\subfile{mainmatter/30_truncation/40_benchmark}
+
+\section{Conclusion}
+\label{sec:truncation:conclusion}
+\subfile{mainmatter/30_truncation/50_conclusion}
+
+% ===========================================================================
+\chapter[Gradient-based optimization of PEPS]{Gradient-based optimization of Projected Entangled Pair States (PEPS)}
+\label{ch:gradpeps}
+\subfile{mainmatter/40_gradpeps/00_intro}
+
+\section{Gradient based approach}
+\label{sec:gradpeps:grad_based}
+\subfile{mainmatter/40_gradpeps/10_gradient_based}
+
+\section{Gradients from automatic differentiation}
+\label{sec:gradpeps:autodiff}
+\subfile{mainmatter/40_gradpeps/15_autodiff}
+
+\section{Explicit gradient evaluation}
+\label{sec:gradpeps:approx}
+\subfile{mainmatter/40_gradpeps/20_explicit_grads}
+
+\section{Benchmark}
+\label{sec:gradpeps:benchmark}
+\subfile{mainmatter/40_gradpeps/30_benchmark}
+
+\section{Conclusion}
+\label{sec:gradpeps:conclusion}
+\subfile{mainmatter/40_gradpeps/60_conclusion}
+
+
+% ===========================================================================
+\chapter[Non-abelian symmetries]{%
+    Non-abelian symmetries and anyons in tensor networks
+}
+\addtocontents{loa}{\protect\addvspace{2ex}} % hack for spacing in list of algorithms
+\label{ch:nonabelian}
+\subfile{mainmatter/50_nonabelian/00_intro}
+
+\section{Definitions and graphical language}
+\label{sec:nonabelian:basics}
+\subfile{mainmatter/50_nonabelian/10_basics}
+
+\section{Topological data of a symmetry}
+\label{sec:nonabelian:topo_data}
+\subfile{mainmatter/50_nonabelian/15_topo_data}
+
+\section{Symmetric tensors}
+\label{sec:nonabelian:symmetric_tensors}
+\subfile{mainmatter/50_nonabelian/20_symmetric_tensors}
+
+\section{Remarks on implementation}
+\label{sec:nonabelian:tenpy_v2}
+\subfile{mainmatter/50_nonabelian/30_tenpy_v2}
+
+\section{Benchmarks}
+\label{sec:nonabelian:benchmarks}
+\subfile{mainmatter/50_nonabelian/35_benchmark}
+
+\section{Conclusion}
+\label{sec:nonabelian:conclusion}
+\subfile{mainmatter/50_nonabelian/40_conclusion}
+
+% ===========================================================================
+\chapter{Conclusion}
+\label{ch:conclusion}
+\subfile{mainmatter/90_conclusion}
+
+
+% ===========================================================================
+% APPENDICES
+% ===========================================================================
+\appendix
+
+\chapter{Topological data for common symmetries}
+\label{ch:topo_data}
+\subfile{appendices/topo_data}
+
+\chapter{Derivation of automatic differentiation formulae}
+\label{ch:autodiff_derivations}
+\subfile{appendices/autodiff_derivation}
+
+
+% ===========================================================================
+% BACK MATTER
+% ===========================================================================
+\backmatter
+
+\chapter{Acknowledgments}
+\subfile{acknowledgements}
+
+\printglossary[type=\acronymtype]
+\addcontentsline{toc}{chapter}{Acronyms}
+
+\listofalgorithms
+\addcontentsline{toc}{chapter}{List of Algorithms}
+
+\listoffigures
+\addcontentsline{toc}{chapter}{List of Figures}
+
+\begingroup
+    % diasable clearpage to get list of tables on same page
+    \let\clearpage\relax
+    \let\doubleclearpage\relax
+    \listoftables
+\endgroup
+\addcontentsline{toc}{chapter}{List of Tables}
+ 
+
+
+% keyword "my work" are listed in list of publications
+\defbibnote{myWorkPointer}{%
+    References~\cite{unfried2023, unfried2024, hauschild2024, tenpySoftware} are given in the list of publications on page~\pageref{list_of_publications}.
+    \vspace{2ex}
+}
+\printbibliography[notkeyword={my work}, notkeyword={tenpy citation}, prenote=myWorkPointer]
+\addcontentsline{toc}{chapter}{Bibliography}
+
+\end{document}

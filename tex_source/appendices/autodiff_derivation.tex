@@ -1,0 +1,720 @@
+In this chapter, we give derivations for the results of \acro{autodiff} formulae for the truncated \acro{svd} stated in section~\ref{subsec:gradpeps:autodiff:trunc_svd}, and give similar formulae for a truncated hermitian eigendecomposition.
+%
+This is inspired by the work in Ref.~\cite{francuz2023}, where the authors analyze the \acro{autodiff} formula for a truncated hermitian eigendecomposition and derive an additional term that arises from the truncated spectrum, as well as demonstrate how the \acro{autodiff} formula simplifies for the particular cost function(s) they consider in the context of \acro{ipeps} optimization, because of an enlarged gauge invariance.
+%
+The results that we present here for the general case are thus just a reiteration of what they found.
+%
+The point we want to emphasize here is the simplification that arises in the presence of larger gauge freedoms of the decomposition.
+%
+For the hermitian eigendecomposition, this is a reframing of the results of Francuz et al to a general context that does not rely on the specific usecase of the \acro{ctmrg} step for which they derive it.
+%
+For the \acro{svd}, this is -- to our knowledge -- a new result.
+
+
+
+
+Let us first state some preliminary properties, used in the following derivations.
+%
+The Hadamard product $A \hadamard B$ is defined as elementwise multiplication $(A \hadamard B)_{ij} := A_{ij} B_{ij}$.
+%
+We can use two special matrices, the identity matrix $\eye$ with entries $\eye_{ij} = \delta_{i,j}$ and the fully off-diagonal matrix $\Off$ with entries $\Off_{ij} = 1 - \delta_{i,j}$, to decompose any matrix $A$ into its diagonal and off-diagonal parts
+\begin{equation}
+    \label{eq:autodiff_derivations:hadamard_decompose}
+    A = \eye \hadamard A + \Off \hadamard A
+    .
+\end{equation}
+
+For a diagonal matrix $S$ we have
+\begin{equation}
+    \label{eq:autodiff_derivations:hadamard_with_diagonal}
+    \eye \hadamard S = S
+    \qquad , \qquad
+    \Off \hadamard S = 0
+    .
+\end{equation}
+and for diagonal $S$ and a general matrix $A$ we find commutative behavior on the diagonal
+\begin{equation}
+    \eye \hadamard (AS) = (\eye \hadamard A) S = S (\eye \hadamard A) = \eye \hadamard (SA)
+    \label{eq:autodiff_derivations:hadamard_diagonal_commutation}
+    .
+\end{equation}
+%
+Conversely, the anticommutator
+\begin{equation}
+    \label{eq:autodiff_derivations:hadamard_anticomm_offdiag}
+    AS - SA = \Off \hadamard \rBr{AS - SA}
+\end{equation}
+is purely off-diagonal.
+
+We also need the following properties of the Hadamard product for matrices $A, B, C$ and diagonal $S$
+\begin{gather}
+    (A\hadamard B)^\transpT = A^\transpT \hadamard B^\transpT
+    \quad ; \quad
+    (A\hadamard B)^\dagger = A^\dagger \hadamard B^\dagger
+    \label{eq:autodiff_derivations:hadamard_transp_dagg}
+    \\
+    \tr{S(\eye\hadamard A)} = \tr{SA}
+    \label{eq:autodiff_derivations:hadamard_trace_diag}
+    \\
+    \tr{A(C\hadamard B)} = \tr{(C^\transpT \hadamard A) B}
+    ~.
+    \label{eq:autodiff_derivations:hadamard_trace_ACB}
+\end{gather}
+
+And note that the trace fulfills
+\begin{equation}
+    \label{eq:autodiff_derivations:trace_pcc_dagger_invariance}
+    \tr{A \pcc} = \tr{A^\dagger \pcc}
+\end{equation}
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\section{Derivations for hermitian eigendecomposition}
+
+The setup for the truncated hermitian eigendecompositition is a decomposition
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:a}
+    A = U S U^\dagger + X Y X^\dagger
+\end{equation}
+of a hermitian $n \times n$ matrix $A$, such that $U \in \Cbb^{n \times k}$ and $X\in\Cbb^{n \times (n - k)}$ are (left) isometries
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:b}
+    U^\dagger U = \eye_{k}
+    \qquad ; \qquad
+    X^\dagger X = \eye_{n-k}
+\end{equation}
+and $X$ is the orthogonal complement of $U$
+\begin{gather}
+    \label{eq:autodiff_derivations:eigh:c}
+    U^\dagger X = 0 = X^\dagger U
+    \\
+    \label{eq:autodiff_derivations:eigh:d}
+    U U^\dagger + X X^\dagger = \eye_n
+    .
+\end{gather}
+%
+The matrix $S$ of kept eigenvalues is real and diagonal
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:e}
+    \eye \hadamard S = S = S^\dagger
+    .
+\end{equation}
+
+We understand the decomposition as a function $A \mapsto (U, S)$ that achieves $A \approx U S U^\dagger$.
+
+\subsection{Result}
+
+The result for the backward formula for the function $A \mapsto (U, S)$ is the following
+\begin{align}
+    \label{eq:grapeps:autodiff:eigh_result}
+    \Gconj{A} 
+    = \GcAs + \GcAuo + \GcAtr
+    = U \Gconj{S} U^\dagger
+    + U \rBr{-F \hadamard \rBr{U^\dagger \Gconj{U}}} U^\dagger
+    + XX^\dagger \gamma U^\dagger
+    ,
+\end{align}
+where
+\begin{equation}
+    F_{ij} := \begin{cases}0 & i = j \\ 1/(S_i - S_j) & i \neq j \end{cases}
+\end{equation}
+and $\hadamard$ denotes elementwise multiplication of matrices, and where $\gamma$ is the solution of the Sylvester equation
+\begin{equation}
+    \Gconj{U} = \gamma S - A^\dagger XX^\dagger \gamma
+    .
+\end{equation}
+
+This Sylvester equation has a unique solution if and only if $S$ and $Y$ have disjoint spectra, such that splitting multiplets of degenerate eigenvalues should be avoided.
+%
+In practice, the Sylvester equation should be solved numerically.
+%
+Note that $X$ is typically not computed and thus its projector should be applied to a matrix $M$ via $XX^\dagger M = M - U U^\dagger M$.
+%
+Francuz et al report encountering bad conditioning of the Sylvester equation and recommend a right pre-conditioner $S^{-1}$ for the biconjugate gradient method they use to solve it.
+
+
+The result~\eqref{eq:grapeps:autodiff:eigh_result} simplifies in the following special cases
+\begin{itemize}
+    \item
+    If there is no truncation, i.e.~if $k=n$ we have $\GcAtr = 0$.
+
+    \item 
+    If the loss function is invariant under the enlarged\footnote{
+        A smaller gauge freedom, where $Q$ is restricted to be diagonal and transforms only the phase of the eigenvectors is inherent to any eigendecomposition.
+        In that sense, the gauge freedom discussed here is ``enlarged" to arbitrary unitary $Q$.
+    } gauge transformation
+    \begin{equation}
+        U \mapsto UQ \qquad , \qquad S \mapsto Q^\dagger S Q
+    \end{equation}
+    for arbitrary unitary $Q$, we find that $\GcAuo = 0$.
+    %
+    This drastically simplifies the formula \emph{and} removes divergences in $F$ in the presence of degenerate eigenvalues.
+\end{itemize}
+
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Decomposing Differentials}
+Let us split the differential $\dU$ into components in the space spanned by $U$ and $X$ respectively.
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:f}
+    \dU
+    \overset{\eqref{eq:autodiff_derivations:eigh:d}}{=}
+    UU^\dagger \dU + XX^\dagger \dU
+    =: U \dC_1 + \dC_2
+\end{equation}
+Now by differentiating the isometry condition~\eqref{eq:autodiff_derivations:eigh:b} we find
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:h}
+    \dC_1^\dagger = -\dC_1
+\end{equation}
+and from the orthogonality constraint~\eqref{eq:autodiff_derivations:eigh:c} we get
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:l}
+    \dX^\dagger U = -X^\dagger\dU = -X^\dagger \dC_2
+    .
+\end{equation}
+
+Now we define the transformed differential
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:g}
+    \dP
+    := U^\dagger \dA U
+    \overset{\eqref{eq:autodiff_derivations:eigh:h}}{=}
+    \dC_1 S + \dS - S \dC_1
+    .
+\end{equation}
+
+From this differential we can extract
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:i}
+    \eye \hadamard \dP
+    \overset{\eqref{eq:autodiff_derivations:hadamard_diagonal_commutation}}{=}
+    \eye \hadamard \dS
+    \overset{\eqref{eq:autodiff_derivations:eigh:e}}{=}
+    \dS
+    ,
+\end{equation}
+as well as with $F_{ij} = 1 / (S_i - S_j)$ for $i \neq j$ and $F_{ii} = 0$.
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:j}
+    F \hadamard \dP = -\Off \hadamard \dC_1
+    .
+\end{equation}
+
+Finally, consider
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:k}
+    XX^\dagger \dA U
+    \overset{\eqref{eq:autodiff_derivations:eigh:l}}{=}
+    \dC_2 S - X X^\dagger A \dC_2
+    .
+\end{equation}
+
+We have found expressions for $\dS$ and the off-diagonal parts of $\dC_1$, as well as an equation that determines $\dC_2$.
+%
+We are missing an equation for the diagonal parts of $\dC_1$.
+%
+This is a feature unique to the complex case, since in the real case~\eqref{eq:autodiff_derivations:eigh:h} implies that this diagonal part vanishes.
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Gauge Invariance}
+\label{subsec:autodiff_derivation:eigh:gauge_invariance}
+
+The diagonal parts can be dealt with by exploiting the gauge invariance of any eigendecompostion.
+%
+The phase of the eigenvalues is arbitrary, such that the transformation $U \mapsto U \Lambda$ for a diagonal unitary $\Lambda$ preserves the defining properties of the decomposition.
+%
+As such, any well defined cost function that uses an eigendecomposition as an intermediate step must be invariant under that transformation.
+%
+Note that we are free to choose the gauge $\Lambda$, \emph{and} independently its variations $\dd\Lambda$, this is because we can choose a function $\Lambda(A)$ of gauge choices, which has an independent value and derivative at the point of interest.
+
+Since $\Lambda$ is diagonal $\Off\hadamard\Lambda = 0$ and unitary $\Lambda\Lambda^\dagger = \eye$, its variations are constrained by
+\begin{equation}
+    \Off\hadamard\dd\Lambda = 0
+    \qquad ; \qquad
+    \dd\Lambda^\dagger~\Lambda = -\Lambda\dd\Lambda^\dagger
+\end{equation}
+but otherwise arbitrary.
+%
+On the differential $\dC_1$, the gauge transformation has the following effect
+\begin{equation}
+    \dC_1 = U^\dagger\dU \mapsto \Lambda^\dagger\dC_1\Lambda + \Lambda^\dagger\dd\Lambda
+    .
+\end{equation}
+%
+It is therefore convenient to choose $\Lambda=\eye$, such that this reduces to $\dC_1 \mapsto \dC_1 + \dd\Lambda$.
+%
+We may now choose the gauge variations as $\dd\Lambda = -\eye\hadamard\tilde{\dC_1}$, where the tilde denotes the differential in an arbitrary reference gauge.
+%
+Therefore, in the chosen gauge we have
+\begin{equation}
+    \label{eq:autodiff_derivations:eigh:gauge_dC1_diagonal_vanishes}
+    \eye\hadamard\dC_1 = 0
+    .
+\end{equation}
+
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Contributions to the adjoint}
+
+The starting point for the autodiff formula is equating the following differentials
+\begin{align}
+    \label{eq:autodiff_derivations:starting_point}
+    \tr{\Gconj{A} \d{A}^\dagger \pcc}
+    &= \d{\mathcal{L}}
+    = \tr{\Gconj{U} \d{U}^\dagger + \Gconj{S} \d{S}^\dagger \pcc}
+    .
+\end{align}
+
+First, consider the contribution via $\dS$. We obtain
+\begin{align}
+    \begin{split}
+        \tr{\Gconj{S} \d{S}^\dagger \pcc}
+        &\overset{\eqref{eq:autodiff_derivations:eigh:i}}{=}
+        \tr{\Gconj{S} \rBr{\eye\hadamard\dP^\dagger} \pcc}
+        \overset{\eqref{eq:autodiff_derivations:hadamard_trace_ACB}}{=}
+        \tr{\rBr{\eye\hadamard\Gconj{S}} U^\dagger \dA^\dagger U \pcc}
+        \\
+        &=
+        \tr{\GcAs \dA^\dagger\pcc},
+        \quad\text{where}\quad
+        \GcAs := U \Gconj{S} U^\dagger
+    \end{split}
+\end{align}
+and where we used in the last step that $\Gconj{S}$ is diagonal, because $S$ is diagonal.
+
+We consider separately the two contributions via $\dU = U \dC_1 + \dC_2$.
+%
+For the contribution from $\dC_1$, recall that it is purely off-diagonal because of~\eqref{eq:autodiff_derivations:eigh:gauge_dC1_diagonal_vanishes} and we know the value of these off-diagonal entries from~\eqref{eq:autodiff_derivations:eigh:j}.
+%
+We find
+\begin{align}
+    \begin{split}
+        \tr{\Gconj{U} (U \d{C}_1)^\dagger \pcc}
+        &= \tr{U^\dagger \Gconj{U} (F \hadamard \dP^\dagger) \pcc}
+        \\
+        &\overset{\eqref{eq:autodiff_derivations:hadamard_trace_ACB}}{=}
+        \tr{\rBr{-F \hadamard (U^\dagger \Gconj{U})} U^\dagger \dA^\dagger U \pcc}
+        \\
+        &= \tr{\GcAuo \dA^\dagger\pcc}
+        ,
+        \\[1ex]
+        &\quad\text{where}\quad
+        \GcAuo := U \rBr{-F \hadamard (U^\dagger \Gconj{U})} U^\dagger
+        ~.
+    \end{split}
+\end{align}
+
+For the final contribution, let $\gamma$ be a solution to the Sylvester equation $\gamma S - A^\dagger XX^\dagger \gamma = \Gconj{U}$.
+%
+Then, we find
+\begin{align}
+    \begin{split}
+        \tr{\Gconj{U} \dC_2^\dagger \pcc}
+        &= \tr{\gamma \rBr{S \dC_2^\dagger - \dC_2^\dagger A^\dagger XX^\dagger} \pcc}
+        \\
+        &\overset{\eqref{eq:autodiff_derivations:eigh:k}}{=}
+        \tr{\gamma U^\dagger \dA^\dagger X X^\dagger \pcc}
+        \\
+        &= \tr{\GcAtr \dA^\dagger\pcc}
+        ,
+        \quad\text{where}\quad
+        \GcAtr := X X^\dagger \gamma U^\dagger
+        ~.
+    \end{split}
+\end{align}
+
+In summary, we have dealt with all contributions to the RHS of~\eqref{eq:autodiff_derivations:starting_point} and conclude $\Gconj{A} = \GcAs + \GcAuo + \GcAtr$.
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Special cases}
+
+The first special case, namely if there is no truncation and $k = n$, implies $X = 0$ and $\GcAtr = 0$ follows directly.
+
+Second, consider the case where the cost function is invariant under the enlarged gauge transformation $U \mapsto U Q$ and $S \mapsto Q^\dagger S Q$ with unitary $Q$.
+%
+Note that $S$ is now (in general) no longer diagonal.
+%
+Similar to the arguments of subsection~\ref{subsec:autodiff_derivation:eigh:gauge_invariance}, the gauge transformation are unitary $QQ^\dagger = \eye_k$ but otherwise arbitrary, such that the variations are constrained by $\dQ Q^\dagger + Q \dQ^\dagger = 0$ but otherwise arbitrary.
+%
+If we now choose $Q = \eye$, that is choose the gauge that makes $S$ diagonal, we find that the variations $\dQ = - \dQ^\dagger$ are anti-hermitian.
+%
+The effect on the differentials is $\dC_1 \mapsto \dC_1 + \dQ$.
+%
+Since this differential is anti-hermitian by~\eqref{eq:autodiff_derivations:eigh:h}, we may choose $\dQ$ such that $\dC_1 = 0$.
+%
+Therefore, we find no contribution from $\dC_1$, that is $\GcAuo = 0$.
+
+There is one caveat;
+%
+In this gauge, the variations $\dS$ are (in general) no longer diagonal and acquires an off-diagonal part $S \dQ - \dQ S$, such that \eqref{eq:autodiff_derivations:eigh:i} and \eqref{eq:autodiff_derivations:eigh:j} do not hold anymore.
+%
+The result is still valid, however, since~\eqref{eq:autodiff_derivations:eigh:g} now directly implies $\dS = \dP$ such that $\tr{\Gconj{S} \dS^\dagger \pcc} = \tr{U \Gconj{S} U^\dagger \dA^\dagger \pcc}$ holds anyway and the expression for $\GcAs$ remains unchanged.
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\section{Derivations for SVD}
+\label{sec:autodiff_derivation:svd}
+
+The derivations for the \acro{svd} are in large parts similar to the derivations for the eigendecomposition above, but also differ substantially.
+%
+For completeness and readability, we nevertheless give a full derivation again, which has overlap with the previous section.
+
+Let us first reiterate the setup.
+%
+The truncated \acro{svd} of an $m \times n$ matrix $A$ is given by
+\begin{equation}
+    A = U S V^{\dagger} + X Y Z^{\dagger},
+    \label{eq:autodiff_derivations:svd_full_decomposition}
+\end{equation}
+%
+where $S$ is a $k \times k$ real, positive diagonal matrix -- the kept singular values.
+%
+On the other hand $Y$ is $(m - k) \times (n - k)$ real, non-negative and all entries off the main diagonal vanish -- the discarded singular values.
+%
+Note that we demand that $S$ is strictly positive, i.e. that all vanishing singular values are in $Y$.
+%
+This allows for a stable inverse of $S$, even for rank-deficient $A$.
+%
+The matrices $U$, $V$, $X$, $Y$ are (left) isometries
+%
+\begin{equation}\begin{gathered}
+    U^{\dagger} U = \eye_k = V^{\dagger} V
+    \\
+    X^{\dagger} X = \eye_{m-k}
+    \quad ; \quad
+    Z^{\dagger} Z = \eye_{n-k}
+    \label{eq:autodiff_derivations:isometric_constraints}
+\end{gathered}\end{equation}
+%
+and $X$ ($Z$) is the orthogonal complement of $U$ ($V$) such that
+%
+\begin{gather}
+    U^{\dagger} X = 0
+    \quad ; \quad
+    V^{\dagger} Z = 0
+    \label{eq:autodiff_derivations:UX_VZ_ortho}
+    \\
+    U U^{\dagger} + X X^{\dagger} = \eye_m
+    \quad ; \quad
+    V V^{\dagger} + Z Z^{\dagger} = \eye_n
+    ~.
+    \label{eq:autodiff_derivations:UX_VZ_complete}
+\end{gather}
+
+The result for the \acro{autodiff} formula is given in section~\ref{subsec:gradpeps:autodiff:trunc_svd}.
+
+As a standard recipe for deriving \acro{autodiff} formulae, we start by equating the expressions for the total derivative of the loss function $\mathcal{L}$, once expressed in terms of the input $A$ and once in terms of the outputs $U, S, V$.
+%
+\begin{equation}
+    \label{eq:autodiff_derivations:dL_in_two_forms}
+    \tr{\Gconj{A} \d{A}^\dagger \pcc}
+    = \d{\mathcal{L}}
+    = \tr{\Gconj{U} \d{U}^\dagger + \Gconj{S} \d{S}^\dagger + \Gconj{V} \d{V}^\dagger \pcc}
+\end{equation}
+%
+Our goal is then to solve for an expression of $\Gconj{A}$ in terms of $\Gconj{U}, \Gconj{S}, \Gconj{V}$ and $U, S, V, A$.
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Decomposing Differentials}
+\label{subsec:autodiff_derivation:svd:decomposing_differentials}
+
+We start with the differential of \eqref{eq:autodiff_derivations:svd_full_decomposition}
+\begin{equation}
+    \label{eq:autodiff_derivations:dA_full}
+    \dA
+    = \dU S V^{\dagger} + U \dS V^{\dagger} + U S \dV^{\dagger} 
+    + \dX Y Z^{\dagger} + X \dY Z^{\dagger} + X Y \dZ^{\dagger}
+    .
+\end{equation}
+
+
+We note that since $S$ is real and diagonal, so is $\dS$, i.e.
+\begin{align}
+    \label{eq:autodiff_derivations:dS_real_diagonal}
+    \eye\hadamard\dS = \dS = \dS^{\dagger}
+    .
+\end{align}
+It is convenient to decompose the differentials of the isometries into two parts, using \eqref{eq:autodiff_derivations:UX_VZ_complete}
+\begin{gather}
+    \dU = UU^{\dagger}\dU + XX^{\dagger}\dU =: U\dC_1 + \dC_2
+    \label{eq:autodiff_derivations:decompose_dU_def_dC12}
+    \\
+    \dV = VV^{\dagger}\dV + ZZ^{\dagger}\dV =: V\dD_1 + \dD_2
+    \label{eq:autodiff_derivations:decompose_dV_def_dD12}
+    ~.
+\end{gather}
+By differentiating the isometry constraints \eqref{eq:autodiff_derivations:isometric_constraints} we find that the first parts are anti-hermitian
+\begin{gather}
+    \dC_1^{\dagger} = -\dC_1
+    \quad;\quad
+    \dD_1^{\dagger} = -\dD_1
+    .
+    \label{eq:autodiff_derivations:dC1_dD1_antihermitian}
+\end{gather}
+The orthogonality constraints \eqref{eq:autodiff_derivations:UX_VZ_ortho} on the other hand yield
+\begin{gather}
+    \dX^{\dagger} U = - X^{\dagger} \dU
+    \quad ; \quad
+    \dZ^{\dagger} V = - Z^{\dagger} \dV
+    .
+    \label{eq:autodiff_derivations:diff_ortho_constraint}
+\end{gather}
+Finally, we transform/project $\dA$ using \eqref{eq:autodiff_derivations:isometric_constraints}, \eqref{eq:autodiff_derivations:UX_VZ_ortho} and \eqref{eq:autodiff_derivations:dC1_dD1_antihermitian}
+\begin{gather}
+    \dP := U^{\dagger} \dA V = \dC_1 S + \dS - S\dD_1
+    .
+    \label{eq:autodiff_derivations:dP_def_and_identity}
+\end{gather}
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Intermediate Results}
+\label{subsec:autodiff_derivation:svd:intermediate_results}
+
+Using \eqref{eq:autodiff_derivations:dP_def_and_identity}, \eqref{eq:autodiff_derivations:dC1_dD1_antihermitian} and \eqref{eq:autodiff_derivations:hadamard_diagonal_commutation} we find
+\begin{gather}
+    \dS = \eye\hadamard\frac{\dP + \dP^{\dagger}}{2}
+    \label{eq:autodiff_derivations:dS_result}
+    \\
+    \eye\hadamard\rBr{\dC_1 - \dD_1} = \sBr{\eye\hadamard\frac{\dP - \dP^{\dagger}}{2}}S^{-1}
+    ~.
+    \label{eq:autodiff_derivations:dC1-dD2_diag_result}
+\end{gather}
+
+Using \eqref{eq:autodiff_derivations:dP_def_and_identity}, \eqref{eq:autodiff_derivations:hadamard_with_diagonal} and \eqref{eq:autodiff_derivations:hadamard_anticomm_offdiag} we find
+\begin{equation}
+    \Off\hadamard\rBr{\dP S + S\dP^{\dagger}} = \dC_1 S^2 - S^2 \dC_1
+    ,
+\end{equation}
+which we can solve for
+\begin{equation}
+    \Off\hadamard\dC_1 = F\hadamard\rBr{\dP S + S\dP^{\dagger}}
+    .
+    \label{eq:autodiff_derivations:dC1_offdiag_result}
+\end{equation}
+Recall that $F_{ij} = 1 / (S_i^2 - S_j^2)$ for $i\neq j$ and $F_{ii} = 0$.
+Similarly, we obtain
+\begin{gather}
+    \Off\hadamard\rBr{S\dP + \dP^{\dagger} S} = \dD_1 S^2 - S^2 \dD_1
+    \\
+    \Off\hadamard\dD_1 = F\hadamard\rBr{S\dP + \dP^{\dagger} S}
+    .
+    \label{eq:autodiff_derivations:dD1_offdiag_result}
+\end{gather}
+
+Next use \eqref{eq:autodiff_derivations:diff_ortho_constraint} to obtain
+\begin{gather}
+    XX^{\dagger}\dA V = \dC_2 S - XX^{\dagger} A \dD_2
+    \label{eq:autodiff_derivations:dC2_dD2_sylvester_1}
+    \\
+    ZZ^{\dagger}\dA^{\dagger} U = \dD_2 S - ZZ^{\dagger} A^{\dagger} \dC_2
+    \label{eq:autodiff_derivations:dC2_dD2_sylvester_2}
+\end{gather}
+
+We have found expressions for $\dS$, as well as for the off-diagonal parts of $\dC_1$ and $\dD_1$, a set of coupled equations that determine $\dC_2$ and $\dD_2$, but only one equation for the diagonal parts of both $\dC_1$ and $\dD_1$.
+We are missing a second equation to determine these diagonal parts.
+This is a unique feature of the complex case, since in the real case equation\ \eqref{eq:autodiff_derivations:dC1_dD1_antihermitian} implies that the diagonals vanish.
+The missing equation can be obtained from the gauge invariance inherent to a complex \acro{svd}.
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Gauge Invariance}
+\label{subsec:autodiff_derivation:svd:gauge_invariance}
+
+The \acro{svd} has an inherent gauge freedom of $k$ complex phases, since for a diagonal unitary $\Lambda$ we have
+\begin{equation}
+    A 
+    = USV^{\dagger} 
+    = U\Lambda\Lambda^{\dagger} S \Lambda\Lambda^{\dagger} V^{\dagger} 
+    = (U\Lambda)S(V\Lambda)^{\dagger}
+    ,
+\end{equation}
+such that
+\begin{equation}
+    U \mapsto \tilde U := U\Lambda
+    \text{ , }
+    S \mapsto S
+    \text{ , }
+    V \mapsto \tilde V := V\Lambda
+\end{equation}
+yields another \acro{svd} of $A$ that is just as valid.
+Therefore, a well-defined loss function that uses an \acro{svd} as an intermediate step must be invariant under this gauge freedom; $E(U, S, V) = E(U\Lambda, S, V\Lambda)$.
+%
+Note that we are free to choose the gauge $\Lambda$, \emph{and} independently its variations $\dd\Lambda$.
+%
+We can think of a function $\Lambda(M)$ of gauge choices for every possible input $M$ and we may independently choose its value $\Lambda(A)$ at the given input $A$, and its variations $\dd\Lambda = \sum_{ij} (\partial \Lambda / \partial M_{ij})(A)~\d{M}_{ij}$.
+
+Since $\Lambda$ is diagonal $\Off\hadamard\Lambda = 0$ and unitary $\Lambda\Lambda^{\dagger} = \eye$, the variations fulfill
+\begin{equation}
+    \Off\hadamard\dd\Lambda = 0
+    \text{ , }
+    \dd\Lambda\Lambda^{\dagger} = - \Lambda\dd\Lambda^{\dagger}
+    .
+\end{equation}
+On the differential $\dC_1$, the gauge transformation has the following effect
+\begin{equation}
+    \dC_1
+    = U^\dagger \dU
+    \mapsto \Lambda^\dagger U^\dagger \rBr{\dU \Lambda + U \dd\Lambda}
+    = \Lambda^\dagger \dC_1 \Lambda + \Lambda^\dagger \d{\Lambda}
+\end{equation}
+%
+It is thus convenient to choose $\Lambda = \eye$, such that $\dC_1 \mapsto \dC_1 + \dd\Lambda$ simply obtains an additive contribution.
+%
+In this choice, $\dd\Lambda$ is constrained to be diagonal and purely imaginary, but otherwise arbitrary.
+%
+We can thus choose the gauge variations as $\dd\Lambda = -\eye\hadamard\dC_1$ which is diagonal by construction and purely imaginary by \eqref{eq:autodiff_derivations:dC1_dD1_antihermitian}, such that in the new gauge
+\begin{equation}
+    \eye\hadamard\dC_1 = 0
+    .
+    \label{eq:autodiff_derivations:diag_dC1_from_gauge}
+\end{equation}
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Contributions to the Adjoint}
+\label{subsec:autodiff_derivation:svd:contributions}
+
+We now decompose the differentials in \eqref{eq:autodiff_derivations:dL_in_two_forms} as
+\begin{gather}
+    \dU = U\rBr{\eye\hadamard\dC_1} + U\rBr{\Off\hadamard\dC_1} + \dC_2
+    \\
+    \dV = V\rBr{\eye\hadamard\dD_1} + V\rBr{\Off\hadamard\dD_1} + \dD_2
+    ,
+\end{gather}
+which gives us several contributions to $\Gconj{A}$, which we treat separately in the following.
+%
+First, for the contribution via $\dS$ we use equations \eqref{eq:autodiff_derivations:dS_result}, \eqref{eq:autodiff_derivations:hadamard_trace_ACB}, \eqref{eq:autodiff_derivations:trace_pcc_dagger_invariance} to obtain
+\begin{gather}
+    \tr{\Gconj{S}\dS^{\dagger}\pcc} = \tr{\GcAs\dA^{\dagger}\pcc}
+    ,
+    \\
+    \text{where } \GcAs := U \rBr{\eye\hadamard\frac{\Gconj{S} + \Gconj{S}^{\dagger}}{2}} V^{\dagger}
+    .
+\end{gather}
+%
+Second, for the off-diagonal contribution via $\dC_1$ use \eqref{eq:autodiff_derivations:dC1_offdiag_result}, \eqref{eq:autodiff_derivations:hadamard_trace_ACB} and \eqref{eq:autodiff_derivations:trace_pcc_dagger_invariance} to obtain
+\begin{gather}
+    \tr{\Gconj{U}\sBr{U\rBr{\Off\hadamard\dC_1}}^{\dagger}\pcc} = \tr{\GcAuo\dA^{\dagger}\pcc}
+    ,
+    \\
+    \text{where } \GcAuo := U \rBr{J + J^{\dagger}} S V^{\dagger}
+    \qquad ; \qquad
+    J := F\hadamard\rBr{U^{\dagger}\Gconj{U}}
+    .
+\end{gather}
+%
+Third, we get analogously from \eqref{eq:autodiff_derivations:dD1_offdiag_result}
+\begin{gather}
+    \tr{\Gconj{V}\sBr{V\rBr{\Off\hadamard\dD_1}}^{\dagger}\pcc} = \tr{\GcAvo\dA^{\dagger}\pcc}
+    ,
+    \\
+    \text{where } \GcAvo := U S\rBr{K + K^{\dagger}}V^{\dagger}
+    \qquad ; \qquad
+    K := F\hadamard\rBr{V^{\dagger}\Gconj{V}}
+    .
+\end{gather}
+Fourth, for the diagonal contributions via $\dC_1$ and $\dD_1$ we use \eqref{eq:autodiff_derivations:dC1-dD2_diag_result} and \eqref{eq:autodiff_derivations:diag_dC1_from_gauge} and obtain
+\begin{gather}
+    \begin{gathered}
+    \tr{\Gconj{U}\sBr{U\rBr{\eye\hadamard\dC_1}}^{\dagger} + \Gconj{V}\sBr{V\rBr{\eye\hadamard\dD_1}}^{\dagger}\pcc}
+    = \tr{\GcAd\dA^{\dagger}\pcc}
+    \end{gathered}
+    ,
+    \\
+    \text{where } \GcAd := \frac{1}{2} U S^{-1} \rBr{L^{\dagger} - L}V^{\dagger}
+    \qquad ; \qquad
+    L := \eye\hadamard\rBr{V^{\dagger}\Gconj{V}}
+    .
+\end{gather}
+
+Finally, the contribution via $\dC_2$ and $\dD_2$, i.e. via the truncated spectrum, is given by
+\begin{gather}
+    \label{eq:autodiff_derivations:result_Gamma_tr}
+    \begin{gathered}
+    \tr{\Gconj{U}\dC_2^{\dagger} + \Gconj{V}\dD_2^{\dagger}\pcc} = \tr{\GcAtr\dA^{\dagger}\pcc}
+    \end{gathered}
+    ,
+    \\
+    \text{with } \GcAtr := XX^{\dagger}\gamma V^{\dagger} + U\varphi^{\dagger} ZZ^{\dagger}
+    .
+\end{gather}
+where $\gamma, \varphi$ are the solutions of the coupled Sylvester equations
+\begin{align}
+    \label{eq:autodiff_derivations:gamma_gamma_tilde_sylvester}
+    \begin{split}
+        \Gamma_{\bar{U}} = \gamma S - A Z Z^\dagger \varphi
+        \\
+        \Gamma_{\bar{V}} = \varphi S - A^\dagger X X^\dagger \gamma
+        .
+    \end{split}
+\end{align}
+%
+This can be shown by plugging \eqref{eq:autodiff_derivations:gamma_gamma_tilde_sylvester} into the LHS of~\eqref{eq:autodiff_derivations:result_Gamma_tr} and using equations \eqref{eq:autodiff_derivations:dC2_dD2_sylvester_1} and \eqref{eq:autodiff_derivations:dC2_dD2_sylvester_2}.
+
+
+In summary, we have treated all contribution to the RHS of~\eqref{eq:autodiff_derivations:dL_in_two_forms} such that we have $\Gconj{A} = \GcAs + \GcAuo + \GcAvo + \GcAd + \GcAtr$.
+
+
+% ======================================================================
+% ======================================================================
+% ======================================================================
+\subsection{Special cases}
+\label{subsec:autodiff_derivation:svd:special_cases}
+
+Let us now consider the special cases listed in section~\ref{sec:gradpeps:autodiff}.
+
+Firstly, for a real \acro{svd}, the diagonal contribution $\GcAd = 0$ vanishes, since \eqref{eq:autodiff_derivations:dC1_dD1_antihermitian} implies that the diagonals $\eye\hadamard\dC_1 = 0 = \eye\hadamard\dD_1$ vanish.
+
+
+Secondly, if there is no truncation, that is if $k = \min(m, n)$, we have $X=0$ (if $k=m$) and/or $Z=0$ (if $k=n$). In either case $A Z Z^\dagger = 0 = A^\dagger X X^\dagger$, such that the Sylvester equations~\eqref{eq:autodiff_derivations:gamma_gamma_tilde_sylvester} simplify and admit closed-form solutions $\gamma = \Gconj{U}S^{-1}$ and $\varphi = \Gconj{V}S^{-1}$. We obtain the known \acro{autodiff} term for rectangular matrices.
+
+
+Thirdly, if $A$ is square ($m = n$) and there is no truncation ($m = n = k$), we have that both $X = 0 = Z$ such that $\GcAtr = 0$.
+
+
+Lastly, if the loss function is invariant under the enlarged gauge transformation
+\begin{equation}
+    U \mapsto U Q 
+    \qquad ; \qquad
+    S \mapsto Q^\dagger S R
+    \qquad ; \qquad
+    V \mapsto V R
+    ,
+\end{equation}
+we may proceed similar to the arguments of subsection~\ref{subsec:autodiff_derivation:svd:gauge_invariance}.
+%
+The gauge transformations $Q, V$ are unitary $Q Q^\dagger = \eye = R R^\dagger$ but otherwise arbitrary, such that the variations are constrained by $\dd Q Q^\dagger + Q \dd Q^\dagger = 0$ but otherwise arbitrary. If we now choose $Q = \eye$ we find that $\dd Q$ is anti-hermitian $\dd Q^\dagger = - \dd Q$, and similarly for $\dd R$.
+%
+In the gauge choice $Q = \eye = R$, the effect of the gauge variations on the differentials is $\dC_1 \mapsto \dC_1 + \dd Q$ and $\dD_1 \mapsto \dD_1 + \dd R$.
+%
+Since those differentials are indeed anti-hermitian by~\eqref{eq:autodiff_derivations:dC1_dD1_antihermitian}, we may choose the gauge variations such that in the new gauge $\dC_1 = 0 = \dD_1$.
+%
+Therefore, we find $\GcAuo = \GcAvo = \GcAd = 0$.
+%
+Similar to the eigendecomposition case, the differential $\dS$ acquires off-diagonal contribution from the gauge \emph{variations}, even if the gauge is chosen such that $S$ is diagonal.
+%
+Equation~\eqref{eq:autodiff_derivations:dS_result} no longer holds and only yields the diagonal part of $\dS$.
+%
+On the other hand, we directly get $\dS = \dP$ from~\eqref{eq:autodiff_derivations:dP_def_and_identity} such that we find $\tr{\Gconj{S} \dS^\dagger \pcc} = \tr{U \Gconj{S} V^\dagger \dA^\dagger \pcc}$ and therefore $\GcAs = U \Gconj{S} V^\dagger$ instead.

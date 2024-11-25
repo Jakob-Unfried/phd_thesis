@@ -1,0 +1,137 @@
+For a benchmark of the \acro{qr}-based truncation routine, we consider the $d$-state quantum clock model
+\begin{equation}
+    H = -\sum_n \rBr{Z_n Z_{n+1}^\dagger \phc} - g \sum_n \rBr{X_n \phc}
+    ~,
+\end{equation}
+where the clock operators are given by
+\begin{equation}
+    Z = \begin{pmatrix}
+    1 &  & & &
+    \\
+    & \omega & & &
+    \\
+    & & \omega^2 & & 
+    \\
+    & & & \ddots & 
+    \\
+    & & & & \omega^{d-1}
+    \end{pmatrix}
+    %
+    ,~
+    %
+    X = \begin{pmatrix}
+    0 & 1 & & &
+    \\
+     & 0 & 1 & &
+    \\
+    & & 0 & \ddots & 
+    \\
+    & & & \ddots & 1
+    \\
+    1 & & & & 0
+    \end{pmatrix}
+    ~,
+\end{equation}
+with $\omega = \eto{2\pi\im / d}$.
+%
+We consider the model on an infinite chain.
+%
+The model can be seen as a generalization of the \acrofull{tfim}, which is the $d=2$ special case.
+%
+It is particularly suited to highlight the scaling with the dimension $d$ of the on-site Hilbert space.
+%
+The model has a critical point at $g=1$ for $d \leq 4$ and an extended critical region for $d \geq 5$~\cite{ortiz2012, sun2019}.
+
+
+
+We start with the $Z=1$ product state and evolve it in time with the $g=2$ Hamiltonian.
+%
+This constitutes a global quench from $g=0$ to $g=2$, crossing at least one critical point.
+%
+We perform the simulation using the \acro{itebd} algorithm, with updates given by~\eqref{eq:tensornets:mps:tebd:svd_of_evolved_theta} in four algorithmic variations.
+%
+First (``SVD"), we use a standard truncated \acro{svd} $\tilde\theta \approx U S V^\dagger$ for decomposing the evolved wavefunction.
+%
+Secondly (``EIG"), we perform the same decomposition but numerically evaluate it by diagonalizing the hermitian square $\tilde\theta^\dagger \tilde\theta = V S^2 V^\dagger$, see the discussion in section~\ref{subsec:truncation:qr_tebd:bond_matrix}.
+%
+Thirdly (``QR"), we employ the simple \acro{qr}-based truncation routine of algorithm~\ref{algo:truncation:qr_simple} and lastly (``QR+CBE"), we use the \acro{qr}-based truncation with bond expansion, as described in algorithm~\ref{algo:truncation:qr_cbe}.
+%
+We run the benchmark on an NVIDIA A100 GPU (80GB RAM) with CUDA version 11.7, as well as an AMD EPYC 7763 CPU with 64 physical cores and MKL version 2019.0.5.
+%
+The two units have similar power consumption: $300\mathrm{W}$ and $280\mathrm{W}$ thermal design power, respectively.
+%
+All simulations are performed in double precision (i.e., \texttt{complex128} in python).
+%
+The implementation used for the benchmark and the data are available on GitHub\footnote{
+    \url{https://github.com/Jakob-Unfried/Fast-Time-Evolution-of-MPS-using-QR}
+}.
+%
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{graphics/qr_tebd/showcase.pdf}
+    \caption[
+        \acro{qr}-based TEBD simulation of the quantum clock model.
+    ]{
+        \acro{tebd} Simulation of a global quench in the $d=5$ quantum clock model from $g=0$ to $g=2$ with a time step of $\delta t = 0.05$.
+        %
+        We show a local $Z$ expectation value (top), the half-chain von Neumann entanglement entropy (center), and truncation error (bottom).
+        We compare data from \acro{svd}-based (solid lines) and \acro{qr}-based (triangles) \acro{tebd} simulations at a range of bond dimensions $\chi_\mathrm{max}$ (colors). 
+        For the \acro{qr}-based scheme, we employ controlled bond expansion, that is algorithm~\ref{algo:truncation:qr_cbe}, with $\ell = \mathrm{max}(100, 1.1\chi)$ and plot only every tenth data point.
+        For both schemes, we discard Schmidt values smaller than $10^{-14}$ and keep at most $\chi_\mathrm{max}$ of them.
+        Time in the legend denotes the total wall time needed for each simulation, i.e.~to generate the shown data from scratch.
+    }
+    \label{fig:truncation:benchmark:showcase}
+\end{figure}
+
+
+\begin{figure}
+    \centering
+    \includegraphics[width=0.6\linewidth]{graphics/qr_tebd/timing_benchmark.pdf}
+    \caption[
+        Timing benchmark for gate application in QR-based TEBD.
+    ]{
+        Timing benchmark for the application of a single gate to an \acro{mps} for different hardware (marker colors) and truncation schemes (marker shapes).
+        %
+        We give the average wall time needed to perform a single \acro{tebd} update, that is contracting and decomposing the evolved wavefunction $\theta$ given by~\eqref{eq:tensornets:mps:tebd:svd_of_evolved_theta} and contracting the new B tensor according to~\eqref{eq:tensornets:mps:tebd:canonical_form_inversion_free}.
+        %
+        For the decomposition of $\tilde\theta$, we consider the following different schemes; a (truncated) \acro{svd}, a truncated hermitian eigendecomposition $\tilde\theta^\dagger\tilde\theta \approx V^\dagger S^2 V$, the simple \acro{qr}-based truncation described in algorithm~\ref{algo:truncation:qr_simple}, and the \acro{qr}-based truncation with bond expansion (CBE) described in algorithm~\ref{algo:truncation:qr_cbe}.
+        %
+        For CBE, we replace the truncated \acro{svd} of the bond matrix with a truncated hermitian eigendecomposition and choose $\ell = 1.1 \chi$, the same expansion rate as for Fig.~\ref{fig:truncation:benchmark:showcase}.
+        %
+        The initial MPS has a bond dimension $\chi$, and the evolved state is truncated to the same dimension $\chi$.
+        %
+        Solid (dashed) lines are powerlaws with the expected cubic (quadratic) scaling with the physical dimension $d$.
+        %
+        The missing data points for large $d$ in the right panel were not possible to obtain on the available hardware due to memory limitations.
+    }
+    \label{fig:truncation:benchmark:timing_benchmark}
+\end{figure}
+
+
+In Fig.~\ref{fig:truncation:benchmark:showcase}, we perform full \acro{tebd} simulations of the quench protocol for a $d=5$ clock model.
+%
+We run the simulation beyond times where the approximation of the evolved state as an \acro{mps} of the given bond dimension breaks down, as quantified by a large truncation error.
+%
+In the time regime of acceptable error $\epsilon_\text{trunc} \lesssim 10^{-5}$, that is until $t \lesssim 2$ depending on bond dimension, we observe excellent agreement between the different \acro{tebd} schemes in the extracted expectation values $\langle Z \rangle$ and entanglement entropy $S_\mathrm{vN}$ up to relative deviations of $10^{-11} \sim 10^{-12}$.
+%
+For the \acro{qr}-based scheme, we do not have access to all singular values of $\tilde\theta$, from which the truncation error is extracted in \acro{svd}-based \acro{tebd}.
+%
+We instead explicitly compute the distance between the evolved wave function $\tilde\theta$ and its low-rank approximation.
+
+
+
+
+
+
+In Fig.~\ref{fig:truncation:benchmark:timing_benchmark}, we benchmark runtimes for the core algorithmic step~\eqref{eq:tensornets:mps:tebd:svd_of_evolved_theta} of contracting and subsequently decomposing the evolved wavefunction $\tilde\theta$, that is evaluating equation~\eqref{eq:tensornets:mps:tebd:svd_of_evolved_theta} and \eqref{eq:tensornets:mps:tebd:canonical_form_inversion_free}.
+%
+We repeat this for all combinations of truncation scheme and hardware, as well as a range of Hilbert space dimensions $d$.
+
+
+
+
+We clearly observe the improved scaling of the \acro{qr}-based algorithm, which is qua\-dra\-tic in $d$ instead of cubic, as well as a speed-up of one to two orders of magnitude from hardware acceleration for EIG and \acro{qr}-based algorithms.
+%
+For example, the \acro{qr}-based truncation scheme on the \acro{gpu} with $\chi = 1024$, $d=20$ reaches a speed-up factor of $2700$ compared to the \acro{svd}-based scheme on the same \acro{gpu} and $750$ compared to \acro{svd} on \acro{cpu}.

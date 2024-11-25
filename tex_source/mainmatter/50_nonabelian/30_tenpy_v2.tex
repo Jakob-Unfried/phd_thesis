@@ -1,0 +1,105 @@
+An implementation of the framework for symmetric tensors discussed in this chapter is under active development, publicly on GitHub\footnote{
+    See the repository \url{https://github.com/tenpy/tenpy}, and in particular the pull request~\url{https://github.com/tenpy/tenpy/pull/309}, which will inevitably become outdated at some point, but should remain a good starting point to track down up to date links.
+    Alternatively, see~\url{https://github.com/Jakob-Unfried/phd_thesis}.
+}, where the current prototype is open-source and publicly available.
+%
+This is part of a rework of the tensor backend handling linear algebra routines of symmetric tensors, planned for the next major release of the \acro{tenpy} library.
+%
+In this section, we list a few additional considerations regarding this implementation.
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Diagonal Tensors}
+We propose to use a dedicated implementation for a special class of tensors, the diagonal tensors.
+%
+A \emph{diagonal tensor} is a tensor $D: V \to V$ from a single space (no tensor product) to itself,
+such that its blocks are diagonal
+\begin{equation}
+    [[D_c]^{c,1}_{c,1}]^m_n =: D_{c,m} \delta_{m,n}
+    .
+\end{equation}
+%
+Here, we have already used in the notation that the uncoupled sectors must equal the coupled sectors, and there is only a single trivial fusion tree for that mapping, which is indexed by $1$.
+%
+The singular values from an SVD, as well as the eigenvalues from a (hermitian) eigendecomposition, have this property and are the main motivation for introducing diagonal tensors.
+
+As a result, we may store only the diagonal entries $D_{c,m}$ and allow cheaper implementations for contraction with other tensors.
+%
+Additionally, we may unambiguously and straightforwardly implement elementwise operations on these diagonal tensors, such as taking powers, the square root, and so on.
+
+
+% =======================================================================================
+% =======================================================================================
+% =======================================================================================
+\subsection{Charged Tensors}
+\label{subsec:nonabelian:tns_library:charged_tensors}
+
+It is convenient to introduce the concept of a charged tensor.
+%
+This generalizes the idea of charged tensors as formulated for the abelian group case in~\eqref{eq:tensornets:symmetries:def_charged_tensor} to the general categorical case.
+%
+We proposed to think about the symmetric tensors as symmetric maps $T: I \to \mathcal{V} := \bigotimes_n V_n$ from the trivial sector to the tensor product of the \emph{legs} $V_1, \dots, V_N$.
+%
+On the other hand, a charged tensor (with the same legs) is a symmetric map $T: C \to \mathcal{V}$ where the symmetry space $C$ describes its charge.
+%
+This contains the notion~\eqref{eq:tensornets:symmetries:def_charged_tensor} of a charged tensor as a special case, namely if the symmetry is an abelian group and $C$ a one-dimensional irrep.
+%
+For the general notion of a charged tensor, however, we do not impose any requirements on $C$.
+
+Thus, a charged tensor $\tilde{T}$ with legs given by the factors of $\mathcal{V}$ is described by a symmetric tensor $T: C \to \mathcal{V}$ that has one additional leg $\dualspace{C}$.
+%
+For group symmetries, where $C$ is a vector space, we may additionally specify a state $\ket{\gamma} \in C$ on that leg and view the composite object given by $T$ and $\ket{\gamma}$ as the charged tensor.
+%
+Such a composite is not itself a symmetric map, but we can use the framework for symmetric tensors to manipulate it by acting on its ``symmetric part" $T$.
+
+Let us consider as a concrete example a system with a $\U{1}$ group symmetry conserving the $S^z$ magnetization of a spin-$\tfrac{1}{2}$ chain.
+%
+The sectors $\mathcal{S} = \setdef{V_\mathbf{a}}{\mathbf{a} \in \Zbb}$ are labeled by integers which represent the $S^z$ magnetization of that sector in units of $\hbar/2$.
+%
+The two-dimensional local Hilbert space decomposes into sectors as $H = V_\mathbf{1} \oplus V_\mathbf{-1}$ in the z basis.
+%
+Now consider the raising and lowering operators $\sigma^+ = \ketbra{\uparrow}{\downarrow}$ and $\sigma^- = \ketbra{\downarrow}{\uparrow}$.
+%
+As tensors in $\mathcal{V} = H \otimes \dualspace{H}$, or as maps $H \to H$, they are not symmetric.
+%
+As a consequence -- or as the most intuitive way of seeing this -- they do not commute with the conserved charge $S^z$.
+%
+They can, however, be written as charged tensors, e.g.~$\Sigma^+ : V_{+\mathbf{2}} \to H \otimes \dualspace{H} , \ket{\phi} \mapsto \braket{\Uparrow}{\phi} \sigma^+$, where we have written $\ket{\Uparrow}$ for the only state in an orthonormal basis of the charge-leg $C$.
+%
+Now by choosing $\ket{\gamma} = \ket{\Uparrow}$, we can recover the original operator as $\Sigma^+(\ket{\Uparrow}) = \sigma^+ \in H \otimes \dualspace{H}$.
+%
+The lowering operator can be similarly written as a charged tensor with $C = V_{-\mathbf{2}}$.
+
+For a slightly less trivial example, let us consider the same physical system and the operator $\sigma^x = (\sigma^+ + \sigma^-) / 2$.
+%
+As a tensor in $H \otimes \dualspace{H}$ it is clearly not symmetric either.
+%
+It can, however, be written as a charged tensor with symmetric part
+\begin{equation}
+    X: C \to H \otimes \dualspace{H}, \ket{\phi} \mapsto \braket{\Uparrow}{\phi} \sigma^+ + \braket{\Downarrow}{\phi} \sigma^-
+    ,
+\end{equation}
+where the charge leg is $C = V_{+\mathbf{2}} \oplus V_{-\mathbf{2}}$, and we can recover $\sigma^x = X(\ket{\gamma})$ with the charged state $\ket{\gamma} = (\ket{\Uparrow} + \ket{\Downarrow}) / 2$.
+%
+Note that the charged state is not symmetric under the $\U{1}$ symmetry, and in fact, $C$ does not contain any symmetric states other than $0$.
+
+This perspective on charged tensors allows us to use them also for quantum states with fermionic or anyonic grading.
+%
+See appendix~\ref{ch:topo_data} for the example categories we use here.
+%
+With the category~$\catFerm$, for example, a charged tensor whose charge leg is the sector of odd fermionic parity can be used to describe a quantum state with an odd number of fermions.
+%
+Conversely, with the category~$\catFib$ of Fibonacci anyons, e.g., considering a golden chain~\cite{feiguin2007} system, a charged tensor with the $\tau$ sector as its charged leg can describe a state of multiple sites that is in the $\tau$ topological sector.
+%
+These are precisely the two-body states that are energetically favored by a single local term in the golden chain Hamiltonian.
+
+An alternative perspective is that we may use the concept of a charged tensor to effectively hide one leg of a tensor from outside algorithms.
+%
+Note, for example, that if we take the symmetric part $X$ of the $\sigma^x$ operator from the above $\U{1}$ symmetric example and compose it with its dagger, we obtain a tensor $X^\dagger \compose X$ that is equivalent (by re-ordering the legs) to the two-body operator $(\sigma^x \otimes \sigma^x) / 4$.
+%
+We can use this, e.g., to evaluate a correlation function $\braopket{\psi}{\sigma^x_i(t) \sigma^x_j}{\psi}$ in a symmetric \acro{mps} $\psiket$, where time dependence is w.r.t.~the dynamics induced by a symmetric Hamiltonian, even though the single operator $\sigma^x_j$ is not symmetric.
+%
+To do this, apply the symmetric part of the charged tensor $X_j$ to the \acro{mps} $\psiket$, leaving an extra charge leg $C$ on one of the tensors.
+%
+We may then perform time evolution using one of the methods discussed in section~\ref{sec:tensornets:mps} to find an \acro{mps} representation of $\eto{-\im H t} \sigma^x_j \psiket$ and finally contract the dangling leg with its partner on $\sigma^x$ to evaluate the correlation function at time $t$.

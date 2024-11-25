@@ -1,0 +1,127 @@
+Let us now study the benefits of using the symmetry backend in a benchmark of the prototype implementations developed for a future version of \acro{tenpy}.
+%
+We provide the benchmark code, with a pinned version of the prototype implementation, publicly on GitHub\footnote{\url{https://github.com/Jakob-Unfried/phd_thesis}}.
+
+%
+We compare the following three tensor backends, that implement the storage format of tensors and operations on them.
+%
+First, the \emph{trivial backend} simply stores all $\prod_n \dim V_n$ entries of a tensor $T \in \bigotimes_n V_n$ as a dense array and can not exploit/enforce any symmetries.
+%
+In the implementation, this is essentially a thin wrapper around numpy.
+%
+Secondly, an \emph{abelian backend} that can exploit abelian symmetry groups, as discussed in section~\ref{sec:tensornets:symmetries}.
+%
+This is very similar to the implementation in tenpy version 1~\cite{tenpySoftware}, though the prototype is less performant, since it is implemented in pure python, without any compilation.
+%
+Lastly, a \emph{fusion tree backend} that uses the storage format and manipulations as introduced in this chapter.
+
+
+At the time of writing, the concrete implementations in the prototype are called \texttt{NoSymmetryBackend}, \texttt{AbelianBackend} and \texttt{FusionTreeBackend}, respectively.
+%
+Note that the implementations are prototypes that have not yet been optimized for performance.
+
+
+% ==================================================================
+% ==================================================================
+% ==================================================================
+\subsection{Tensor contraction}
+
+Let us first benchmark tensor contraction.
+%
+We generate $\SU{2}$ symmetric test tensors with pre-determined legs and random free parameters as follows.
+%
+We generate a leg $V$ as the $N$-fold tensor product of a spin-$\tfrac{1}{2}$ Hilbert space, that is $V = \bigotimes_{n=1}^N \mathcal{H}_{1/2}$.
+%
+This defines a somewhat realistic distribution of $\SU{2}$ sectors, as this is the virtual leg that an \acro{mps} needs to have to represent any state on a chain of $2N$ spin-$\tfrac{1}{2}$ sites exactly, meaning without truncation.
+%
+In particular, the largest sector is spin $\tfrac{N}{2}$.
+%
+We generate four-leg symmetric tensors $A, B : V \otimes V \to V \otimes V$ by populating their free parameters~\eqref{eq:nonabelian:tensors:def_free_params} with reproducible (pseudo-)random numbers, from a numpy random generator with a fixed seed.
+%
+Then, we perform a timing benchmark of the contraction $A \compose B$, contracting two pairs of legs.
+%
+For each of the three backends, we either enforce the full $\SU{2}$ symmetry (if supported), the $\U{1}$ subgroup that only conserves $S^z$ (if supported), or do not enforce any symmetry.
+%
+We run the benchmark on a single core of an Intel Core i7-6700 CPU.
+%
+The results are shown in figure~\ref{fig:nonabelian:benchmark:compose}.
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.6\linewidth]{graphics/benchmark/compose.pdf}
+    \caption[Runtime benchmark for contraction, comparing tensor backends]{
+        Runtime for contracting two common legs between two four-leg tensors averaged over several RNG seeds.
+        %
+        For each sample size (horizontal) axis and RNG seed, we generate the same $\SU{2}$ symmetric data and then benchmark the decomposition for the following different cases.
+        % 
+        We choose to either enforce the full $\SU{2}$ symmetry (dotted lines), the abelian $\U{1}$ subgroup (dashed lines), or no symmetry (solid lines).
+        %
+        We compare the trivial backend (green squares), an abelian backend (yellow triangles) as discussed in section~\ref{sec:tensornets:symmetries}, and a fusion tree backend (red stars), as discussed in this chapter, for the symmetry cases that they support.
+    }
+    \label{fig:nonabelian:benchmark:compose}
+\end{figure}
+
+We find that if no symmetry is enforced, all backends show nearly identical performance, as the implementation eventually delegate to a single matrix-matrix multiplication of the respective single block of each tensor.
+%
+We find the expected scaling $\sim (\dim V)^6$ of multiplying $(\dim V)^2 \times (\dim V)^2$ matrices, as soon as the scaling regime is reached at $\dim V \gtrsim 16$.
+%
+At smaller sizes, overhead from the pure-python bookkeeping of tensors and their legs contributes significantly.
+
+For the abelian backend, we chose the ``standard" form of a four-leg tensor that stores separate blocks for every combination of four individual charges, one per leg.
+%
+Thus, when contracting multiple legs, the combinatorics of which pairings of smaller blocks contribute, results in a sizeable overhead, even when the combinatorics is trivial, in the case where nothing is conserved.
+%
+We expect this overhead to be reduced significantly in an optimized implementation using a compiled language.
+%
+In practice, if the same tensor is used in multiple contraction calls, as e.g.~in a Lanczos eigensolver, the combinatorics can be done once, ahead of time, by combining the legs.
+
+We expect the same scaling behavior $\bigO((\dim V)^6)$ when enforcing the $\U{1}$ symmetry.
+%
+Consider the following heuristic intuition.
+%
+Assume, for simplicity, that after reshaping the tensors to $n \times n$ matrices with $n = (\dim V)^2$, they consist of $k$ blocks of equal size $n / k$.
+%
+Then, the blockwise matrix product can be carried out at a cost of $k T( k / n ) \sim n^3 / k^2$, where $T(n) \sim n^3$ denotes the cost of forming matrix-matrix products of $n \times n$ matrices.
+
+For the fusion tree backend, no additional combinatorics arises from the fact that we contract multiple legs, and this particular contraction is implemented directly as blockwise matrix-matrix products.
+%
+This is less flexible, however, since the abelian backend implementation can perform any other contraction of any two leg pairs in the same way, with comparable overhead, while the fusion tree backend would need to perform leg manipulations, such as braids or line bends first.
+%
+These would introduce a noticeable, but subdominant additional cost.
+%
+Therefore, the chosen scenario where the tensors are already given with a leg arrangement that allows the contraction to be carried out directly as composition is favorable for the fusion tree backend.
+%
+It highlights only the algorithmic step where enforcing the full $\SU{2}$ symmetry gives the most net benefit.
+
+We find a substantial speedup when enforcing the full $\SU{2}$ symmetry, which motivates the development and use of the tensor backend.
+
+% ==================================================================
+% ==================================================================
+% ==================================================================
+\subsection{Singular value decomposition}
+
+Next, we perform a similar benchmark of the \acrofull{svd}.
+%
+We generate random test tensors $A: V \to V$ that have the full $\SU{2}$ symmetry, whether we enforce it explicitly or not, with two equal legs $V$, each with sectors as described in the previous section.
+%
+We perform a timing benchmark of computing the \acro{svd} of $A$, with the same combinations of backend and enforced symmetry as above.
+%
+The results are shown in figure~\ref{fig:nonabelian:benchmark:svd}.
+
+
+\begin{figure}[ht]
+    \centering
+    \includegraphics[width=0.6\linewidth]{graphics/benchmark/svd.pdf}
+    \caption[Runtime benchmark for SVD, comparing tensor backends]{
+        Runtime of computing an \acro{svd} of a two leg tensor, averaged over several RNG seeds.
+        %
+        The setup is the same as for the contraction benchmark of figure~\ref{fig:nonabelian:benchmark:compose}, except we generate only a single two leg tensor $V \to V$.
+    }
+    \label{fig:nonabelian:benchmark:svd}
+\end{figure}
+
+
+Similar to contraction, we find that overhead is dominant for small samples $\dim V \lesssim 128$, crossing over to a scaling regime where we clearly see substantial speedups for exploiting the $\U{1}$ subgroup and again for exploiting the full $\SU{2}$ symmetry.
+%
+We find the agreement with the expected scaling $\sim (\dim V)^3$ in all cases and see that if the same symmetry is enforced, the performance of different backends matches as soon as the scaling regime is reached.

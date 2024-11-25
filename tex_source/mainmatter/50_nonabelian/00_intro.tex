@@ -1,0 +1,58 @@
+In this chapter, we develop a mathematical framework that allows non-abelian symmetries to be exploited in tensor network simulations.
+%
+We choose a quite general approach using category theory.
+%
+This is in contrast to approaches~\cite{mcculloch2002a, schmoll2018, scheb2023} that focus on the particular properties of $\SU{2}$, the most common non-abelian symmetry in condensed matter systems.
+%
+As a result, the framework for symmetric tensors extends seamlessly from expressing quantum states that are symmetric under some symmetry group to states with fermionic or anyonic statistics.
+%
+Enforcing a group symmetry results in computational and memory benefits as a result of Schur's lemma.
+%
+For group symmetries, there is a notion of ``general" tensors in an ambient space that has no symmetry constraints, and enforcing the symmetry restricts the entries of this tensor, namely by the charge rule~\eqref{eq:tensornets:symmetries:charge_rule_general}, and additionally by restricting components between symmetry sectors to the identity, which only has non-trivial consequences in the non-abelian case.
+%
+In the general case, and in particular for fermions or anyons, there is no notion of such an ambient space, and symmetric tensors are the only tensors we can write down.
+%
+We can think of the generalized Schur's lemma as a way to construct or parametrize the symmetric tensors that makes operating on them convenient.
+%
+Throughout this chapter, we slightly abuse the term symmetry by generalizing it to the fermionic or anyonic case.
+%
+We understand ``symmetry" here to mean the mathematical structure that constrains the form of allowed (meaning symmetric) tensors, which is either the symmetry group or the tensor category that the \emph{tensors} live in.
+%
+It is not to be confused with the notion of a categorical symmetry~\cite{ji2020a}, where the symmetry transformations themselves live in a particular category -- a related but distinct notion.
+
+
+
+The mathematical foundation for this general framework is monoidal category theory, which may be prohibitively involved to learn solely for the purpose of understanding, e.g.~$\SU{2}$ symmetric tensors.
+%
+Therefore, we attempt to offer two complementary ways of reading this chapter.
+%
+On the one hand, we aim for an intuitive approach that focuses solely on the case of a symmetry group.
+%
+This follows the spirit of Steven Simon's approach of ``avoid[ing] the language of category theory like the plague"~\cite{simon2023}.
+%
+On the other hand, we aim to provide a sufficiently rigorous approach to make all concepts unambiguously well-defined from a mathematical perspective.
+%
+For the most part, we attempt to balance these approaches so that statements make sense within the limited scope of the first approach while still being correct in the general case.
+%
+Wherever that is impractical, we split the text into side-by-side columns and give concrete explanations or definitions separately from the two separate perspectives.
+%
+The text in the left columns avoids category theory and defines the concepts purely in terms of group representations, while the right columns introduce and use monoidal category theory.
+
+
+
+In section~\ref{sec:nonabelian:basics}, we introduce the basic definitions regarding symmetric maps.
+%
+We streamline the exposition to the concepts and structures needed for the purpose of a tensor backend and establish a graphical language that allows the intuition from the concrete case of a group symmetry to carry over to the general categorical case.
+%
+We define and identify the pieces of data that are required of a symmetry to be used in this framework -- its \emph{topological data} -- in section~\ref{sec:nonabelian:topo_data}.
+%
+In section~\ref{sec:nonabelian:symmetric_tensors}, we identify the free parameters of symmetric tensors, propose a storage format, and develop in detail how to perform common operations on these tensors.
+%
+We remark on implementation details and upcoming plans to integrate the framework into the \acro{tenpy} library in section~\ref{sec:nonabelian:tenpy_v2} before showing benchmark results in section~\ref{sec:nonabelian:benchmarks} and concluding in section~\ref{sec:nonabelian:conclusion}.
+
+
+The developed framework is informed by the implementation and documentation of TensorKit~\cite{tensorkit-docs}, a Julia library for symmetric tensors.
+%
+The exposition of category theory is largely based on Ref.~\cite{heunen2019}, which we would like to recommend as literature for an approach to category theory from a quantum information perspective, as well as~\cite{simon2023, etingof2015}.
+%
+We would also like to recommend Ref.~\cite{selinger2011} for a detailed review of the graphical notation for monoidal categories, as well as point to introductions to category theory from a perspective of topological excitations in Refs.~\cite{bultinck2017, kong2022}.

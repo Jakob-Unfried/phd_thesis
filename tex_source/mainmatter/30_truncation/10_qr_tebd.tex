@@ -1,0 +1,295 @@
+The \acro{qr}-based decomposition introduced in a previous publication~\cite{unfried2023} can be thought of as a \acro{dsvd} $\theta \approx U S \hconj{V}$, that is as a subroutine that computes a low-rank factorization of a two-site wavefunction and can replace the truncated \acro{svd} in many settings.
+%
+In particular, it can be used in the truncation step~\eqref{eq:tensornets:mps:tebd:canonical_form_inversion_free} of \acro{tebd}, which is the application highlighted in the publication.
+%
+In this section, we rephrase the algorithm in a broader context and in the notation of this thesis.
+
+The error
+\begin{equation}
+    \label{eq:truncation:explicit_error}
+    \epsilon = \Fnorm{\theta - U S \hconj{V}}
+\end{equation}
+is almost optimal in the following sense;
+%
+The error of any rank $k$ factorization is lower-bounded by the minimal error
+\begin{equation}
+    \label{eq:truncation:explicit_svd_error}
+    \epsilon_\text{SVD} = \sqrt{\sum_{i = k + 1}^{\min(m, n)} \Lambda_i^2},
+\end{equation}
+where $\Lambda_i$ are the singular values of $\theta$ in descending order, i.e.~the smallest possible error is given by the weight of the discarded singular values and is achieved by a truncated \acro{svd}.
+%
+The \acro{qr}-based truncation is almost optimal, i.e.~only slightly less accurate than a truncated \acro{svd}, in the sense that
+\begin{equation}
+    \label{eq:truncation:small_error}
+    \abs{\epsilon - \epsilon_\text{SVD}} \ll \epsilon_\text{SVD}.
+\end{equation}
+%
+It can, therefore, replace the truncated \acro{svd}, which is typically used in \acro{mps} algorithms.
+
+We emphasize that while we can derive heuristic explanations, the observation of small truncation errors is empirical.
+%
+It should be explicitly verified in practice that the error $\epsilon$ is indeed small enough to be tolerable.
+%
+Such a sanity check should be performed in tensor network simulations anyway to get a quantifiable handle on gauging if the bond dimension is large enough.
+%
+Since $U$ and $\hconj{V}$ are not the exact singular vectors of $\theta$, computing the error similarly to equation~\eqref{eq:truncation:explicit_svd_error}, i.e.~based only on the discarded singular values in $S$ is not possible and we need to explicitly evaluate equation~\eqref{eq:truncation:explicit_error}.
+%
+This comes at a non-negligible cost, with the same formal scaling as computing the \acro{qr}-based truncation in the first place.
+%
+Therefore, it may be beneficial to consider when the error is actually needed.
+%
+In \acro{tebd}, for example, the error is not required at every time step; computing it at only every tenth time step or so allows the same kind of analysis in determining the maximum simulation time after which entanglement growth prohibits accurate \acro{mps} approximation.
+
+
+The simple version of the \acro{qr}-based truncation scheme, as described in~\cite[sec II]{unfried2023}, is rephrased in algorithm~\ref{algo:truncation:qr_simple}.
+
+\begin{Algorithm}{Simple QR-based Truncation}{
+    \label{algo:truncation:qr_simple}
+    Given an $m \times n$ matrix $\theta$ and an $n \times k$ ``initial guess" $\Omega$, computes a \acroshort{dsvd} $\theta \approx U \Xi \hconj{V}$ with rank $k$, and properties listed in \eqref{eq:truncation:factorizations:dsvd}.
+}
+    \step Form $Y = \theta \Omega$ and compute its \acroshort{qr} decomposition $Y = U R$.
+    \step Form $\tilde Y = \hconj{U} \theta$ and compute its \acroshort{lq} decomposition $\tilde Y = \Xi \hconj{V}$.
+\end{Algorithm}
+
+We can think of $\hconj{\Omega}$ as an initial guess for the right factor of $\theta$ and choose it in right isometric form if possible, making $\Omega$ itself left isometric.
+%
+We propose to use the factor from the pre-update wavefunction $\hat\theta = \hat{E}\hat{F}$ as an initial guess, which is naturally given in right-isometric form in a \acro{tebd} simulation, that is, setting $\Omega = \hconj{\hat{F}}$.
+%
+In some settings, such as e.g.~in a left sweep of \acro{dmrg}, we may only have an isometric form established for the right factor $\hat{E}$.
+%
+In that case, the \acro{qr}-based truncation scheme can be readily adjusted by ``vertically mirroring", e.g.~by requiring an $m \times k$ matrix $\tilde \Omega$ and \acroshort{lq} decomposing $\tilde \Omega\theta$ instead of step 1, and doing a \acroshort{qr} in step 2.
+
+A heuristic explanation for why this algorithm achieves accurate truncation in the sense of~\eqref{eq:truncation:small_error} is to understand it as a variational single-site algorithm.
+%
+Given an initial guess $(E_i, F_i)$ for a factorization $\theta \approx E F$, let us assume that $F_i$ is right isometric.
+%
+Then, the optimal update for the first factor, which minimizes the distance $\Fnorm{\theta - Y_i F_i}$, is given by $Y_i = \theta \hconj{F_i}$.
+%
+In order to make a similar update for the right factor, we shift the isometric form, using a \acroshort{qr} decomposition, i.e.~we transform our current best guess $(Y_i, F_i) \mapsto (Q_i, R F_i)$, which leaves the distance unchanged.
+%
+Now the optimal right update is $\tilde Y_i = \hconj{Q_i}\theta$ and we again shift the isometric form using an \acroshort{lq} decomposition $(Q_i, \tilde Y_i) \mapsto (Q_i L_i, \tilde Q_i) =: (E_{i+1}, F_{i+1})$, which concludes one sweep of single site updates.
+%
+If we repeat this until convergence, e.g.~for $q$ steps, we effectively realized an \acro{als} algorithm and have achieved $\theta \approx E_q F_q = Q_q L_q \tilde Q_q$, which already fulfills the target \acro{svd}-like isometric properties.
+%
+This approach is transcribed in algorithm~\ref{algo:truncation:qr_simple_iteration}.
+%
+An alternative perspective, why the \acro{qr}-based truncation works is outlined in section~\ref{sec:truncation:rand_nla}.
+
+\begin{Algorithm}{Iterative Simple QR-based Truncation}{
+    Note: \emph{%
+        This is included for pedagogical purposes only. In practice, we find that setting $q=1$ is sufficient, such that the algorithm reduces to algorithm~\ref{algo:truncation:qr_simple}.
+    }
+    \\[1ex]
+    \label{algo:truncation:qr_simple_iteration}
+    Given an $m \times n$ matrix $\theta$, an integer $q > 0$ and an $n \times k$ initial guess $\Omega$, computes a \acro{dsvd} $\theta \approx U \Xi \hconj{V}$ with rank $k$, see \eqref{eq:truncation:factorizations:dsvd}.
+}   
+    \step Set $\tilde Q_0 = \hconj{\Omega}$ and iterate the following steps for $i = 1, \dots, q$:
+    \begin{substeps}
+        \substep Form $Y_i = \theta \hconj{\tilde{Q}_{i-1}}$ and compute its \acroshort{qr} decomposition $Y_i = Q_i R_i$.
+        \substep Form $\tilde Y_i = \hconj{Q_i} \theta$ and compute its \acroshort{lq} decomposition $\tilde Y_i = L_i \tilde Q_i$.
+    \end{substeps}
+    \step Set $U = Q_q$, $\Xi = L_q$ and $\hconj{V} = \tilde Q_q$.
+\end{Algorithm}
+
+Now, in the \acro{tebd} setting, we found that using the pre-update right factor $\hat F$ as an initial guess leads to convergence of the resulting error after only a single iteration, i.e., at $q=1$.
+%
+Setting $q=1$ reduces algorithm~\ref{algo:truncation:qr_simple_iteration} to algorithm~\ref{algo:truncation:qr_simple}.
+%
+As observed empirically, it allows accurate truncation in \acro{tebd} time evolution, however, with a few minor drawbacks;
+%
+Since the central bond matrix $\Xi$ is not diagonal, we do not have direct access to the singular values of $\theta$.
+%
+Therefore, an \acro{mps} algorithm using the simple \acro{qr}-based truncation scheme can not establish the full canonical form and has to work with an isometric form, with general (i.e.~not diagonal) bond matrices in place of Schmidt values.
+%
+Additionally, the new virtual space -- the column space of $\hconj{V}$ and row space of $U$ -- is fixed by the choice of $\Omega$, e.g.~to be the same as before the time step in \acro{tebd}.
+%
+This means that the bond dimension of the tensor network can not be adjusted dynamically; it can neither grow to accommodate growing entanglement nor can it be reduced if entanglement is still low early in the evolution.
+%
+If symmetries are preserved, it additionally fixes the charge sectors of the new virtual leg, again to be the same as before for the time step, which severely limits the variational power of the ansatz, especially in transport simulation, where charges are expected to change significantly.
+
+We can adjust the algorithm to address these shortcomings with the following two modifications;
+%
+Firstly, by performing a truncated \acro{svd} of the bond matrix $L = \Xi$ as a final step.
+%
+This allows us to select the optimal virtual space based on the singular values, however, constrained to a subspace of the column space of $\Omega$.
+%
+Secondly, by selecting an initial guess $\Omega$ with an enlarged virtual leg of dimension $\ell$ for the simple \acro{qr}-based truncation, before truncating back to $k \leq \ell$ in the final step.
+%
+Note that the $\ell \times \ell$ bond matrix $L$ is smaller than the $m \times n$ input matrix $\theta$, such that the cost of this final \acro{svd} is subdominant.
+%
+The resulting scheme is given by algorithm~\ref{algo:truncation:qr_cbe} and achieves an almost optimal truncation, which allows dynamically adjusting the virtual space based on the singular values of $L$.
+
+\begin{Algorithm}{QR-based Truncation with bond expansion}{
+    \label{algo:truncation:qr_cbe}
+    \newcommand{\intermediateSize}{\ell}
+    Given an $m \times n$ matrix $\theta$ and an integer $\intermediateSize \leq \min(m,n)$,
+    computes a \acroshort{dsvd} $\theta \approx U S \hconj{V}$ with rank $k \leq \intermediateSize$, see \eqref{eq:truncation:factorizations:dsvd}.
+}
+    \step Select a $\intermediateSize \times m$ column projection $\Pi$ and form the $n \times \ell$ test matrix $\Omega = \hconj{(\Pi \theta)}$.
+    %
+    \step \label{step:truncation:qr_cbe:QR}
+    Form $Y = \theta \Omega$ and compute its \acroshort{qr} decomposition $Y = Q R$.
+    %
+    \step \label{step:truncation:qr_cbe:LQ}
+    Form $\tilde Y = \hconj{Q} \theta$ and compute its \acroshort{lq} decomposition $\tilde Y = L \tilde{Q}$.
+    %
+    \step \label{step:truncation:qr_cbe:bond_svd}
+    Compute a \acro{dsvd} of the $\intermediateSize \times \intermediateSize$ matrix $L \approx \tilde U S \hconj{\tilde V}$.
+    \step Form $U = Q \tilde U$ and $\hconj{V} = \hconj{\tilde V} \tilde{Q}$.
+\end{Algorithm}
+
+This is the algorithm presented in~\cite[sec III]{unfried2023}, with variable names adjusted to facilitate discussion in the following sections.
+%
+Additionally, the eigen-decomposition step is replaced with a \acro{dsvd}; see the discussion in section~\ref{subsec:truncation:qr_tebd:bond_matrix}.
+%
+It remains to choose the entries of the projection $\Pi$.
+%
+We propose to choose what we call a \emph{column projection}, that is for an $\ell \times m$ projection $\Pi$ we choose its rows from the rows of the identity matrix, such that $\Pi\theta$ is cheaply computed, simply by selecting rows from $\theta$.
+%
+Here, rows of $\theta$ which are numerically close to zero should be avoided. In the \acro{tenpy} implementation, we choose the columns of $\theta$ with the largest vector 2-norms, though other choices are possible, such as randomly choosing from those columns with norms above a threshold.
+
+An alternative is to start with the pre-update factor $\hat{F}$ and add rows of $\theta$.
+%
+This modification enables the intuition that $\hconj{\Omega}$ is a good initial guess for a factor of $\theta$, since
+\begin{equation}
+    \theta 
+    \approx \hat\theta 
+    = \hat{E} \hat{F}
+    = \begin{bmatrix} \hat{E} & 0 \end{bmatrix}  \begin{bmatrix} \hat{F} \\ \tilde{\Pi}\theta \end{bmatrix}
+    =: \begin{bmatrix} \hat{E} & 0 \end{bmatrix} \hconj{\Omega}
+    ,
+\end{equation}
+where the square brackets denote concatenation of matrices and $\tilde{\Pi}$ is an $(\ell - \hat{k}) \times m$ column projection.
+%
+We also considered adding random rows instead of $\tilde{\Pi}\theta$.
+%
+We found these variations to give virtually the same quality in terms of truncation error.
+
+Similar to the simple \acro{qr}-based truncation, we can understand steps~\ref{step:truncation:qr_cbe:QR} and~\ref{step:truncation:qr_cbe:LQ} of algorithm~\ref{algo:truncation:qr_cbe} as single site updates that could be repeated (replacing $\Omega$ with $\hconj{\tilde Q}$) until convergence.
+%
+Again, we find empirically that a single iteration is sufficient to converge the truncation error.
+
+%
+The computational cost is dominated by the matrix products\footnote{
+    The \acroshort{qr} and \acroshort{lq} decompositions have a cost in $\bigO(\ell^2 n)$ and $\bigO(\ell^2 m)$ respectively, and are assumed to be subdominant in the main text, as is the final \acro{svd} with cost in $\bigO(\ell^3)$.
+} in steps~\ref{step:truncation:qr_cbe:QR} and~\ref{step:truncation:qr_cbe:LQ} and is in $\bigO(mn\ell)$.
+%
+Truncation via standard \acro{svd}, for comparison, has a cost in $\bigO (mn \min(m,n))$.
+%
+In the setting of an \acro{mps} update, we typically have $m = n = d \chi$, where $d$ is the dimension of the physical on-site Hilbert space and $\chi$ the \acro{mps} bond dimension, which we assume to be uniform for simplicity.
+%
+To keep the \acro{mps} bond dimension bounded, we want to truncate back to $k = \chi$.
+%
+We found that in the setting of \acro{itebd}, we can truncate the arising two-site wavefunctions with the same accuracy as \acro{svd} truncation if we choose $\ell \sim 1.1 \chi$, i.e.~ten percent larger than the target rank, and in particular independent of $d$.
+%
+This results in a cost in $\bigO (d^2 \ell \chi^2) = \bigO (d^2 \chi^3)$ compared to the $\bigO (d^3 \chi^3)$ for \acro{svd} truncation.
+%
+Since the truncation is the dominant cost in \acro{tebd}, this results in a speedup factor of $\sim d$.
+
+%
+% ================================================================================
+% ================================================================================
+% ================================================================================
+
+\subsection{Decomposing the bond matrix}
+\label{subsec:truncation:qr_tebd:bond_matrix}
+%
+In the publication, we proposed to do an eigendecomposition of the hermitian square $\hconj{L}L = \hconj{\tilde{V}}S^2\tilde{V}$ instead of an \acro{svd} of the bond matrix $L$, see step~\ref{step:truncation:qr_cbe:bond_svd} of algorithm~\ref{algo:truncation:qr_cbe}.
+%
+As a result, the left singular vectors of $L$ are not available, and we can not compute the (approximate) left singular vectors -- the $U$ factor in a \acro{dsvd} \eqref{eq:truncation:factorizations:dsvd} -- of $\theta$.
+%
+This causes no issue in the context of \acro{tebd}, as they are not needed in~\eqref{eq:tensornets:mps:tebd:canonical_form_inversion_free}.
+%
+If $U$ is needed, it could be computed as $\theta V S^{-1} \approx U S \hconj{V} V S^{-1} = U$, though the inverse singular values may be numerically unstable.
+%
+Alternatively, if the algorithmic setting allows it, we can relax to a \acro{tqr}, or rather an LQ version thereof, to be precise, by forming $\theta \approx (\theta V) V^\dagger$.
+
+
+
+%
+The reason for choosing to compute $S, \tilde{V}$ via this eigendecomposition in the publication is the performance on \acrop{gpu}; the available \acro{gpu} implementations for diagonalization of hermitian matrices are significantly faster than the \acro{svd}.
+%
+The conditioning of the hermitian square is, however, generally worse than for the original matrix $L$, such that this eigendecomposition is less stable.
+%
+This did not cause any problems for us, which we partially attribute to the preceding \acro{qr}-based steps, which may already truncate the tail of the singular spectrum.
+%
+Let us emphasize again that we trust the resulting factorization not because of these heuristics but because we observe that the truncation error -- a quantity that should be analyzed anyway -- is indeed small.
+
+
+
+On \acro{cpu} hardware, where \acro{svd} performance is comparable to hermitian diagonalization, decomposing the bond matrix $L$ via \acro{svd} should always be preferred.
+
+% ================================================================================
+% ================================================================================
+% ================================================================================
+
+\subsection{QR-based decomposition with symmetries}
+\label{subsec:trunaction:qr_tebd:symmetries}
+
+In the presence of symmetries, the input and output matrices have a block-sparse structure; see section~\ref{sec:tensornets:symmetries}.
+As a first version for doing \acro{qr}-based truncation, we can consider simply applying algorithm~\ref{algo:truncation:qr_cbe} to each block $\theta_q$ of $\theta$.
+This requires choosing a dimension $\ell_q$ for the projection $\Pi$ \emph{for each block}, which then upper bounds the number of singular values $k_q \leq \ell_q$ per block.
+%
+While the total bond dimension $k = \sum_q k_q$ is typically prescribed in \acro{tns} context, it is unclear a priori how it should distribute among the charge sectors $q$ for optimal truncation.
+
+We propose a heuristic approach that uses an exactly factorized matrix $\hat\theta = \hat E \hat F$ that is close to $\theta$ and has the same block structure with sizes $\set{m_q \times n_q}$, e.g.~from the tensor network before the update.
+%
+Let the blockwise ranks of the factorization be $\hat k_q$; that is, the block sizes of $\hat E$ are $\set{m_q \times \hat k_q}$.
+%
+The heuristic we propose is then to choose each $\ell_q$ slightly larger than the corresponding $\hat{k}_q$, up to the following two caveats;
+%
+We can impose an upper bound $\ell_q \leq \min(m_q, n_q)$ since an exact decomposition is possible at equality.
+%
+Further, we should impose a lower bound of $\bigO(1)$ to allow the update to explore new charge sectors, even if they are not present in the old leg.
+%
+The resulting heuristic can be expressed as
+\begin{equation}
+    \ell_q = \min \sBr{
+        \max \rBr{
+            \ceil*{(1 + \rho) \hat{k}_q}, \mu
+        },
+        m_q, n_q
+    }
+    ~,
+\end{equation}
+where $\rho > 0$ is the \emph{expansion rate}, $\mu \in \Nbb_{> 0}$ the \emph{minimum block size} and $\ceil{\blank}$ denotes rounding to the next highest integer.
+%
+We typically choose $\rho = 0.1$ and $\mu = 2$.
+%
+This fully specifies the shape and block structure of the column projection $\Pi$; it remains to choose the entries.
+%
+Again, vanishing columns of $\theta$ should be avoided, and we propose to select only columns with vector norm above a threshold or pick the columns with largest norms \emph{in each block}.
+
+As in the non-symmetric case, the test matrix can be modified to use the rows of $\hat{F}$, supplemented with either rows of $\theta$ or random vectors.
+%
+This modification would mean choosing the blocks of $\Omega$ as
+\begin{equation}
+    \Omega_q = \begin{bmatrix} \hconj{\hat{F}_q} & \hconj{(\tilde{\Pi}_q \theta_q)} \end{bmatrix}
+    ~,
+\end{equation}
+where $\tilde{\Pi}_q$ is a $(\ell_q - \hat{k}_q) \times m_q$ column projection.
+
+As an improvement over a strictly blockwise decomposition, the \acro{svd} in step~\ref{step:truncation:qr_cbe:bond_svd} should be truncated by keeping the largest singular values overall, i.e.~coordinating which singular values to keep among all blocks, as discussed in section~\ref{sec:tensornets:symmetries}.
+%
+The resulting algorithm for a \acro{qr}-based decomposition is outlined in algorithm~\ref{algo:qr_based_truncation_symmetries}.
+%
+It is implemented\footnote{
+    The truncation is implemented as \href{https://tenpy.readthedocs.io/en/latest/reference/tenpy.algorithms.truncation.decompose_theta_qr_based.html}{\texttt{tenpy.algorithms.truncation.decompose\_theta\_qr\_based}} and is used by \href{https://tenpy.readthedocs.io/en/latest/reference/tenpy.algorithms.tebd.QRBasedTEBDEngine.html}{\texttt{tenpy.algorithms.tebd.QRBasedTEBDEngine}} realizing \acro{tebd}, as well as by \href{https://tenpy.readthedocs.io/en/latest/reference/tenpy.algorithms.mps_common.QRBasedVariationalApplyMPO.html}{\texttt{tenpy.algorithms.mps\_common.QRBasedVariationalApplyMPO}} realizing variational \acro{mpo} application.
+} in \acro{tenpy}.
+% https://tenpy.readthedocs.io/en/latest/reference/tenpy.algorithms.truncation.decompose_theta_qr_based.html
+% https://tenpy.readthedocs.io/en/latest/reference/tenpy.algorithms.tebd.QRBasedTEBDEngine.html
+% https://tenpy.readthedocs.io/en/latest/reference/tenpy.algorithms.mps_common.QRBasedVariationalApplyMPO.html
+
+
+\begin{Algorithm}{QR-based truncation for block-sparse matrices}{
+    Given an $m \times n$ block-sparse matrix $\theta$ with block sizes $\set{m_q \times n_q}$ and integers $\ell_q \leq \min(m_q,n_q)$ for every block $q$,
+    computes an approximate block-sparse \acro{dsvd} $\theta \approx U S \hconj{V}$ with block-wise ranks $k_q \leq \ell_q$.
+    \label{algo:qr_based_truncation_symmetries}
+}
+    \step Select a block-sparse column projection $\Pi$ with block sizes $\set{\ell_q \times m_q}$.
+    \step Form $\Omega = \hconj{(\Pi \theta)}$ by block-wise matrix product.
+    \step Form $Y = \theta \Omega$ and compute its block-wise \acroshort{qr} decomposition $Y = Q R$.
+    \step Form $\tilde Y = \hconj{Q} \theta$ and compute its block-wise \acroshort{lq} decomposition $\tilde Y = L \tilde Q$.
+    \step Compute a (truncated) \acro{svd}: $L \approx \tilde U S \hconj{\tilde V}$, following algorithm~\ref{algo:tensornets:symmetries:truncated_svd}.
+    \step Form $U = Q \tilde U$ and $\hconj{V} = \hconj{\tilde V} \tilde Q$ by block-wise matrix product.
+\end{Algorithm}

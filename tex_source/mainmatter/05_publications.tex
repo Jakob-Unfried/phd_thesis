@@ -1,0 +1,41 @@
+Parts of this thesis also appear in the following works:
+
+% Dirty dirty hacks to make the bibliography print without pagebreak and without title
+\BiblatexSplitbibDefernumbersWarningOff
+\begingroup
+\let\clearpage\relax
+\makeatletter
+\renewcommand{\chapter}{\@gobbletwo}
+\makeatother
+\printbibliography[keyword={my work}]{}  % only those with ``keywords = {my work[, ...]}`` in bibtex.
+\endgroup
+
+and many the discussed concepts are implemented in the software library:
+\BiblatexSplitbibDefernumbersWarningOff
+\begingroup
+\let\clearpage\relax
+\makeatletter
+\renewcommand{\chapter}{\@gobbletwo}
+\makeatother
+\printbibliography[keyword={tenpy citation}]{}  % only those with ``keywords = {tenpy citation[, ...]}`` in bibtex.
+\endgroup
+
+The QR-based truncation scheme and resulting QR-based \acroshort{tebd} algorithm presented in chapter~\ref{ch:truncation} have appeared in Ref.~\cite{unfried2023}.
+
+
+
+The global gradient-based optimization scheme for finite \acroshort{peps}, introduced in chapter~\ref{ch:gradpeps} is part of a publication~\cite{unfried2024} that is, at the time of writing, in the final stages of preparation.
+%
+The introduction to \acroshort{peps} in section~\ref{sec:tensornets:peps} is also largely based on that manuscript. 
+
+
+% force hauschild2024 to have a lower number than tenpySoftware
+\nocite{hauschild2024}
+%
+%
+%
+The \acroshort{tenpy} software package~\cite{tenpySoftware} for tensor network simulations in python is co-maintained by the author, and contains an implementation of the QR-based \acroshort{tebd} algorithm of chapter~\ref{ch:truncation}.
+%
+It has recently seen a version 1 release, accompanied by the article~\cite{hauschild2024}.
+%
+The framework for nonabelian symmetries, as well as fermionic or anyonic degrees of freedom developed in chapter~\ref{ch:nonabelian} is the basis for current active development of a next version of the package.

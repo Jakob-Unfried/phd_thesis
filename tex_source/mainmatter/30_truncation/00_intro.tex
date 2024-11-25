@@ -1,0 +1,30 @@
+This chapter, and in particular sections~\ref{sec:truncation:qr_tebd} and~\ref{sec:truncation:benchmark}, are based on a previous publication of the author~\cite{unfried2023}.
+
+A common pattern in \acro{tns} algorithms are truncation steps, where an update that is derived in an enlarged search space needs to be approximated within the variational manifold.
+%
+For example, the two-site updates of \acro{mps} during \acro{tebd} or two-site \acro{dmrg}, as described in sections~\ref{subsec:mps:tebd} and~\ref{subsec:mps:dmrg} respectively, lie outside the manifold of fixed bond-dimension \acro{mps} and thus need to be truncated.
+%
+In most cases, this requires an approximate matrix factorization $\theta \approx E^{[n]} \cdot F^{[n+1]}$ with a bounded rank of at most $k$ and is typically implemented with a truncated \acro{svd}.
+%
+Additional properties, e.g.~isometric properties of some factors can be desirable in many settings.
+
+
+In this chapter, we discuss several alternative factorizations that (a) have lower cost scaling, (b) allow for hardware acceleration, or (c) stabilize automatic differentiation.
+%
+In order to discuss the advantages and disadvantages of these matrix factorization routines, we can mostly take the point of view of general-purpose numerical linear algebra.
+%
+There are two important aspects to consider, however, if we come from the context of tensor networks, and in particular \acro{mps}.
+%
+Firstly, we need to be able to both deal with and exploit the block-sparse structure arising from symmetries.
+%
+Secondly, from the \acro{tns} algorithm, we may assume that we have access to a related matrix $\hat\theta$ which is close to $\theta$ and has an exact factorization $\hat\theta = \hat E \hat F$ with rank $\hat k \leq k$.
+%
+This is natural in tensor networks since the purpose of the truncation is to restore the factorized \acro{tns} form that was present before the update.
+%
+Additionally, the pre-update $\hat\theta$ is naturally close to the update $\theta$, e.g.~in \acro{tebd} where it differs by time evolution by a small time step $\hat\theta = \theta + \bigO(\delta t)$, or in variational algorithms such as \acro{dmrg}, if they are close to convergence.
+
+First, in section~\ref{sec:truncation:factorizations}, we summarize properties of standard matrix factorizations and establish categories for truncated factorizations with the minimal properties to be useful in tensor network simulations. 
+%
+We introduce the \acro{qr}-based factorization and its algorithmic variations in section~\ref{sec:truncation:qr_tebd} and discuss its relation to randomized linear algebra in section~\ref{sec:truncation:rand_nla}.
+%
+In section~\ref{sec:truncation:synthesized_routines}, we propose synthesized routines, incorporating elements from randomized linear algebra in the \acro{qr}-based scheme, perform a benchmark in section~\ref{sec:truncation:benchmark} and conclude in section~\ref{sec:truncation:conclusion}.

@@ -1,0 +1,40 @@
+We have proposed an approach to the gradient-based optimization of tensor network states, in particular finite \acro{peps}, in light of approximate contractions.
+%
+This avoids the pathological states that can result from naively optimizing an approximately contracted cost function using automatic differentiation.
+%
+By instead evaluating the exact expression of the gradient of the cost function using the same approximate contraction method, we have achieved a stable and successful optimization algorithm.
+%
+In this proof of principle work, we do not exploit symmetries, limiting the bond dimension achievable on larger systems.
+%
+Nevertheless, we see better results than any other publication (for \emph{finite} \acro{peps}) we are aware of at the lowest bond dimension $D=2$, where we reach convergence and achieve comparable energies at the larger bond dimensions.
+%
+Notably, our ground state results, simulated sequentially on tens of \acro{cpu} cores, yield results competitive with the massively parallel \acro{dmrg} simulation of Ref.~\cite{ganahl2023} running on a thousand cores of specialized \acro{tpu} hardware.
+%
+This discrepancy further illustrates the potential of natively two-dimensional tensor network methods, such as \acro{peps}, for the simulation of 2D quantum systems.
+%
+The gradient-based approach allowed us to perform dynamics simulations even at the lowest bond dimensions, which -- to our knowledge -- do not admit accurate time evolution by other means.
+
+
+
+Our results showcase conventional wisdom established when comparing \acrofull{su} and \acrofull{fu} ground state searches that the maximal bond dimension reached by a \acro{peps} simulation only loosely correlates with the quality of the results.
+%
+We observe that local updates do not fully exhaust the variational power of the fixed bond dimension manifold.
+%
+The global, gradient based method on finite system offers an approach complementary to the \acro{tebd}-style local updates on large unit cell infinite systems of Ref.~\cite{espinoza2024}, to extract spectral functions in 2D.
+%
+Offering a competitive alternative to \acro{mps} simulations on cylinder geometries, especially when considering more strongly correlated models than the \acro{tfim}, is an open challenge.
+
+
+
+Nevertheless, gradient-based approaches seem to be a promising avenue to leverage the full variational power of the \acro{peps} ansatz, depending on how far performance can be pushed.
+%
+In any case, hybrid approaches may prove fruitful, leveraging the performance of established algorithms, such as e.g.~\acro{fu} or similar, to get a good approximation, then further improving on it with a few costly, but effective gradient steps, as is done in Ref.~\cite{scheb2023}.
+%
+The different convergence properties of global energy minimization and imaginary time evolution may also complement each other to avoid local minima and plateaus.
+
+
+The future directions are to push the performance to fully converge the ground state results for the larger systems and larger bond dimensions, and we refer future readers to a future published version of~\cite{unfried2024}.
+%
+We also plan to study the implications of the simplification of the \acro{autodiff} formula of the truncated \acro{svd}, given in section~\ref{subsec:gradpeps:autodiff:trunc_svd} for gradient-based optimization using gradients from \acro{autodiff}, and if it might stabilize the optimization.
+%
+It may also prove beneficial for performance to employ the \acro{gpu}-friendly truncation routines discussed in chapter~\ref{ch:truncation} in the \acro{bmps} contraction to exploit hardware acceleration.

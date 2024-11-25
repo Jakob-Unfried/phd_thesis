@@ -1,0 +1,63 @@
+In this thesis, we focused on tensor network methods for simulating quantum many-body systems and discussed several algorithmic advancements.
+%
+We started with a pedagogical review of tensor networks, focusing on \acro{mps} methods such as the \acro{tebd}, \acro{dmrg}, and \acro{mpoEvolution} algorithms, as well as \acro{peps} for two-dimensional systems.
+%
+We reviewed how to enforce abelian symmetries on the tensor level, exploit the resulting block sparse structure, and introduced the \acro{tenpy} library, implementing symmetric linear algebra and the \acro{mps} algorithms.
+
+We then discussed alternative approximate low-rank factorizations that can replace the \acro{svd} as a truncation step in tensor network simulations, highlighting as an example use case the application in the \acro{tebd} algorithm.
+%
+We proposed a \acro{qr}-based truncation method and discussed its conceptual relation to randomized linear algebra.
+%
+We demonstrated an improved scaling with the dimension of the local Hilbert space from cubic to quadratic in a benchmark. We found that as an \acro{svd}-free algorithm, we can obtain significant speedups on \acro{gpu} hardware that are not possible for the \acro{svd}-based version.
+%
+Future directions include incorporating these faster and \acro{gpu}-friendly truncation steps into broader algorithmic settings, as well as developing (randomized versions of) the \acroshort{qrcp} or \acroshort{qlp} decomposition for symmetric tensors.
+
+
+
+Next, we proposed a gradient-based approach for optimizing finite \acro{peps} for ground state search or time evolution.
+%
+We were, at this point, unable to produce an algorithm that brings the success of gradient-based optimization in \acro{ipeps} to finite systems.
+%
+We were, however, able to shed some light on how well other \acro{peps} ground state searches exhaust the variational power of the ansatz class -- by finding better ground state approximations at the same bond dimension.
+%
+Moreover, to our knowledge, the resulting time evolution algorithm is the only method to simulate dynamics using \emph{finite} \acro{peps} that produces results of useable accuracy.
+%
+As such, technical improvements of the method, and in particular its stability and performance should be pursued.
+
+
+
+Finally, we compiled a mathematical framework that allows the enforcement of non-abelian symmetries on the tensor level in terms of parametrization of symmetric tensors.
+%
+The same framework -- that of monoidal category theory -- allows us to also represent tensors with the statistics of fermions or anyons and can be used to build tensor network states for systems with fermionic or anyonic degrees of freedom.
+%
+We proposed a storage format of symmetric tensors and derived in detail how to implement common linear algebra operations in terms of the stored free parameters.
+%
+A functioning prototype -- not yet optimized for performance -- was developed by the author and is publicly available.
+%
+With a simple benchmark of the prototype we demonstrated the speedups that motivate exploiting the full non-abelian symmetries in models that have them.
+%
+An implementation of this machinery is under active development, with the aim of being incorporated in the \acro{tenpy} library at the next major release.
+%
+It will enable speedups from enforcing larger non-abelian symmetry groups, charge pumping experiments for breaking of a non-abelian symmetry, and simulation of anyonic systems.
+
+
+
+A common theme throughout the independent topics in the separate chapters seems to be that fixing gauge freedoms may be prohibitive and should not be done without reason, and it may be worthwhile to consider relaxing to weaker requirements.
+%
+In the context of \acro{mps}, this means relaxing from the full canonical form to only an isometric form with non-diagonal bond matrices, while in the context of approximate low-rank factorizations, this means allowing deformed factorizations, where the central matrix is not diagonal.
+%
+This relaxation to a weaker, e.g.~isometric form, is not new algorithmically, as subspace expansion methods in \acro{dmrg} typically result in non-diagonal bond matrices.
+%
+In either case, when we want to do truncation, we (mostly) only care about identifying a particular subspace for truncation that admits a good approximation of the tensor network state or of the matrix we want to factorize.
+%
+While this subspace is crucial, a particular choice of basis for this space -- in which, e.g., the \acro{mps} bond matrix becomes diagonal -- is secondary.
+%
+Moreover, enforcing the very particular basis, e.g.~of singular vectors in case of a (truncated) \acro{svd}, may introduce divergent terms in \acrofull{autodiff} which are not present for the weaker \acrofull{dsvd}.
+%
+Additionally, relaxing such requirements admits the alternative factorization methods, such as the \acro{qr}-based truncation scheme, ultimately enabling hardware acceleration to be used.
+
+
+
+Incremental technical advances of tensor network methods, as described in this thesis and proposed for future development both in this conclusion and in more detail in the per-chapter conclusions, push the capabilities of simulations.
+%
+These simulations allow direct access to the properties of model systems and, as such, are invaluable tools in the quest for a better theory of superconductivity in the cuprates, in the study of spin liquids, of topological order, and many more exotic phenomena in condensed matter systems and beyond.

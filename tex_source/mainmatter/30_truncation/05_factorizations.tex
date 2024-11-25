@@ -1,0 +1,194 @@
+This chapter deals extensively with matrix factorizations.
+%
+In this section, we therefore first establish different (categories of) factorizations and summarize their properties.
+%
+We will place a particular focus on truncated factorizations, that is, low-rank approximations of the input matrix with particular properties analogous to the corresponding exact factorization.
+%
+We give \acrofull{autodiff} formulae, in particular in light of truncation and for the deformed version of the \acro{svd} in section~\ref{sec:gradpeps:autodiff}.
+
+% ============================================================
+% ============================================================
+% ============================================================
+\subsection{Singular Value Decomposition (SVD)}
+\label{subsec:truncation:factorizations:svd}
+
+The \acrofull{svd} is ubiquitous in tensor networks.
+%
+It is the most direct and provably optimal way to find a truncated decomposition of a general input matrix.
+%
+An \acro{svd} of an $m \times n$ matrix $\theta$ is a factorization
+%
+\begin{equation}
+    \begin{aligned}
+        \theta = U S \hconj{V} &\qquad \text{(\acroshort{svd})} &&
+        \\
+        &U \in \Cbb^{m \times k} &&\text{left isometry: } \hconj{U} U = \eye
+        \\
+        &S \in \Rbb^{k \times k} &&\text{real, non-negative, diagonal, non-increasing: }
+        \\
+        & &&S_{i,i} \geq S_{i+1, i+1} \geq 0 \text{ and } S_{i,j} = 0 \text{ if } i \neq j
+        \\
+        &V \in \Cbb^{n \times k} &&\text{left isometry: } \hconj{V} V = \eye
+        ~,
+    \end{aligned}
+\end{equation}
+where $k = \min(m, n)$, as this is the ``reduced" or ``economic" version.
+%
+Computing it has a runtime complexity in $\bigO(mnk)$.
+%
+It seems that currently available implementations for \acro{svd} on \acrop{gpu} are inefficient, preventing any benefit from hardware acceleration.
+%
+In fact, in the benchmark in section~\ref{sec:truncation:benchmark}, we find that while \acro{svd}-free algorithms have a speedup of almost two orders of magnitude on \acro{gpu}, comparing a specific pair of \acro{gpu} and \acro{cpu} models, a similar algorithm that \emph{is} using \acrop{svd} heavily, is actually slower on the \acro{gpu}.
+
+An \acro{svd} can be truncated to a target rank $\chi \leq k$ by taking slices such that only the first $\chi$ singular values are kept, i.e.~defining $\tilde{U} = U_{[:, :\chi]}$, $\tilde{S} = S_{[:k, :k]}$ and $\tilde{V} = V_{[:, :\chi]}$.
+%
+As a result, we have an approximate factorization $\theta \approx \tilde{U} \tilde{S} \hconj{\tilde{V}}$, such that the truncation error
+\begin{equation}
+    \varepsilon_\text{SVD}
+    = \Fnorm{\theta - \tilde{U} \tilde{S} \hconj{\tilde{V}}}
+    = \sqrt{\sum_{i=\chi + 1}^{k} S_{i,i}^2}
+    = \Fnorm{S_{[\chi:, \chi:]}}
+\end{equation}
+is provably the lowest possible error for a rank $\chi$ factorization.
+%
+As such, the \acro{svd} is the gold standard for low-rank factorizations.
+
+
+% ============================================================
+% ============================================================
+% ============================================================
+\subsection{QR Decomposition}
+\label{subsec:truncation:factorizations:qr}
+%
+A \acroshort{qr} decomposition of a tall rectangular $m \times n$ matrix $\theta$ where $m \geq n$ is a factorization
+%
+\begin{equation}
+\begin{aligned}
+    \theta = Q R &\qquad \text{(\acroshort{qr})} &&
+    \\
+    &Q \in \Cbb^{m \times n}  &&\text{left isometry: } \hconj{Q} Q = \eye_n
+    \\
+    &R \in \Cbb^{n \times n}  &&\text{upper triangular: } R_{i, j} = 0 \text{ if } i > j.
+\end{aligned}
+\end{equation}
+Its computational cost has the same scaling $\bigO(mn^2)$ as an \acro{svd} of the same input matrix. The prefactor suppressed by the big O notation is, however, commonly much smaller.
+%
+There are efficient \acro{gpu} implementations.
+%
+There is no direct way to truncate a standard \acroshort{qr} decomposition, at least not with a controlled truncation error; see the modified variant described in the next section.
+%
+While the upper triangular property of the R factor is needed in many numerical linear algebra applications, such as solving linear systems or least squares problems, in tensor networks, we typically only care about the isometric property of the Q factor and the reduced dimension of the new index.
+
+The related \acroshort{lq} decomposition of wide rectangular $m \times n$ matrix $\theta$ where $m \leq n$ has the properties
+\begin{equation}
+\begin{aligned}
+    \theta = L Q &\qquad \text{(\acroshort{lq})} &&
+    \\
+    &L \in \Cbb^{m \times m}  &&\text{lower triangular: } L_{i, j} = 0 \text{ if } i < j.
+    \\
+    &Q \in \Cbb^{m \times n}  &&\text{right isometry: } Q \hconj{Q} = \eye_m
+\end{aligned}
+\end{equation}
+and we find that $\theta^\dagger = Q^\dagger L^\dagger$ is a \acroshort{qr}, such that the two factorizations are essentially equivalent by swapping the roles of rows and columns.
+
+
+% ============================================================
+% ============================================================
+% ============================================================
+\subsection{Truncated QR-like decompositions (tQR)}
+\label{subsec:truncation:factorizations:tqr}
+
+Let us now focus on approximate low-rank factorizations and require only those properties that are actually required in tensor network methods.
+%
+Consider, for example, the truncation step~\eqref{eq:tensornets:mps:tebd:isometric_form_update}, where we require an approximate factorization $\theta \approx A \cdot C$, where the only relevant properties are the bounded dimension of the new index and the isometric property of the first factor.
+%
+Due to the structural similarity to the \acroshort{qr} decomposition, we call such factorizations \acro{tqr}, captured by the following defining properties
+
+\begin{equation}
+\begin{aligned}
+    \theta \approx Q R &\qquad \text{(\acroshort{tqr})} &&
+    \\
+    &Q \in \Cbb^{m \times k}  &&\text{left isometry: } \hconj{Q} Q = \eye_n
+    \\
+    &R \in \Cbb^{k \times n}  &&\text{no required properties}.
+\end{aligned}
+\end{equation}
+
+Note that unlike the \acro{qr}, we do not impose a triangular structure on the second factor.
+
+A decomposition of this form can be obtained from a truncated \acro{svd} as $\theta \approx U (S V^\dagger)$, with an optimal truncation error.
+%
+Similarly, any \acro{dsvd}, as introduced in section~\ref{subsec:truncation:factorizations:deformed_svd} below, yields a \acro{tqr}.
+%
+Relaxing to the weaker properties of the \acro{tqr} allows us to also consider other truncated factorizations, such as \acro{qrcp} \cite{businger1965, chan1987}, see also \cite[§5.4]{golub2013}, or its randomized versions \cite{duersch2017, xiao2017, melnichenko2024}.
+%
+
+% ============================================================
+% ============================================================
+% ============================================================
+\subsection{Deformed SVD}
+\label{subsec:truncation:factorizations:deformed_svd}
+While truncated \acrop{svd} are commonly used for truncation in \acro{tns} algorithms, the property that the central factor $\tilde{S}$, the truncated singular values, are real, positive, diagonal is rarely needed.
+%
+With \acro{mps} truncation, e.g.~in~\eqref{eq:tensornets:mps:tebd:canonical_form_inversion_free}, we only need it if we insist on a full canonical form.
+%
+If we relax to an isometric form, however, we only require the isometric properties of the $\tilde{U}, \tilde{V}$ factors and that $\theta \approx \tilde{U} \tilde{S} \hconj{\tilde{V}}$ is a good approximation.
+%
+This motivates the following definition of a broader type of approximate factorization, which we dub \acrofull{dsvd}.
+
+
+A \emph{deformed} SVD of an $m \times n$ input matrix $\theta$ is an approximate factorization with the following properties
+%
+\begin{equation}
+\label{eq:truncation:factorizations:dsvd}
+\begin{aligned}
+    \theta \approx U \Xi  \hconj{V} &\qquad \text{(\acroshort{dsvd})} &&
+    \\
+    &U \in \Cbb^{m \times k} &&\text{left isometry: } \hconj{U} U = \eye_k
+    \\
+    &\Xi  \in \Cbb^{k \times k} &&\text{no required properties}
+    \\
+    &V \in \Cbb^{n \times k} &&\text{left isometry: } \hconj{V} V = \eye_k
+    % hacky fix, since the rlap seems to not be considered for horizontal alignment
+    \qquad\qquad\qquad\qquad\qquad
+    \\
+    & \omit\rlap{\text{deformed singular value properties: } $\theta V = U \Xi$  \text{ and } $\hconj{U}\theta = \Xi  \hconj{V}$~.} 
+    % 
+\end{aligned}
+\end{equation}
+%
+We can understand it as arising from a truncated \acro{svd}, deformed by two independent unitary gauge transformations $Q, P$ to the left and right of $\Xi$, that is, as
+\begin{equation}
+    \theta
+    \overset{\text{\acroshort{svd}}}{\approx} \tilde{U} \tilde{S} \hconj{\tilde{V}}
+    = (\tilde{U} Q) (Q^\dagger \tilde{S}  P) (\tilde{V} P)^\dagger
+    =: U \Xi V^\dagger
+    .
+\end{equation}
+
+The ``deformed" singular value properties are an optional additional requirement.
+%
+Note that they are trivially fulfilled for the approximation $\theta_\text{approx} := U \Xi \hconj{V}$ but are a non-trivial requirement with the input matrix $\theta$.
+%
+They imply that the correction $\Delta = \theta - U \Xi \hconj{V}$ is entirely in the orthogonal complements $U_\perp$ ($V_\perp$) of $U$ ($V$), meaning there is some $\Xi_\perp$ such that $\Delta = U_\perp \Xi_\perp \hconj{V_\perp}$, and have consequences for \acro{autodiff}, as discussed in section~\ref{subsec:gradpeps:autodiff:trunc_svd}.
+%
+In other words, the $k$ columns of $U$ ($V$) are linear combinations of only $k$ left (right) singular vectors of $\theta$.
+%
+If the truncation is chosen such that those $k$ singular vectors correspond to the $k$ largest singular values of $\theta$, the \acro{dsvd} inherits the optimal truncation properties from the \acro{svd}.
+
+
+
+Note that we do not require this to be the case and allow approximations with slightly larger truncation error $\norm{\theta - U \Xi \hconj{V}}$ than the optimal error achieved by a truncated \acro{svd}.
+%
+A \acro{dsvd} is only a sensible concept in the presence of truncation, that is if $k < \min(m,n)$, since e.g.~for $k=m=n$, $\theta = \eye \theta \eye$ is a valid \acro{dsvd}, but entirely useless.
+
+
+By construction, a (truncated) regular \acro{svd} is a \acro{dsvd}.
+%
+It can also be achieved by postprocessing any \acrofull{tqr} $\theta \approx U M = U L Q$ with an additional \acroshort{lq} factorization.
+%
+This approach is closely related to the \acroshort{qlp} or UTV~\cite{stewart1999} factorizations, see e.g.~\cite[§5.4.6]{golub2013}, which are also special cases of a \acro{dsvd}, where the central factor $\Xi$ has a triangular structure.
+%
+More broadly, most common approximations to the \acro{svd} fulfill the requirements, such as e.g.~\acrofull{rsvd}~\cite{voronin2016} or randomized versions of the \acro{qrcp}~\cite{duersch2017} or \acroshort{qlp}~\cite{stewart1999, wu2020, kaloorazi2023}.
+%
+The \acro{qr}-based truncation routine introduced in section~\ref{sec:truncation:qr_tebd} is a \acro{dsvd} as well.

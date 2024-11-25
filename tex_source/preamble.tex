@@ -1,0 +1,816 @@
+\usepackage{subfiles}
+\usepackage[utf8]{inputenc}
+\usepackage[main=english,ngerman]{babel}
+\usepackage{csquotes}
+\usepackage{graphicx} % Required for inserting images
+\usepackage[hidelinks]{hyperref}
+\usepackage{bbm}  % for \mathbb and \mathbbm symbols
+\usepackage{amsmath,amsfonts,amssymb}
+\usepackage[chapter]{algorithm}  % for algorithm environment, option: use chapters for numering
+\usepackage{enumitem}
+\usepackage{mathtools}
+\usepackage{paracol}  % independent columns in nonabelian section
+\usepackage{tikz}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
+\usepackage{tikz-cd}  % commuting diagrams based on tikz
+\usepackage{framed}
+\usepackage[export]{adjustbox}
+\usepackage{relsize}  % for \mathlarger command, e.g. for dagger of a whole diagram, want a large dagger.
+\usepackage{mathdots}  % for \iddots in Z isomorphism matrix
+\usepackage{booktabs}  % for clean tables (tabular environment) 
+\usepackage{multirow}
+\usepackage{caption}  % for setting caption width
+\captionsetup{width=\linewidth}
+
+
+\hyphenation{mo-noi-dal}
+\hyphenation{di-men-sion-al}
+
+% =============================================================================
+% Colors
+% =============================================================================
+
+
+\definecolor{Green}{rgb}{0, 0.5, 0.2}
+\ifcolors
+    \newcommand{\red}[1]{{\color{red} {#1}}}
+    \newcommand{\orange}[1]{{\color{orange} {#1}}}
+    \newcommand{\blue}[1]{{\color{blue} {#1}}}
+    \newcommand{\green}[1]{{\color{green} {#1}}}
+    \definecolor{acrocolor}{rgb}{0, 0.3, 0.6}
+    \definecolor{bg_left}{rgb}{0.95,0.92,0.9}
+    \definecolor{bg_right}{rgb}{0.95,1.0,0.85}
+\else
+    \newcommand{\red}[1]{{#1}}
+    \newcommand{\orange}[1]{{#1}}
+    \newcommand{\blue}[1]{{#1}}
+    \newcommand{\green}[1]{{#1}}
+    \definecolor{bg_left}{rgb}{0.96,0.96,0.96}
+    \definecolor{bg_right}{rgb}{0.93,0.93,0.93}
+\fi
+
+% monkeypatch \url command to give blue colors, eventhough we disabled coloring for all other hyperlinks.
+\makeatletter
+\let\old@url\url
+\renewcommand{\url}[1]{\blue{\old@url{#1}}}
+\makeatother
+
+% =============================================================================
+% Bibliography setup
+% =============================================================================
+\usepackage[citestyle=numeric-comp, bibstyle=ieee, sorting=none, minbibnames=2, maxbibnames=4, isbn=false]{biblatex}
+\addbibresource{references.bib}
+\AtEveryBibitem{
+    \clearfield{issn}
+    \clearfield{language}
+    \clearfield{note}
+}
+\DeclareFieldFormat
+  [article,inbook,incollection,inproceedings,patent,thesis,unpublished]
+  {title}{\emph{#1\isdot}}
+\DeclareFieldFormat{doi}{%
+  \mkbibacro{DOI}\addcolon\space
+  \ifhyperref
+    {\href{https://doi.org/#1}{\red{\nolinkurl{#1}}}}
+    {\nolinkurl{#1}}
+}
+% hack to use URL field only for select entries
+\DeclareBibliographyCategory{needsurl}
+\addtocategory{needsurl}{tenpySoftware}
+\addtocategory{needsurl}{tensorkit-docs}
+\renewbibmacro*{url+urldate}{%
+  \ifcategory{needsurl}
+    {\mkbibacro{DOI}\addcolon\space: \href{\thefield{url}}{\red{\thefield{url}}}%
+     }
+    {}}
+
+
+% =============================================================================
+% Terminology and Jargon Sectopn
+% =============================================================================
+\newlist{jargon}{description}{1}
+\setlist[jargon]{leftmargin=0.2\hsize,labelindent=0em,itemindent=!,labelwidth=!}
+
+% =============================================================================
+% Definition , Theorem , ...
+% =============================================================================
+\newenvironment{proof}{%
+    \color{aurometalsaurus}%
+    \emph{Proof:}~%
+}{
+    \hfill$\square$
+}
+
+\newtheorem{definition}{Definition}[section]
+\newtheorem{theorem}[definition]{Theorem}
+\newtheorem{corollary}[definition]{Corollary}
+\definecolor{aurometalsaurus}{rgb}{0.43, 0.5, 0.5}
+\AtBeginEnvironment{proof}{\color{aurometalsaurus}}
+% \newenvironment{proof}{%
+%     \color{gray}
+%     Proof: 
+% }{%
+% }
+
+% =============================================================================
+% ACRONYMS
+% =============================================================================
+\usepackage[acronym]{glossaries}
+\makeglossaries
+\setacronymstyle{long-short}
+
+\ifcolors
+    \newcommand{\acro}[1]{{\color{acrocolor} \gls{#1}}}
+    \newcommand{\acrop}[1]{{\color{acrocolor} \glspl{#1}}}
+    \newcommand{\acroshort}[1]{{\color{acrocolor} \acrshort{#1}}}
+    \newcommand{\acrofull}[1]{{\color{acrocolor} \acrfull{#1}}}
+    \newcommand{\acropfull}[1]{{\color{acrocolor} \acrfull{#1}}}
+\else
+    \newcommand{\acro}[1]{{\gls{#1}}}
+    \newcommand{\acrop}[1]{{\glspl{#1}}}
+    \newcommand{\acroshort}[1]{{\acrshort{#1}}}
+    \newcommand{\acrofull}[1]{{\acrfull{#1}}}
+    \newcommand{\acropfull}[1]{{\acrfull{#1}}}
+\fi
+
+% \newacronym{1d}{1D}{one-dimensional}
+% \newacronym{2d}{2D}{two-dimensional}
+\newacronym{obc}{OBC}{open boundary conditions}
+\newacronym{pbc}{PBC}{periodic boundary conditions}
+\newacronym{mps}{MPS}{matrix product state}
+\newacronym{imps}{iMPS}{infinite matrix product state}
+\newacronym{fcs}{FCS}{finitely correlated state}
+\newacronym{mpo}{MPO}{matrix product operator}
+\newacronym{ttn}{TTN}{tree tensor network}
+\newacronym{mera}{MERA}{multiscale entanglement renormalization ansatz}
+\newacronym{peps}{PEPS}{projected entangled pair state}
+\newacronym{ipeps}{iPEPS}{infinite projected entangled pair state}
+\newacronym{trg}{TRG}{tensor renormalization group}
+\newacronym{tnr}{TNR}{tensor network renormalization}
+\newacronym{ctmrg}{CTMRG}{corner transfer renormalization group}
+\newacronym{fu}{FU}{full update}
+\newacronym{ffu}{FFU}{fast full update}
+\newacronym{su}{SU}{simple update}
+\newacronym{bmps}{bMPS}{boundary matrix product state}
+\newacronym{bmpo}{bMPO}{bulk matrix product operator}
+\newacronym{pepo}{PEPO}{projected entangled pair operator}
+\newacronym{tps}{TPS}{tensor product state}
+\newacronym{tns}{TNS}{tensor network state}
+\newacronym{dmrg}{DMRG}{density matrix renormalization group}
+\newacronym{idmrg}{iDMRG}{infinite density matrix renormalization group}
+\newacronym{tebd}{TEBD}{time evolving block decimation}
+\newacronym{itebd}{iTEBD}{infinite time evolving block decimation}
+\newacronym{tdvp}{TDVP}{time dependent variational principle}
+\newacronym{ed}{ED}{exact diagonalization}
+\newacronym{svd}{SVD}{singular value decomposition}
+\newacronym{rsvd}{rSVD}{randomized singular value decomposition}
+\newacronym{dsvd}{dSVD}{deformed singular value decomposition}
+\newacronym{tqr}{tQR}{truncated QR-like decomposition}
+\newacronym{qr}{QR}{QR decomposition}
+\newacronym{qlp}{QLP}{QLP decomposition}
+\newacronym{lq}{LQ}{LQ decomposition}
+\newacronym{qrcp}{QRCP}{QR decomposition with column pivoting}
+\newacronym{tenpy}{TeNPy}{Tensor Network Python}
+\newacronym{fft}{FFT}{fast Fourier transform}
+\newacronym{srft}{SRFT}{subsampled random Fourier transform}
+\newacronym{vumps}{VUMPS}{variational uniform matrix product state}
+\newacronym{mpoEvolution}{MPO evolution}{matrix operator based time evolution}
+\newacronym{cpu}{CPU}{central processing unit}
+\newacronym{gpu}{GPU}{graphics processing unit}
+\newacronym{tpu}{TPU}{tensor processing unit}
+\newacronym{ai}{AI}{artificial intelligence}
+\newacronym{autodiff}{AD}{automatic differentiation}
+\newacronym{flop}{FLOP}{floating point operation}
+\newacronym{lbfgs}{L-BFGS}{Limited memory Broyden--Fletcher--Goldfarb--Shanno}
+\newacronym{tfim}{TFIM}{transverse field Ising model}
+\newacronym{dsf}{DSF}{dynamical spin structure factor}
+\newacronym{als}{ALS}{alternating least squares}
+
+% =============================================================================
+% TYPESETTING ALGORITHMS
+% =============================================================================
+\newenvironment{Algorithm}[2]{%
+    \begin{algorithm}
+    \caption{#1}
+    \vspace{1ex}
+    #2
+    \vspace{1ex}
+    \begin{enumerate}[font=\footnotesize]
+    \let\step\item
+    \newenvironment{substeps}{%
+        \begin{enumerate}[font=\footnotesize,label*=\alph*.]
+        \let\substep\item
+    }{%
+        \end{enumerate}
+    }
+}{%
+    \end{enumerate}
+    \vspace{1ex}
+    \end{algorithm}
+}
+% Usage:
+% \begin{Algorithm}{Title}{Description of inputs, outputs, purpose (can be many lines)}
+%     \step Do a thing
+%     \step Do another thing
+% \end{Algorithm}
+
+% 
+
+% =============================================================================
+% TIKZ for monoidal categories
+% =============================================================================
+\usetikzlibrary{decorations.markings, positioning, calc, angles, ext.positioning-plus, shapes.misc, shapes.geometric, arrows.meta, pgfplots.fillbetween, backgrounds, babel}
+
+%settings
+\newcommand\arrowstyle{stealth}
+\newcommand\arrowlinewidth{1.5pt}
+\newcommand\arrowshift{3pt}  % through trial and arrow. depends on arrow head and line style!
+
+% from https://tex.stackexchange.com/questions/264589/string-diagrams-in-monoidal-categories
+\tikzset{
+  tensor/.style={
+    rounded rectangle, draw, align=center, minimum width=.7cm, minimum height=.7cm
+  },
+  mpo tensor/.style={
+    chamfered rectangle, draw, align=center, minimum width=.7cm, minimum height=.7cm
+  },
+  left iso/.style={
+    rounded rectangle, draw, align=center, minimum width=.7cm, minimum height=.7cm, rounded rectangle left arc=none
+  },
+  right iso/.style={
+    rounded rectangle, draw, align=center, minimum width=.7cm, minimum height=.7cm, rounded rectangle right arc=none
+  },
+  morphism/.style={
+    chamfered rectangle,draw,chamfered rectangle corners=north west,fill=black!15,minimum width=1cm,minimum height=1cm,align=center,inner xsep=7pt,
+  },
+  daggered/.style={
+    chamfered rectangle,draw,chamfered rectangle corners=south west,fill=black!15,minimum width=1cm,minimum height=1cm,align=center,inner xsep=7pt,
+  },
+  transposed/.style={
+    chamfered rectangle,draw,chamfered rectangle corners=south east,fill=black!15,minimum width=1cm,minimum height=1cm,align=center,inner xsep=7pt,
+  },
+  daggertransposed/.style={
+    chamfered rectangle,draw,chamfered rectangle corners=north east,fill=black!15,minimum width=1cm,minimum height=1cm,align=center,inner xsep=7pt,
+  },
+  old z iso/.style={
+    minimum width=.5cm,minimum height=.5cm,
+    path picture={
+      \draw[draw]
+        let \p{diag}=($(path picture bounding box.north east)-(path picture bounding box.south west)$) in
+        (path picture bounding box.south west) -- ++(0,0.4*\y{diag})
+        arc [start angle=180, end angle=90, x radius=0.6*\x{diag}, y radius=0.6*\y{diag}]
+        -- (path picture bounding box.north east) -- (path picture bounding box.south east) -- cycle;
+    }
+  },
+  old z iso daggered/.style={
+    minimum width=.5cm,minimum height=.5cm,
+    path picture={
+      \draw[draw]
+        let \p{diag}=($(path picture bounding box.north east)-(path picture bounding box.south west)$) in
+        (path picture bounding box.north west) -- ++(0,-0.4*\y{diag})
+        arc [start angle=180, end angle=270, x radius=0.6*\x{diag}, y radius=0.6*\y{diag}]
+        -- (path picture bounding box.south east) -- (path picture bounding box.north east) -- cycle;
+    }
+  },
+  old z iso transposed/.style={
+    minimum width=.5cm,minimum height=.5cm,
+    path picture={
+      \draw[draw]
+        let \p{diag}=($(path picture bounding box.north east)-(path picture bounding box.south west)$) in
+        (path picture bounding box.south west) -- ++(0.4*\x{diag},0)
+        arc [start angle=270, end angle=360, x radius=0.6*\x{diag}, y radius=0.6*\y{diag}]
+        -- (path picture bounding box.north east) -- (path picture bounding box.north west) -- cycle;
+    }
+  },
+  z iso/.style={
+    minimum width=.5cm,minimum height=.5cm,
+    append after command={
+        \pgfextra
+            \draw[draw]
+                let \p{diag}=($(\tikzlastnode.north east)-(\tikzlastnode.south west)$) in
+                (\tikzlastnode.south west)
+                -- ++(0,0.4*\y{diag})
+                arc [start angle=180, end angle=90, x radius=0.6*\x{diag}, y radius=0.6*\y{diag}]
+                -- (\tikzlastnode.north east)
+                -- (\tikzlastnode.south east)
+                -- cycle;
+            ;
+        \endpgfextra
+    },
+  },
+  z iso daggered/.style={
+    minimum width=.5cm,minimum height=.5cm,
+    append after command={
+        \pgfextra
+            \draw[draw]
+                let \p{diag}=($(\tikzlastnode.north east)-(\tikzlastnode.south west)$) in
+                (\tikzlastnode.north west)
+                -- ++(0,-0.4*\y{diag})
+                arc [start angle=180, end angle=270, x radius=0.6*\x{diag}, y radius=0.6*\y{diag}]
+                -- (\tikzlastnode.south east)
+                -- (\tikzlastnode.north east)
+                -- cycle;
+            ;
+        \endpgfextra
+    },
+  },
+  z iso transposed/.style={
+    minimum width=.5cm,minimum height=.5cm,
+    append after command={
+        \pgfextra
+            \draw[draw]
+                let \p{diag}=($(\tikzlastnode.north east)-(\tikzlastnode.south west)$) in
+                (\tikzlastnode.south west)
+                -- ++(0.4*\x{diag},0)
+                arc [start angle=270, end angle=360, x radius=0.6*\x{diag}, y radius=0.6*\y{diag}]
+                -- (\tikzlastnode.north east)
+                -- (\tikzlastnode.north west)
+                -- cycle;
+            ;
+        \endpgfextra
+    },
+  },
+  old x tensor/.style={
+    % note: do *not* include draw here. we do not want to draw the bounding box.
+    minimum width=1cm,minimum height=1cm,align=center,
+    path picture={
+      \draw[draw,fill=black!15] let \p{diag}=($(path picture bounding box.north east)-(path picture bounding box.south west)$) in
+        (path picture bounding box.south west)
+        -- (path picture bounding box.west)
+        arc [start angle=180, end angle=0, x radius=0.5*\x{diag}, y radius=0.5*\y{diag}]
+        -- (path picture bounding box.south east)
+        -- cycle;
+    }
+  },
+  x tensor/.style={
+    minimum width=1cm,minimum height=1cm,align=center,
+    append after command={
+        \pgfextra
+            \draw[draw,fill=black!15]
+                let \p{diag}=($(\tikzlastnode.north east)-(\tikzlastnode.south west)$) in
+                (\tikzlastnode.south west)
+                -- (\tikzlastnode.west)
+                arc [start angle=180, end angle=0, x radius=0.5*\x{diag}, y radius=0.5*\y{diag}]
+                -- (\tikzlastnode.south east)
+                -- cycle
+            ;
+        \endpgfextra
+    },
+  },
+  old y tensor/.style={
+    % note: do *not* include draw here. we do not want to draw the bounding box.
+    minimum width=1cm,minimum height=1cm,align=center,
+    path picture={
+      \draw[draw,fill=black!15] let \p{diag}=($(path picture bounding box.north east)-(path picture bounding box.south west)$) in
+        (path picture bounding box.north west)
+        -- (path picture bounding box.west)
+        arc [start angle=180, end angle=360, x radius=0.5*\x{diag}, y radius=0.5*\y{diag}]
+        -- (path picture bounding box.north east)
+        -- cycle;
+    }
+  },
+  y tensor/.style={
+    minimum width=1cm,minimum height=1cm,align=center,
+    append after command={
+        \pgfextra
+            \draw[draw,fill=black!15]
+                let \p{diag}=($(\tikzlastnode.north east)-(\tikzlastnode.south west)$) in
+                (\tikzlastnode.north west)
+                -- (\tikzlastnode.west)
+                arc [start angle=180, end angle=360, x radius=0.5*\x{diag}, y radius=0.5*\y{diag}]
+                -- (\tikzlastnode.north east)
+                -- cycle
+            ;
+        \endpgfextra
+    },
+  },
+  peps tensor/.style={circle, draw, fill=green!50},
+  pepo tensor/.style={diamond, draw, fill=red!50},
+  double layer tensor/.style={rectangle, draw, fill=blue!40},
+  inclusion/.style={
+    kite,kite vertex angles=165 and 60,draw,fill=black!15,minimum height=1cm,align=center,inner xsep=0
+  },
+  projection/.style={
+    kite,kite vertex angles=60 and 165,draw,fill=black!15,minimum height=1cm,align=center,inner xsep=0
+  },
+  space/.style={
+    minimum height=1cm,align=center
+  },
+  arrow1/.style n args={3}{% e.g. \draw[arrow1={0.5}{left}{$A$}], latter two may be empty
+    decoration={
+      markings,
+      mark=at position {#1*\pgfdecoratedpathlength+\arrowshift} with {\arrow[line width=\arrowlinewidth]{\arrowstyle}},
+      mark=at position #1 with {\node[#2] {#3};},
+    },
+    postaction=decorate  
+  },
+  arrow1/.default={0.5}{}{},
+  arrow1rev/.style n args={3}{
+    decoration={
+      markings,
+      mark=at position {#1*\pgfdecoratedpathlength-\arrowshift} with {\arrowreversed[line width=\arrowlinewidth]{\arrowstyle}},
+      mark=at position #1 with {\node[#2] {#3};},
+    },
+    postaction=decorate  
+  },
+  arrow1rev/.default={0.5}{}{},
+  arrow2/.style n args={6}{% e.g. \draw[arrow2={0.2}{left}{$A$}{0.8}{left}{$A$}]
+    decoration={
+      markings,
+      mark=at position {#1*\pgfdecoratedpathlength+\arrowshift} with {\arrow[line width=\arrowlinewidth]{\arrowstyle};}, 
+      mark=at position #1 with {\node[#2] {#3};},
+      mark=at position {#4*\pgfdecoratedpathlength+\arrowshift} with {\arrow[line width=\arrowlinewidth]{\arrowstyle};},
+      mark=at position #4 with {\node[#5] {#6};},
+    },
+    postaction=decorate  
+  },
+  arrow2/.default={0.5}{}{}{0.5}{}{},
+  arrow2rev/.style n args={6}{
+    decoration={
+      markings,
+      mark=at position {#1*\pgfdecoratedpathlength-\arrowshift} with {\arrowreversed[line width=\arrowlinewidth]{stealth};},
+      mark=at position #1 with {\node[#2] {#3};},
+      mark=at position {#4*\pgfdecoratedpathlength-\arrowshift} with {\arrowreversed[line width=\arrowlinewidth]{stealth};},
+      mark=at position #4 with {\node[#5] {#6};},
+    },
+    postaction=decorate  
+  },
+  arrow2rev/.default={0.5}{}{}{0.5}{}{},
+  overdraw/.style={preaction={draw,white,line width=#1}},
+  overdraw/.default=8pt,
+}
+
+\newcommand\overbraid{}  % just for safety, check if its not yet defined
+\def\overbraid(#1)(#2)(#3)(#4){%
+    % Usage: \overbraid(bottomleft)(bottomright)(topleft)(topright)
+    \draw (#2) to [out=90, in=270] (#3);
+    \draw[overdraw] (#1) to [out=90, in=270] (#4);
+}
+\newcommand\underbraid{}  % just for safety, check if its not yet defined
+\def\underbraid(#1)(#2)(#3)(#4){%
+    % Usage: \underbraid(bottomleft)(bottomright)(topleft)(topright)
+    \draw (#1) to [out=90, in=270] (#4);
+    \draw[overdraw] (#2) to [out=90, in=270] (#3);
+}
+
+\newcommand\rightovertwist{}
+\def\rightovertwist(#1)[#2]{%
+    % usage: \rightovertwist(bottomCoord)[nameForTopCoord]
+    \coordinate[above=10pt of #1] (#2);
+    \draw (#2)
+        to[out=270,in=180] ++(8pt,-10pt)
+        to[out=0,in=270] ++(5pt,5pt)
+        coordinate (twist);
+    \draw[overdraw=4pt] (twist) to[out=90,in=0] ++(-5pt, 5pt) to[out=180,in=90] ++(-8pt, -10pt);
+}
+\newcommand\rightundertwist{}
+\def\rightundertwist(#1)[#2]{%
+    % usage: \rightundertwist(bottomCoord)[nameForTopCoord]
+    \draw (#1)
+        to[out=90, in=180] ++(8pt,10pt)
+        to[out=0,in=90] ++(5pt,-5pt)
+        coordinate (twist);
+    \draw[overdraw=4pt] (twist)
+        to[out=270,in=0] ++(-5pt,-5pt)
+        to[out=180,in=270] ++(-8pt,10pt)
+        coordinate (#2);
+}
+\newcommand\leftovertwist{}
+\def\leftovertwist(#1)[#2]{%
+    % usage: \leftovertwist(bottomCoord)[nameForTopCoord]
+    \coordinate[above=10pt of #1] (#2);
+    \draw (#2)
+        to[out=270,in=0] ++(-8pt,-10pt)
+        to[out=180,in=270] ++(-5pt,5pt)
+        coordinate (twist);
+    \draw[overdraw=4pt] (twist)
+        to[out=90,in=180] ++(5pt,5pt)
+        to[out=0,in=90] ++(8pt,-10pt);
+}
+\newcommand\leftundertwist{}
+\def\leftundertwist(#1)[#2]{%
+    % usage: \leftundertwist(bottomCoord)[nameForTopCoord]
+    \draw (#1)
+        to[out=90,in=0] ++(-8pt,10pt)
+        to[out=180,in=90] ++(-5pt,-5pt)
+        coordinate (twist);
+    \draw[overdraw=4pt] (twist)
+        to[out=270,in=180] ++(5pt,-5pt)
+        to[out=0,in=270] ++(8pt,10pt)
+        coordinate (#2);
+}
+
+% =============================================================================
+% TYPESETTING TWO-COLUMN NONABELIAN SECTIONS
+% =============================================================================
+\newcommand\leftcoltitle{\textbf{Concrete case: Group Representation}}
+\newcommand\rightcoltitle{\textbf{General case: Tensor Category}}
+\newcommand\doublecolcolumnsep{2em}
+\newcommand\doublecolvcorrection{-1.5ex}  % skipped at the beginning of each column
+\newcommand\doublecolfontsize{\small}
+
+\globalcounter{figure}
+\globalcounter{table}
+\globalcounter{equation}
+\newenvironment{doublecol}{%
+    \doublecolfontsize
+    \vspace{\baselineskip}
+    \setlength{\columnsep}{\doublecolcolumnsep}%
+    \backgroundcolor{c[0](.2cm,.2cm)(.2cm,.2cm)}{bg_left}%
+    \backgroundcolor{c[1](.2cm,.2cm)(.2cm,.2cm)}{bg_right}%
+    \paracol{2}%
+    \vspace{\doublecolvcorrection}%
+    \leftcoltitle%
+    \par%
+    \newcommand{\colswitch}{%
+        \switchcolumn%
+        \vspace{\doublecolvcorrection}%
+        \rightcoltitle%
+        \par%
+    }%
+}{%
+    \endparacol%
+}
+
+% star: without titles
+\newenvironment{doublecol*}{%
+    \doublecolfontsize
+    \vspace{\baselineskip}
+    \setlength{\columnsep}{\doublecolcolumnsep}%
+    \backgroundcolor{c[0](.2cm,.2cm)(.2cm,.2cm)}{bg_left}%
+    \backgroundcolor{c[1](.2cm,.2cm)(.2cm,.2cm)}{bg_right}%
+    \paracol{2}%
+    \vspace{\doublecolvcorrection}%
+    \newcommand{\colswitch}{%
+        \switchcolumn%
+        \vspace{\doublecolvcorrection}%
+    }%
+}{%
+    \endparacol%
+}
+\newenvironment{extendrightcol}{%
+    \doublecolfontsize
+    \setlength{\columnsep}{\doublecolcolumnsep}%
+    % separator
+    {%
+        \vspace{1.5mm}
+        \paracol{2}%
+        \backgroundcolor{c[0](.2cm,0cm)(.2cm,0cm)}{white}%
+        \backgroundcolor{c[1](.2cm,0cm)(.2cm,0cm)}{bg_right}%
+        \vspace{3ex}%
+        \switchcolumn%
+        \vspace{3ex}%
+        \endparacol%
+    }%
+    % full-width
+    \paracol{1}%
+    \backgroundcolor{c[0](.2cm,.2cm)(.2cm,.2cm)}{bg_right}%
+    \vspace{\doublecolvcorrection}
+}{%
+    \endparacol%
+}
+\newenvironment{extendleftcol}{%
+    \doublecolfontsize
+    \setlength{\columnsep}{\doublecolcolumnsep}%
+    % separator
+    {%
+        \vspace{1.5mm}
+        \paracol{2}%
+        \backgroundcolor{c[0](.2cm,0cm)(.2cm,0cm)}{bg_left}%
+        \backgroundcolor{c[1](.2cm,0cm)(.2cm,0cm)}{white}%
+        \vspace{3ex}%
+        \switchcolumn%
+        \vspace{3ex}%
+        \endparacol%
+    }%
+    % full-width
+    \paracol{1}%
+    \backgroundcolor{c[0](.2cm,.2cm)(.2cm,.2cm)}{bg_left}%
+    \vspace{\doublecolvcorrection}
+}{%
+    \endparacol%
+}
+
+% Adjust itemize to give decent spacing in half columns
+\newenvironment{halfcolitemize}{%
+    \itemize[topsep=.5ex,parsep=1ex,itemsep=.5ex,leftmargin=1.5em]
+}{%
+    \enditemize
+}
+
+% =============================================================================
+% CUSTOM ENVIRONMENTS
+% =============================================================================
+\newenvironment{framedfigure}{\figure[ht]\framed\centering}{\endframed\endfigure}
+
+% =============================================================================
+% CUSTOM COMMANDS
+% =============================================================================
+\newcommand{\FUTURE}[1]{\todo[inline, color=blue!30]{(todo): #1}}
+% \newcommand{\FUTURE}[1]{}
+\newcommand{\TODO}[1]{\todo[inline]{TODO: #1}}
+\newcommand{\FIXME}[1]{\todo[inline, color=red]{FIXME: #1}}
+
+% =============================================================================
+% MATH COMMANDS
+% =============================================================================
+% Misc
+\newcommand{\doubletilde}[1]{\tilde{\raisebox{0pt}[0.85\height]{$\tilde{#1}$}}}
+\DeclareMathOperator*{\argmin}{arg\,min}
+\DeclareMathOperator*{\argmax}{arg\,max}
+\DeclareMathOperator*{\tensortr}{TTr}
+\newcommand{\nnsum}[2]{\sum_{\langle #1, #2 \rangle}}
+\newcommand{\nnprod}[2]{\prod_{\langle #1, #2 \rangle}}
+
+% Autodiff notation
+\newcommand{\hadamard}{\circ}
+\newcommand{\Off}{\mathcal{O}}  % off diagonal matrix
+\newcommand{\dA}{\dd{A}}
+\newcommand{\dU}{\dd{U}}
+\newcommand{\dS}{\dd{S}}
+\newcommand{\dV}{\dd{V}}
+\newcommand{\dX}{\dd{X}}
+\newcommand{\dY}{\dd{Y}}
+\newcommand{\dZ}{\dd{Z}}
+\newcommand{\dP}{\dd{P}}
+\newcommand{\dC}{\dd{C}}
+\newcommand{\dD}{\dd{D}}
+\newcommand{\dQ}{\dd{Q}}
+\newcommand{\dR}{\dd{R}}
+\newcommand{\G}[1]{\Gamma_{#1}}
+\newcommand{\Gconj}[1]{\G{\conj{#1}}}
+\newcommand{\GcAs}{\Gconj{A}^\mathrm{S}}
+\newcommand{\GcAuo}{\Gconj{A}^\mathrm{Uo}}
+\newcommand{\GcAvo}{\Gconj{A}^\mathrm{Vo}}
+\newcommand{\GcAd}{\Gconj{A}^\mathrm{diag}}
+\newcommand{\GcAtr}{\Gconj{A}^\mathrm{tr}}
+
+% Variables i may want to rename a lot
+\newcommand{\economicRank}{k}  % e.g. min(m, n) in SVD
+\newcommand{\numericalRank}{k}  % e.g. in randNLA context, number of singular values that are non-zero in machine precision
+\newcommand{\truncatedRank}{\chi}  % rank of a truncated factorization, e.g truncated SVD
+
+% Special "variables"
+\newcommand{\ee}{\ensuremath \mathrm{e}}  % eulers number
+\newcommand{\eto}[1]{\ee^{#1}}
+\newcommand{\im}{\ensuremath \mathrm{i}}  % imaginary unit i
+\newcommand{\dd}{\ensuremath \mathrm{d}}  % differential d
+\newcommand{\eye}{\ensuremath \mathbbm{1}}  % identity
+\newcommand{\bigO}{\ensuremath \mathrm{O}}  % identity
+
+% Delimiters:
+% Helper macros: use \left \right \middle delimiter versions in displaymode, normal otherwise
+\newcommand{\twoDelimiters}[3]{\ensuremath%
+    \mathchoice{\left#1 #2 \right#3}{#1 #2 #3}{#1 #2 #3}{#1 #2 #3}%
+}
+\newcommand{\threeDelimiters}[5]{\ensuremath%
+    \mathchoice{%
+        \left#1 #2 \middle#3 #4 \right#5}{%
+        #1 #2 #3 #4 #5}{#1 #2 #3 #4 #5}{#1 #2 #3 #4 #5}
+}
+\newcommand{\fourDelimiters}[7]{\ensuremath%
+    \mathchoice{%
+        \left#1 #2 \middle#3 #4 \middle#5 #6 \right#7
+    }{%
+        #1 #2 #3 #4 #5 #6 #7}{#1 #2 #3 #4 #5 #6 #7}{#1 #2 #3 #4 #5 #6 #7}
+}
+% Bra-Ket notation
+\newcommand{\ket}[1]{\twoDelimiters{\vert}{#1}{\rangle}}
+\newcommand{\bra}[1]{\twoDelimiters{\langle}{#1}{\vert}}
+\newcommand{\braket}[2]{\threeDelimiters{\langle}{#1}{\vert}{#2}{\rangle}}
+\newcommand{\ketbra}[2]{\fourDelimiters{\vert}{#1}{\rangle}{}{\langle}{#2}{\vert}}
+\newcommand{\braopket}[3]{\fourDelimiters{\langle}{#1}{\vert}{#2}{\vert}{#3}{\rangle}}
+%
+\newcommand{\psiket}{\ket{\psi}}
+\newcommand{\psibra}{\bra{\psi}}
+\newcommand{\GSket}{\ket{\text{GS}}}
+\newcommand{\GSbra}{\bra{\text{GS}}}
+\newcommand{\phiket}{\ket{\phi}}
+\newcommand{\phibra}{\bra{\phi}}
+% Brackets and Parentheses
+\newcommand{\rBr}[1]{\twoDelimiters{(}{#1}{)}}  % round ()
+\newcommand{\sBr}[1]{\twoDelimiters{[}{#1}{]}}  % square []
+\newcommand{\cBr}[1]{\twoDelimiters{\lbrace}{#1}{\rbrace}}  % curly {}
+% Ceil and Floor
+\DeclarePairedDelimiter\ceil{\lceil}{\rceil}
+\DeclarePairedDelimiter\floor{\lfloor}{\rfloor}
+% norms
+\newcommand{\abs}[1]{\twoDelimiters{\vert}{#1}{\vert}}
+\newcommand{\norm}[1]{\twoDelimiters{\Vert}{#1}{\Vert}}
+% \DeclarePairedDelimiter\abs{\vert}{\vert}
+\newcommand{\Fnorm}[1]{\twoDelimiters{\Vert}{#1}{\Vert_\mathrm{F}}}
+\newcommand{\Fprod}[2]{\braket{#1}{#2}_\mathrm{F}}
+
+% Special Sets
+\newcommand{\set}[1]{\twoDelimiters{\lbrace}{#1}{\rbrace}}
+\newcommand{\setdef}[2]{\threeDelimiters{\lbrace}{#1}{\vert}{#2}{\rbrace}}
+\newcommand{\Nbb}{\mathbbm{N}}
+\newcommand{\Zbb}{\mathbbm{Z}}
+\newcommand{\Qbb}{\mathbbm{Q}}
+\newcommand{\Rbb}{\mathbbm{R}}
+\newcommand{\Cbb}{\mathbb{C}}
+\newcommand{\hilbert}{\ensuremath \mathcal{H}}
+% named groups
+\newcommand{\U}[1]{\ensuremath \mathrm{U}(#1)}
+\newcommand{\SU}[1]{\ensuremath \mathrm{SU}(#1)}
+% named Lie algebras
+\newcommand{\su}[1]{\ensuremath \mathfrak{su}(#1)}
+
+% Binary symbols
+\newcommand{\compose}{\ensuremath \circ}  % map composition
+\newcommand{\matprod}{\ensuremath \cdot}  % matrix product
+\newcommand{\elemprod}{\ensuremath \circ}  % elementwise product
+\newcommand{\tensorprod}{\ensuremath \otimes}  % tensor product
+
+% Decorations on symbols
+\newcommand{\conj}[1]{\ensuremath \overline{#1}}
+\newcommand{\hconj}[1]{\ensuremath {#1}^\dagger}
+\newcommand{\transpT}{\text{T}}
+\newcommand{\transp}[1]{\ensuremath {#1}^{\transpT}}
+\newcommand{\inv}[1]{\ensuremath {#1}^{-1}}
+\newcommand{\dualspace}[1]{\ensuremath {#1}^\star}
+\newcommand{\doubledualspace}[1]{\ensuremath {#1}^{\star\star}}
+\newcommand{\dualsector}[1]{\ensuremath \overline{#1}}
+\newcommand{\doubledualsector}[1]{\ensuremath \overline{\overline{#1}}}
+
+% Texts in equation
+\newcommand{\const}{\ensuremath \mathrm{const.}}
+\newcommand{\pconst}{\ensuremath + \const}
+\newcommand{\mconst}{\ensuremath - \const}
+\newcommand{\cc}{\ensuremath \mathrm{c.c.}}
+\newcommand{\pcc}{\ensuremath + \cc}
+\newcommand{\mcc}{\ensuremath - \cc}
+\newcommand{\hc}{\ensuremath \mathrm{h.c.}}
+\newcommand{\phc}{\ensuremath + \hc}
+\newcommand{\mhc}{\ensuremath - \hc}
+\newcommand{\RHS}{\mathrm{RHS}}
+\newcommand{\LHS}{\mathrm{LHS}}
+
+% Text Operators
+\newcommand{\Homset}[2]{\ensuremath{\mathrm{Hom}\left(#1,\; #2\right)}}
+\newcommand{\HomsetArg}[3]{\ensuremath{\mathrm{Hom}_{#1}\left(#2,\; #3\right)}}
+\newcommand{\Endset}[1]{\ensuremath{\mathrm{End}\left(#1\right)}}
+\newcommand{\EndsetArg}[2]{\ensuremath{\mathrm{Hom}_{#1}\left(#2\right)}}
+\newcommand{\minArg}[2]{\ensuremath \underset{#1}{\min} \left( #2 \right)}
+\newcommand{\maxArg}[2]{\ensuremath \underset{#1}{\max} \left( #2 \right)}
+\renewcommand{\Re}[1]{\ensuremath{\mathrm{Re}\!\left[ #1 \right]}}
+\renewcommand{\Im}[1]{\ensuremath{\mathrm{Im}\!\left[ #1 \right]}}
+\newcommand{\tr}[1]{\ensuremath{\mathrm{Tr}\left( {#1} \right)}}
+\newcommand{\trArg}[2]{\ensuremath{\mathrm{Tr}_{#1}\left( {#2} \right)}}
+
+% Functions / Maps
+\newcommand{\isoTo}{\ensuremath{\xrightarrow{\cong}}}
+\newcommand{\funcDef}[5]{\ensuremath #1 \; : \; #2 \to #3 \; , \; #4 \mapsto #5}
+\newcommand{\funcdef}[3]{\ensuremath #1 \; : \; #2 \to #3}
+\newcommand{\funcdefIso}[3]{\ensuremath #1 \; : \; #2 \isoTo #3}
+
+% Vectors
+\newif\ifvectorsbold
+\vectorsboldtrue
+
+\ifvectorsbold
+    \renewcommand{\vec}[1]{\boldsymbol{#1}}
+    \newcommand{\vect}[1]{\ensuremath\boldsymbol{#1}}  % vector
+    \newcommand{\uvect}[1]{\ensuremath\hat{\boldsymbol{#1}}}  % unit vector
+    \newcommand{\kanon}[1]{\ensuremath\hat{\boldsymbol{e}}_{#1}}  % canonical basis vector
+\else
+    \newcommand{\vect}[1]{\ensuremath\vec}  % vector
+    \newcommand{\uvect}[1]{\ensuremath\hat{#1}}  % unit vector
+    \newcommand{\kanon}[1]{\ensuremath\hat{e}_{#1}}  % canonical basis vector
+\fi
+
+% Equality signs and delimiters
+% \newcommand{\refeq}[1]{\overset{\eqref{#1}}{=}}
+
+
+% Derivatives (operator as fraction d/dx)
+\newcommand{\diff}[1]{\ensuremath \frac{\dd}{\dd {#1}}}
+\newcommand{\ndiff}[2]{\ensuremath \frac{\dd^{#2}}{\dd {#1}^{#2}}}
+\newcommand{\pdiff}[1]{\ensuremath \frac{\partial}{\partial {#1}}}
+\newcommand{\npdiff}[2]{\ensuremath \frac{\partial^{#2}}{\partial {#1}^{#2}}}
+
+% Derivaties (whole derivative as fraction df/dx
+\newcommand{\Diff}[2]{\ensuremath \frac{\dd {#1}}{\dd {#2}}}
+\newcommand{\nDiff}[3]{\ensuremath \frac{\dd^{#3} {#1}}{\dd {#2}^{#3}}}
+\newcommand{\pDiff}[2]{\ensuremath \frac{\partial {#1}}{\partial {#2}}}
+\newcommand{\npDiff}[3]{\ensuremath \frac{\partial^{#3} {#1}}{\partial {#2}^{#3}}}
+
+% Integration
+\renewcommand{\d}[1]{\ensuremath \,\! \dd {#1} \,\! }  % differential d{x} -> dx
+
+% Category theory
+\newcommand{\blank}{{-}}
+\newcommand{\catC}{\mathbf{C}}
+\newcommand{\catD}{\mathbf{D}}
+\newcommand{\catRepG}{\mathbf{Rep}_G}
+\newcommand{\catFerm}{\mathbf{Ferm}}
+\newcommand{\catFib}{\mathbf{Fib}}
+\newcommand{\objset}[1]{\mathrm{Ob}(#1)}
+\newcommand{\morphset}[3]{#1(#2, #3)}
+\newcommand{\morphism}[3]{#1: #2 \to #3}
+\newcommand{\isomorphism}[3]{#1: #2 \isoTo #3}
+\newcommand{\naturaltrafo}[3]{#1: #2 \Longrightarrow #3}
+\newcommand{\id}[1]{\mathrm{id}_{#1}}
+\newcommand{\cupmap}[1]{\eta_{#1}}
+\newcommand{\capmap}[1]{\varepsilon_{#1}}
