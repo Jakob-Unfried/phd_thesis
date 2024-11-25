@@ -1,5 +1,5 @@
 # phd_thesis
-Digital assets associated with my PhD thesis.
+Digital assets associated with my [PhD thesis](https://mediatum.ub.tum.de/680892?show_id=1755273&style=full_text).
 
 ## Contents
 - `fusion_tree_benchmarks`:
